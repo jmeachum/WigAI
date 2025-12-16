@@ -87,16 +87,16 @@ jobs:
         with:
           filters: |
             code:
-              - '!docs/**'
-              - '!*.md'
-              - '!**/*.md'
-              - '!.gitignore'
-              - '!LICENSE'
-              - '!.bmad/**'      # BMAD methodology files
-              - '!.claude/**'    # Claude Code settings
-              - '!.continue/**'  # Continue.dev settings
-              - '!.github/**'    # GitHub config
-              - '!.roo/**'       # Roo configuration
+              - 'src/**'
+              - 'bitwig-api-doc-scraper/**'
+              - 'gradle/**'
+              - 'gradlew'
+              - 'gradlew.bat'
+              - 'gradle.properties'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - '**/*.kt'
+              - '**/*.kts'
 
   build-and-test:
     needs: check-changes

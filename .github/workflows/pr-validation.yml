@@ -19,17 +19,16 @@ jobs:
         with:
           filters: |
             code:
-              - '**'
-              - '!docs/**'
-              - '!*.md'
-              - '!**/*.md'
-              - '!.gitignore'
-              - '!LICENSE'
-              - '!.bmad/**'
-              - '!.claude/**'
-              - '!.continue/**'
-              - '!.github/**'
-              - '!.roo/**'
+              - 'src/**'
+              - 'bitwig-api-doc-scraper/**'
+              - 'gradle/**'
+              - 'gradlew'
+              - 'gradlew.bat'
+              - 'gradle.properties'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - '**/*.kt'
+              - '**/*.kts'
 
   build-and-test:
     needs: check-changes
