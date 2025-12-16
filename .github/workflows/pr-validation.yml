@@ -31,19 +31,84 @@ jobs:
               - '!.github/**'
               - '!.roo/**'
 
-  build-and-test:
+  test:
+    name: Test
     needs: check-changes
-    uses: ./.github/workflows/build-and-test.yml
-    with:
-      run-ci: ${{ needs.check-changes.outputs.should-test == 'true' }}
-      upload-artifact: true
-      artifact-name-suffix: pr-${{ github.event.number || github.sha }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip (no code changes)
+        if: ${{ needs.check-changes.outputs.should-test != 'true' }}
+        run: echo "No code changes detected; skipping tests."
+
+      - name: Checkout code
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run tests
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        run: ./gradlew test
+
+  build:
+    name: Build
+    needs: [check-changes, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip (no code changes)
+        if: ${{ needs.check-changes.outputs.should-test != 'true' }}
+        run: echo "No code changes detected; skipping build."
+
+      - name: Checkout code
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build extension
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        run: ./gradlew bwextension -x test
+
+      - name: Set artifact name
+        id: set-artifact-name
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        run: |
+          if [ -n "${{ github.event.number }}" ]; then
+            echo "name=WigAI.bwextension-pr-${{ github.event.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=WigAI.bwextension-${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload extension artifact
+        if: ${{ needs.check-changes.outputs.should-test == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.set-artifact-name.outputs.name }}
+          path: build/extensions/WigAI.bwextension
+          retention-days: 7
 
   # Always-passing job that summarizes the validation status
   validation-summary:
     runs-on: ubuntu-latest
-    needs: [check-changes, build-and-test]
-    # Run even if build-and-test is skipped
+    needs: [check-changes, test, build]
     if: always()
     steps:
       - name: Report validation status
@@ -52,10 +117,10 @@ jobs:
             echo "✅ No code changes detected - skipping tests"
             echo "Changed files are documentation or configuration only"
             exit 0
-          elif [[ "${{ needs.build-and-test.result }}" == "success" ]]; then
+          elif [[ "${{ needs.test.result }}" == "success" && "${{ needs.build.result }}" == "success" ]]; then
             echo "✅ All tests passed"
             exit 0
           else
-            echo "❌ Tests failed"
+            echo "❌ Validation failed"
             exit 1
           fi

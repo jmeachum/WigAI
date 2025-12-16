@@ -7,7 +7,7 @@ This directory contains the CI/CD workflows for WigAI. The workflows are designe
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | **branch-policy.yml** | PRs to `main` or `develop/cycle-*` | Enforces branch naming conventions per [git-workflow.md](../../docs/engineering/git-workflow.md) |
-| **pr-validation.yml** | Pull requests (code changes only) | Runs tests and builds extension for PR validation |
+| **pr-validation.yml** | Pull requests (always) | Provides required PR checks (Test/Build) and skips work for docs/config-only changes |
 | **build-and-test.yml** | Called by other workflows | Reusable workflow containing shared build/test logic |
 | **release.yml** | Push to `main` or manual trigger | Publishes releases with semantic versioning via Nyx |
 
@@ -15,19 +15,20 @@ This directory contains the CI/CD workflows for WigAI. The workflows are designe
 
 ### Reusable Workflow Pattern
 
-We use a **reusable workflow** (`build-and-test.yml`) to eliminate duplication:
+We use a **reusable workflow** (`build-and-test.yml`) for release/manual flows, and keep explicit `Test`/`Build` jobs in PR validation so branch rulesets can require those checks by name:
 
 ```mermaid
 graph TD
-    A[pr-validation.yml] --> C[build-and-test.yml]
+    A[pr-validation.yml] --> D[test job]
+    A[pr-validation.yml] --> E[build job]
     B[release.yml<br/>manual trigger] --> C
     C --> D[test job]
     C --> E[build job]
 ```
 
 **Benefits:**
-- Single source of truth for build/test logic
-- Easier maintenance (update once, applies everywhere)
+- Reusable build/test logic for non-PR workflows (e.g., releases)
+- PR checks have stable, require-able names (`PR Validation / Test`, `PR Validation / Build`)
 - Consistent behavior across workflows
 
 ### Smart Execution Strategy
@@ -62,7 +63,7 @@ Our workflows use conditional execution to avoid redundant work:
 #### Doc/Config-Only PR
 ```
 1. branch-policy.yml ✅ Validates branch name
-2. pr-validation.yml ⏭️ Skipped (paths-ignore filter)
+2. pr-validation.yml ✅ Runs (Test/Build jobs skip work)
 3. release.yml ⏭️ Not triggered
 ```
 
@@ -98,13 +99,16 @@ jobs:
               - '!.github/**'    # GitHub config
               - '!.roo/**'       # Roo configuration
 
-  build-and-test:
+  test:
     needs: check-changes
-    if: needs.check-changes.outputs.should-test == 'true'
-    # ... runs tests only if code changed
+    # ... runs tests only if code changed (otherwise a skip step runs and the job still succeeds)
+
+  build:
+    needs: [check-changes, test]
+    # ... runs build only if code changed (otherwise a skip step runs and the job still succeeds)
 
   validation-summary:
-    needs: [check-changes, build-and-test]
+    needs: [check-changes, test, build]
     if: always()
     # ... always runs and reports status
 ```
@@ -168,9 +172,9 @@ Our workflows integrate with branch protection rules:
 - Code PR: `check-changes` → `build-and-test` → `validation-summary` ✅/❌
 
 **Branch Protection:**
-- Require the `validation-summary` job as a status check
-- This job always appears and passes for docs-only changes
-- Fails only if actual code tests fail
+- Require `PR Validation / Test` and `PR Validation / Build` (or require only `PR Validation / validation-summary`)
+- `Test` and `Build` always appear (docs-only PRs skip work but still succeed)
+- Fails only if actual code tests/build fails
 
 ### build-and-test.yml
 
