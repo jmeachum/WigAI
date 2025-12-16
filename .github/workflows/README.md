@@ -73,30 +73,47 @@ Our workflows use conditional execution to avoid redundant work:
 
 ### Path Filters (Resource Optimization)
 
-The PR validation workflow uses path filters to skip execution when only documentation changes:
+The PR validation workflow uses the `dorny/paths-filter` action to detect code changes and conditionally skip tests:
 
 ```yaml
-on:
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - '.gitignore'
-      - 'LICENSE'
-      # Configuration directories
-      - '.bmad/**'      # BMAD methodology files
-      - '.claude/**'    # Claude Code settings
-      - '.continue/**'  # Continue.dev settings
-      - '.github/**'    # GitHub config (workflows can't be tested in PR context)
-      - '.roo/**'       # Roo configuration
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-test: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '!docs/**'
+              - '!**.md'
+              - '!.gitignore'
+              - '!LICENSE'
+              - '!.bmad/**'      # BMAD methodology files
+              - '!.claude/**'    # Claude Code settings
+              - '!.continue/**'  # Continue.dev settings
+              - '!.github/**'    # GitHub config
+              - '!.roo/**'       # Roo configuration
+
+  build-and-test:
+    needs: check-changes
+    if: needs.check-changes.outputs.should-test == 'true'
+    # ... runs tests only if code changed
+
+  validation-summary:
+    needs: [check-changes, build-and-test]
+    if: always()
+    # ... always runs and reports status
 ```
 
-**Why this works:**
-- Documentation and config changes don't affect code quality
-- Workflow changes can't be validated until merged (not active in PR context)
-- Saves GitHub Actions minutes
-- Faster feedback for config/doc-only PRs
-- Branch policy still validates branch naming
+**Why this approach:**
+- Workflow **always runs**, so required status checks always appear
+- Tests only execute when code files change (saves Actions minutes)
+- `validation-summary` job always passes for docs-only changes
+- Compatible with GitHub branch protection and rulesets
+- No "missing required check" errors
 
 ## Branch Protection Integration
 
@@ -104,16 +121,18 @@ Our workflows integrate with branch protection rules:
 
 1. **Main Branch Protection**
    - Requires `enforce-branch-policy` check to pass
-   - Requires `build-and-test` (from pr-validation.yml) to pass
+   - Requires `validation-summary` (from pr-validation.yml) to pass
    - Only accepts PRs from `develop/cycle-*` or `hotfix/*` branches
 
 2. **Develop/Cycle-* Branch Protection**
    - Requires `enforce-branch-policy` check to pass
-   - Requires `build-and-test` (from pr-validation.yml) to pass
+   - Requires `validation-summary` (from pr-validation.yml) to pass
    - Only accepts PRs from `feature/*`, `planning/cycle-*`, or `docs/*` branches
 
 3. **Trust Model**
    - Branch protection ensures all code is tested before merge
+   - `validation-summary` always appears (even for docs-only PRs)
+   - Tests are skipped for docs/config changes but status still passes
    - Release workflow trusts PR validation results, doesn't re-run tests
    - Manual triggers still run full validation for safety
 
@@ -133,18 +152,24 @@ Our workflows integrate with branch protection rules:
 
 ### pr-validation.yml
 
-**Purpose:** Validates all code changes in pull requests.
+**Purpose:** Validates all code changes in pull requests while ensuring status checks always appear.
 
 **Triggers:**
-- Pull requests with code changes (skips docs-only)
+- All pull requests (always runs, never skipped)
 
-**Execution:**
-- Calls `build-and-test.yml` with artifact upload enabled
-- Uploads extension as artifact for PR testing
+**Jobs:**
+1. **check-changes**: Detects if code files were modified using `dorny/paths-filter`
+2. **build-and-test**: Conditionally runs tests if code changed (calls reusable workflow)
+3. **validation-summary**: Always runs, reports pass/skip status for branch protection
 
-**Optimization:**
-- Uses path filters to skip doc-only changes
-- Leverage Gradle caching for faster builds
+**Execution Flow:**
+- Docs/config-only PR: `check-changes` → `validation-summary` ✅ (skips tests)
+- Code PR: `check-changes` → `build-and-test` → `validation-summary` ✅/❌
+
+**Branch Protection:**
+- Require the `validation-summary` job as a status check
+- This job always appears and passes for docs-only changes
+- Fails only if actual code tests fail
 
 ### build-and-test.yml
 
