@@ -19,8 +19,10 @@ jobs:
         with:
           filters: |
             code:
+              - '**'
               - '!docs/**'
-              - '!**.md'
+              - '!*.md'
+              - '!**/*.md'
               - '!.gitignore'
               - '!LICENSE'
               - '!.bmad/**'
@@ -31,10 +33,9 @@ jobs:
 
   build-and-test:
     needs: check-changes
-    # Only run tests if code files changed
-    if: needs.check-changes.outputs.should-test == 'true'
     uses: ./.github/workflows/build-and-test.yml
     with:
+      run-ci: ${{ needs.check-changes.outputs.should-test == 'true' }}
       upload-artifact: true
       artifact-name-suffix: pr-${{ github.event.number || github.sha }}
 

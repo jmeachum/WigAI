@@ -88,7 +88,8 @@ jobs:
           filters: |
             code:
               - '!docs/**'
-              - '!**.md'
+              - '!*.md'
+              - '!**/*.md'
               - '!.gitignore'
               - '!LICENSE'
               - '!.bmad/**'      # BMAD methodology files

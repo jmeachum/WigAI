@@ -3,6 +3,11 @@ name: Build and Test (Reusable)
 on:
   workflow_call:
     inputs:
+      run-ci:
+        description: 'Whether to run tests/build (set false for docs-only PRs so required checks still pass)'
+        required: false
+        type: boolean
+        default: true
       upload-artifact:
         description: 'Whether to upload the built extension as an artifact'
         required: false
@@ -22,19 +27,27 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Skip (no code changes)
+        if: ${{ !inputs.run-ci }}
+        run: echo "No code changes detected; skipping tests."
+
       - name: Checkout code
+        if: ${{ inputs.run-ci }}
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
+        if: ${{ inputs.run-ci }}
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Gradle
+        if: ${{ inputs.run-ci }}
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run tests
+        if: ${{ inputs.run-ci }}
         run: ./gradlew test
 
   build:
@@ -43,19 +56,27 @@ jobs:
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.name }}
     steps:
+      - name: Skip (no code changes)
+        if: ${{ !inputs.run-ci }}
+        run: echo "No code changes detected; skipping build."
+
       - name: Checkout code
+        if: ${{ inputs.run-ci }}
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
+        if: ${{ inputs.run-ci }}
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Gradle
+        if: ${{ inputs.run-ci }}
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build extension
+        if: ${{ inputs.run-ci }}
         run: ./gradlew bwextension -x test
 
       - name: Set artifact name
@@ -68,7 +89,7 @@ jobs:
           fi
 
       - name: Upload extension artifact
-        if: inputs.upload-artifact
+        if: ${{ inputs.upload-artifact && inputs.run-ci }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.set-artifact-name.outputs.name }}
