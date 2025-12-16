@@ -1,0 +1,26 @@
+name: PR Validation
+
+on:
+  pull_request:
+    paths-ignore:
+      # Skip validation when only documentation or non-code files change
+      - 'docs/**'
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
+      # Skip validation for configuration directories that don't affect code
+      - '.bmad/**'
+      - '.claude/**'
+      - '.continue/**'
+      - '.github/**'
+      - '.roo/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      upload-artifact: true
+      artifact-name-suffix: pr-${{ github.event.number || github.sha }}
