@@ -9,7 +9,19 @@ import java.util.Map;
  */
 public interface McpClient {
 
+    /**
+     * Initializes the MCP session. Must be called before any other operations.
+     * Performs the MCP initialize/initialized handshake.
+     */
+    void initialize();
+
     List<String> listTools();
+
+    /**
+     * Returns the raw JSON response from tools/list for full diagnostic output.
+     * Satisfies AC2 requirement to print full tool list observed.
+     */
+    String listToolsRaw();
 
     /**
      * Calls a tool and returns the raw JSON text payload returned by WigAI (single text content).
