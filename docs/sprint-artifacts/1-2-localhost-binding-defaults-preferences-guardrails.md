@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Review
+Status: Ready for Dev
 
 ## Story
 
@@ -55,6 +55,14 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Confirm constructor preference writeback cannot trigger unwanted restarts/side effects before observers are registered; document/guard if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:69]
 - [x] [AI-Review][Low] Fix test method typo `returnsFlaseForNull` → `returnsFalseForNull`. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
 - [x] [AI-Review][Low] Document `containsBindException` as a test seam (or make it private + test via behavior) for maintainability. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:95]
+
+### Review Follow-ups (AI) — 5-commit scope re-review
+- [ ] [AI-Review][Critical] Fix false claim: `returnsFlaseForNull` typo still present; update code or correct story record. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
+- [ ] [AI-Review][Critical] Fix false claim: bind failure UX test coverage not present (only `containsBindException` unit tests); add behavioral test or correct story record. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:120]
+- [ ] [AI-Review][Medium] Add unit tests for init-time sanitization/writeback of persisted host/port (invalid persisted values). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
+- [ ] [AI-Review][Medium] Dev Agent Record File List: remove/qualify “Added ATDD checklist” if file wasn’t added in this 5-commit scope. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:155]
+- [ ] [AI-Review][Low] Remove unused `host` field in config manager (or use it) to avoid dead state. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:20]
+- [ ] [AI-Review][Low] Revisit `@Tag("atdd_red")` name/intent now that tests are green. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:28]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
