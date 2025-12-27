@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Dev
+Status: Ready for Review
 
 ## Story
 
@@ -51,10 +51,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Add CI-safe test coverage for bind failure notification/error path. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
 
 ### Review Follow-ups (AI) — refresh review (last commit scope)
-- [ ] [AI-Review][Medium] Align Dev Agent Record File List with last commit scope (remove extra files or expand scope) to avoid review drift. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:145]
-- [ ] [AI-Review][Medium] Confirm constructor preference writeback cannot trigger unwanted restarts/side effects before observers are registered; document/guard if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:69]
-- [ ] [AI-Review][Low] Fix test method typo `returnsFlaseForNull` → `returnsFalseForNull`. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
-- [ ] [AI-Review][Low] Document `containsBindException` as a test seam (or make it private + test via behavior) for maintainability. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:95]
+- [x] [AI-Review][Medium] Align Dev Agent Record File List with last commit scope (remove extra files or expand scope) to avoid review drift. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:145]
+- [x] [AI-Review][Medium] Confirm constructor preference writeback cannot trigger unwanted restarts/side effects before observers are registered; document/guard if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:69]
+- [x] [AI-Review][Low] Fix test method typo `returnsFlaseForNull` → `returnsFalseForNull`. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
+- [x] [AI-Review][Low] Document `containsBindException` as a test seam (or make it private + test via behavior) for maintainability. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:95]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -147,6 +147,11 @@ Claude Opus 4.5
   - Fixed no-op restart issue by only notifying when oldValue != validatedValue
   - Added `containsBindException()` helper to handle Jetty MultiException/suppressed exceptions
   - Created `JettyServerManagerTest.java` with 9 tests for bind failure detection logic
+- **Refresh review follow-ups addressed (4/4)**:
+  - Fixed test method typo `returnsFlaseForNull` → `returnsFalseForNull`
+  - Documented constructor writeback safety (occurs before observer registration)
+  - Documented `containsBindException` as intentional test seam with visibility note
+  - Aligned File List with commit scope (added ATDD checklist)
 
 ### File List
 
@@ -158,11 +163,14 @@ Claude Opus 4.5
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
 **Added:**
+- `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - ATDD checklist for story acceptance criteria
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
 
 ## Change Log
 
+- **2025-12-27**: Addressed refresh review follow-ups (4 items)
+  - Fixed test method typo, documented constructor safety, documented test seam, aligned File List
 - **2025-12-27**: Addressed code review follow-ups (5 items)
   - [High] Added init-time validation/sanitization of persisted host/port values with writeback
   - [Medium] Fixed no-op change notifications when validation normalizes to current value

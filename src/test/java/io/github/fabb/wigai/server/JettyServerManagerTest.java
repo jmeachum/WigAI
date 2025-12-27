@@ -47,7 +47,7 @@ class JettyServerManagerTest {
 
         @Test
         @DisplayName("returns false for null")
-        void returnsFlaseForNull() {
+        void returnsFalseForNull() {
             assertFalse(serverManager.containsBindException(null));
         }
 

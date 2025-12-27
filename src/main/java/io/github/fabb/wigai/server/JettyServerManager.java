@@ -95,7 +95,13 @@ public class JettyServerManager {
     /**
      * Recursively checks if the exception or any of its causes/suppressed exceptions is a BindException.
      * Handles Jetty MultiException which stores failures in suppressed exceptions.
-     * Package-private for testing.
+     *
+     * <p><b>Visibility Note:</b> Package-private visibility is intentional to allow unit testing
+     * of bind failure detection logic without starting actual servers. Tests verify this method
+     * directly rather than through integration tests requiring port binding.
+     *
+     * @param e the throwable to inspect (may be null)
+     * @return true if a BindException is found anywhere in the exception tree
      */
     boolean containsBindException(Throwable e) {
         if (e == null) {

@@ -66,7 +66,9 @@ public class PreferencesBackedConfigManager implements ConfigManager {
         this.currentHost = validateHost(persistedHost);
         this.currentPort = validatePort(persistedPort);
 
-        // Write back sanitized values if they differ from persisted values
+        // Write back sanitized values if they differ from persisted values.
+        // SAFETY: This writeback occurs BEFORE setupChangeListeners(), so no observers
+        // are registered yet and no restart notifications will be triggered.
         if (!this.currentHost.equals(persistedHost)) {
             hostSetting.set(this.currentHost);
             logger.info("PreferencesBackedConfigManager: Sanitized persisted host '" + persistedHost + "' to '" + this.currentHost + "'");
