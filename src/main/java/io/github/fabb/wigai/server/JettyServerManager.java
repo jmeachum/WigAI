@@ -125,8 +125,13 @@ public class JettyServerManager {
 
     /**
      * Notifies the user that the port could not be bound.
+     *
+     * <p><b>Visibility Note:</b> Package-private visibility is intentional to allow unit testing
+     * of bind failure notification behavior without starting actual servers.
+     *
+     * @param port the port that could not be bound
      */
-    private void notifyBindFailure(int port) {
+    void notifyBindFailure(int port) {
         String message = String.format(
             "WigAI: Port %d is already in use. Please choose another port in Bitwig Preferences → WigAI → Network Settings.",
             port);

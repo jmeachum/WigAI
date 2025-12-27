@@ -17,7 +17,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class PreferencesBackedConfigManager implements ConfigManager {
     private final Logger logger;
-    private final ControllerHost host;
     private final List<ConfigChangeObserver> observers = new CopyOnWriteArrayList<>();
 
     private final SettableStringValue hostSetting;
@@ -34,7 +33,6 @@ public class PreferencesBackedConfigManager implements ConfigManager {
      */
     public PreferencesBackedConfigManager(Logger logger, ControllerHost host) {
         this.logger = logger;
-        this.host = host;
 
         logger.info("PreferencesBackedConfigManager: Initializing with Bitwig preferences integration");
 

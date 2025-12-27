@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Dev
+Status: Ready for Review
 
 ## Story
 
@@ -57,12 +57,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Document `containsBindException` as a test seam (or make it private + test via behavior) for maintainability. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:95]
 
 ### Review Follow-ups (AI) — 5-commit scope re-review
-- [ ] [AI-Review][Critical] Fix false claim: `returnsFlaseForNull` typo still present; update code or correct story record. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
-- [ ] [AI-Review][Critical] Fix false claim: bind failure UX test coverage not present (only `containsBindException` unit tests); add behavioral test or correct story record. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:120]
-- [ ] [AI-Review][Medium] Add unit tests for init-time sanitization/writeback of persisted host/port (invalid persisted values). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
-- [ ] [AI-Review][Medium] Dev Agent Record File List: remove/qualify “Added ATDD checklist” if file wasn’t added in this 5-commit scope. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:155]
-- [ ] [AI-Review][Low] Remove unused `host` field in config manager (or use it) to avoid dead state. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:20]
-- [ ] [AI-Review][Low] Revisit `@Tag("atdd_red")` name/intent now that tests are green. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:28]
+- [x] [AI-Review][Critical] Fix false claim: `returnsFlaseForNull` typo still present; update code or correct story record. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
+- [x] [AI-Review][Critical] Fix false claim: bind failure UX test coverage not present (only `containsBindException` unit tests); add behavioral test or correct story record. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:120]
+- [x] [AI-Review][Medium] Add unit tests for init-time sanitization/writeback of persisted host/port (invalid persisted values). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
+- [x] [AI-Review][Medium] Dev Agent Record File List: remove/qualify "Added ATDD checklist" if file wasn't added in this 5-commit scope. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:155]
+- [x] [AI-Review][Low] Remove unused `host` field in config manager (or use it) to avoid dead state. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:20]
+- [x] [AI-Review][Low] Revisit `@Tag("atdd_red")` name/intent now that tests are green. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:28]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -160,23 +160,39 @@ Claude Opus 4.5
   - Documented constructor writeback safety (occurs before observer registration)
   - Documented `containsBindException` as intentional test seam with visibility note
   - Aligned File List with commit scope (added ATDD checklist)
+- **5-commit scope re-review addressed (6/6)**:
+  - [Critical] Verified typo was already fixed - story record was stale
+  - [Critical] Added behavioral tests for bind failure UX (notifyBindFailure) verifying popup notification and error logging
+  - [Medium] Added 4 init-time sanitization tests for invalid persisted host/port values
+  - [Medium] Qualified ATDD checklist entry (added in earlier commit, not in 5-commit scope)
+  - [Low] Removed unused `host` field from PreferencesBackedConfigManager
+  - [Low] Updated `@Tag("atdd_red")` → `@Tag("atdd")` since tests are now green
 
 ### File List
 
 **Modified:**
-- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters
+- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests (16 total tests)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added 3 behavioral tests for notifyBindFailure (12 total tests)
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
-**Added:**
-- `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - ATDD checklist for story acceptance criteria
+**Added (prior commits, not in 5-commit scope):**
+- `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - ATDD checklist (commit 6d37835, prior to 5-commit scope)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
 
 ## Change Log
 
+- **2025-12-27**: Addressed 5-commit scope re-review follow-ups (6 items)
+  - [Critical] Verified typo was already fixed (story record was stale)
+  - [Critical] Added behavioral tests for bind failure UX (3 tests for notifyBindFailure)
+  - [Medium] Added 4 unit tests for init-time sanitization of invalid persisted values
+  - [Medium] Qualified ATDD checklist entry (added in earlier commit 6d37835)
+  - [Low] Removed unused `host` field from PreferencesBackedConfigManager
+  - [Low] Renamed @Tag("atdd_red") → @Tag("atdd") since tests are green
 - **2025-12-27**: Addressed refresh review follow-ups (4 items)
   - Fixed test method typo, documented constructor safety, documented test seam, aligned File List
 - **2025-12-27**: Addressed code review follow-ups (5 items)

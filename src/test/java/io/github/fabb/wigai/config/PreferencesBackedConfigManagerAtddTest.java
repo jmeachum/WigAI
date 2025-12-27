@@ -25,7 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Tag("atdd_red")
+@Tag("atdd")
 class PreferencesBackedConfigManagerAtddTest {
 
     @Mock

@@ -14,6 +14,8 @@ import org.mockito.MockitoAnnotations;
 import java.net.BindException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.verify;
 
 /**
  * CI-safe unit tests for JettyServerManager.
@@ -123,6 +125,39 @@ class JettyServerManagerTest {
             multiException.addSuppressed(new NullPointerException("NPE"));
 
             assertFalse(serverManager.containsBindException(multiException));
+        }
+    }
+
+    @Nested
+    @DisplayName("notifyBindFailure")
+    class NotifyBindFailureTests {
+
+        @Test
+        @DisplayName("logs error with port number and remediation advice")
+        void logsErrorWithPortAndRemediation() {
+            serverManager.notifyBindFailure(61169);
+
+            verify(logger).error(contains("61169"));
+            verify(logger).error(contains("already in use"));
+            verify(logger).error(contains("choose another port"));
+        }
+
+        @Test
+        @DisplayName("shows popup notification with actionable message")
+        void showsPopupNotification() {
+            serverManager.notifyBindFailure(8080);
+
+            verify(host).showPopupNotification(contains("8080"));
+            verify(host).showPopupNotification(contains("already in use"));
+        }
+
+        @Test
+        @DisplayName("message includes Bitwig Preferences path for user guidance")
+        void messageIncludesPreferencesPath() {
+            serverManager.notifyBindFailure(61169);
+
+            verify(host).showPopupNotification(contains("Bitwig Preferences"));
+            verify(host).showPopupNotification(contains("Network Settings"));
         }
     }
 }
