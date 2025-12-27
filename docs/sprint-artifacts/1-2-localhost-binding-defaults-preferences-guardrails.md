@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Review
+Status: Ready for Dev
 
 ## Story
 
@@ -42,6 +42,13 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
   - [x] Unit tests for host validation (empty, whitespace, non-loopback, allowed loopback values)
   - [x] Unit tests for port validation (out-of-range -> default)
   - [x] Regression test that preference value is corrected when invalid host is entered
+
+### Review Follow-ups (AI)
+- [ ] [AI-Review][High] Validate and sanitize persisted host/port values on initialization (and write back) before use to enforce loopback defaults. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
+- [ ] [AI-Review][Medium] Avoid triggering host/port change notifications (and server restart) when validation normalizes to current value (no-op). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:78]
+- [ ] [AI-Review][Medium] Expand bind failure detection to cover Jetty MultiException/suppressed BindException so AC5 always logs/pops up. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:84]
+- [ ] [AI-Review][Medium] Update Dev Agent Record File List to include story + sprint-status changes from last commit. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:133]
+- [ ] [AI-Review][Low] Add CI-safe test coverage for bind failure notification/error path. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
