@@ -59,10 +59,22 @@ public class PreferencesBackedConfigManager implements ConfigManager {
             (double) AppConstants.DEFAULT_MCP_PORT
         );
 
-        // Initialize current values from settings
-        this.currentHost = hostSetting.get();
-        this.currentPort = (int) portSetting.getRaw();
+        // Initialize current values from settings with validation
+        String persistedHost = hostSetting.get();
+        int persistedPort = (int) portSetting.getRaw();
 
+        this.currentHost = validateHost(persistedHost);
+        this.currentPort = validatePort(persistedPort);
+
+        // Write back sanitized values if they differ from persisted values
+        if (!this.currentHost.equals(persistedHost)) {
+            hostSetting.set(this.currentHost);
+            logger.info("PreferencesBackedConfigManager: Sanitized persisted host '" + persistedHost + "' to '" + this.currentHost + "'");
+        }
+        if (this.currentPort != persistedPort) {
+            portSetting.set(this.currentPort);
+            logger.info("PreferencesBackedConfigManager: Sanitized persisted port " + persistedPort + " to " + this.currentPort);
+        }
 
         // Set up change listeners
         setupChangeListeners();
@@ -84,8 +96,11 @@ public class PreferencesBackedConfigManager implements ConfigManager {
                 if (!validatedHost.equals(newHost)) {
                     hostSetting.set(validatedHost);
                 }
-                notifyHostChanged(oldHost, currentHost);
-                logger.info("PreferencesBackedConfigManager: Host changed from '" + oldHost + "' to '" + currentHost + "'");
+                // Only notify if there's an actual change after validation (avoid no-op restarts)
+                if (!oldHost.equals(validatedHost)) {
+                    notifyHostChanged(oldHost, currentHost);
+                    logger.info("PreferencesBackedConfigManager: Host changed from '" + oldHost + "' to '" + currentHost + "'");
+                }
             }
         });
 
@@ -100,8 +115,11 @@ public class PreferencesBackedConfigManager implements ConfigManager {
                 if (validatedPort != newPortInt) {
                     portSetting.set(validatedPort);
                 }
-                notifyPortChanged(oldPort, currentPort);
-                logger.info("PreferencesBackedConfigManager: Port changed from " + oldPort + " to " + currentPort);
+                // Only notify if there's an actual change after validation (avoid no-op restarts)
+                if (oldPort != validatedPort) {
+                    notifyPortChanged(oldPort, currentPort);
+                    logger.info("PreferencesBackedConfigManager: Port changed from " + oldPort + " to " + currentPort);
+                }
             }
         });
     }

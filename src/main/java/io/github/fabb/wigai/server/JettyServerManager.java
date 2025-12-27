@@ -82,19 +82,39 @@ public class JettyServerManager {
             notifyBindFailure(configManager.getMcpPort());
             throw e;
         } catch (Exception e) {
-            // Check if root cause is BindException
-            Throwable cause = e.getCause();
-            while (cause != null) {
-                if (cause instanceof BindException) {
-                    notifyBindFailure(configManager.getMcpPort());
-                    throw e;
-                }
-                cause = cause.getCause();
+            // Check if root cause is BindException (including suppressed exceptions for Jetty MultiException)
+            if (containsBindException(e)) {
+                notifyBindFailure(configManager.getMcpPort());
             }
             throw e;
         }
 
         notifyServerStarted();
+    }
+
+    /**
+     * Recursively checks if the exception or any of its causes/suppressed exceptions is a BindException.
+     * Handles Jetty MultiException which stores failures in suppressed exceptions.
+     * Package-private for testing.
+     */
+    boolean containsBindException(Throwable e) {
+        if (e == null) {
+            return false;
+        }
+        if (e instanceof BindException) {
+            return true;
+        }
+        // Check cause chain
+        if (containsBindException(e.getCause())) {
+            return true;
+        }
+        // Check suppressed exceptions (for Jetty MultiException behavior)
+        for (Throwable suppressed : e.getSuppressed()) {
+            if (containsBindException(suppressed)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

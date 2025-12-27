@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Dev
+Status: Ready for Review
 
 ## Story
 
@@ -44,11 +44,11 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
   - [x] Regression test that preference value is corrected when invalid host is entered
 
 ### Review Follow-ups (AI)
-- [ ] [AI-Review][High] Validate and sanitize persisted host/port values on initialization (and write back) before use to enforce loopback defaults. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
-- [ ] [AI-Review][Medium] Avoid triggering host/port change notifications (and server restart) when validation normalizes to current value (no-op). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:78]
-- [ ] [AI-Review][Medium] Expand bind failure detection to cover Jetty MultiException/suppressed BindException so AC5 always logs/pops up. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:84]
-- [ ] [AI-Review][Medium] Update Dev Agent Record File List to include story + sprint-status changes from last commit. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:133]
-- [ ] [AI-Review][Low] Add CI-safe test coverage for bind failure notification/error path. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
+- [x] [AI-Review][High] Validate and sanitize persisted host/port values on initialization (and write back) before use to enforce loopback defaults. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
+- [x] [AI-Review][Medium] Avoid triggering host/port change notifications (and server restart) when validation normalizes to current value (no-op). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:78]
+- [x] [AI-Review][Medium] Expand bind failure detection to cover Jetty MultiException/suppressed BindException so AC5 always logs/pops up. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:84]
+- [x] [AI-Review][Medium] Update Dev Agent Record File List to include story + sprint-status changes from last commit. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:133]
+- [x] [AI-Review][Low] Add CI-safe test coverage for bind failure notification/error path. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -136,19 +136,33 @@ Claude Opus 4.5
 - Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
 - Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (12 tests)
 - All 5 ATDD tests passing, all unit tests passing, clean build successful
+- **Review follow-ups addressed (5/5)**:
+  - Added init-time validation of persisted host/port with writeback in constructor
+  - Fixed no-op restart issue by only notifying when oldValue != validatedValue
+  - Added `containsBindException()` helper to handle Jetty MultiException/suppressed exceptions
+  - Created `JettyServerManagerTest.java` with 9 tests for bind failure detection logic
 
 ### File List
 
 **Modified:**
-- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with user notification
+- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters
+- `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
+- `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
 **Added:**
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
 
 ## Change Log
 
+- **2025-12-27**: Addressed code review follow-ups (5 items)
+  - [High] Added init-time validation/sanitization of persisted host/port values with writeback
+  - [Medium] Fixed no-op change notifications when validation normalizes to current value
+  - [Medium] Expanded bind failure detection to handle Jetty MultiException/suppressed exceptions
+  - [Medium] Updated File List with story + sprint-status files
+  - [Low] Added CI-safe unit tests for bind failure detection (9 tests)
 - **2025-12-27**: Implemented Story 1.2 - Localhost binding defaults and preferences guardrails
   - Added loopback-only host validation (localhost, 127.0.0.1, ::1)
   - Added preference writeback to keep UI in sync with sanitized values

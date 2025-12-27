@@ -1,0 +1,128 @@
+package io.github.fabb.wigai.server;
+
+import com.bitwig.extension.controller.api.ControllerHost;
+import io.github.fabb.wigai.WigAIExtensionDefinition;
+import io.github.fabb.wigai.common.Logger;
+import io.github.fabb.wigai.config.ConfigManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.net.BindException;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * CI-safe unit tests for JettyServerManager.
+ * Tests bind failure detection logic without starting actual servers.
+ */
+class JettyServerManagerTest {
+
+    @Mock
+    private Logger logger;
+
+    @Mock
+    private ConfigManager configManager;
+
+    @Mock
+    private WigAIExtensionDefinition extensionDefinition;
+
+    @Mock
+    private ControllerHost host;
+
+    private JettyServerManager serverManager;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        serverManager = new JettyServerManager(logger, configManager, extensionDefinition, host);
+    }
+
+    @Nested
+    @DisplayName("containsBindException")
+    class ContainsBindExceptionTests {
+
+        @Test
+        @DisplayName("returns false for null")
+        void returnsFlaseForNull() {
+            assertFalse(serverManager.containsBindException(null));
+        }
+
+        @Test
+        @DisplayName("returns true for direct BindException")
+        void returnsTrueForDirectBindException() {
+            BindException bindException = new BindException("Address already in use");
+            assertTrue(serverManager.containsBindException(bindException));
+        }
+
+        @Test
+        @DisplayName("returns true for BindException in cause chain")
+        void returnsTrueForBindExceptionInCauseChain() {
+            BindException bindException = new BindException("Address already in use");
+            RuntimeException wrapper = new RuntimeException("Server failed to start", bindException);
+
+            assertTrue(serverManager.containsBindException(wrapper));
+        }
+
+        @Test
+        @DisplayName("returns true for BindException nested deeply in cause chain")
+        void returnsTrueForDeeplyNestedBindException() {
+            BindException bindException = new BindException("Address already in use");
+            Exception level1 = new Exception("Level 1", bindException);
+            Exception level2 = new Exception("Level 2", level1);
+            Exception level3 = new Exception("Level 3", level2);
+
+            assertTrue(serverManager.containsBindException(level3));
+        }
+
+        @Test
+        @DisplayName("returns true for BindException in suppressed exceptions (MultiException case)")
+        void returnsTrueForBindExceptionInSuppressed() {
+            BindException bindException = new BindException("Address already in use");
+            Exception multiException = new Exception("Multiple failures");
+            multiException.addSuppressed(bindException);
+
+            assertTrue(serverManager.containsBindException(multiException));
+        }
+
+        @Test
+        @DisplayName("returns true for BindException in nested suppressed exception")
+        void returnsTrueForNestedSuppressedBindException() {
+            BindException bindException = new BindException("Address already in use");
+            Exception innerException = new Exception("Inner", bindException);
+            Exception multiException = new Exception("Multiple failures");
+            multiException.addSuppressed(innerException);
+
+            assertTrue(serverManager.containsBindException(multiException));
+        }
+
+        @Test
+        @DisplayName("returns false for non-BindException")
+        void returnsFalseForNonBindException() {
+            RuntimeException runtimeException = new RuntimeException("Some other error");
+            assertFalse(serverManager.containsBindException(runtimeException));
+        }
+
+        @Test
+        @DisplayName("returns false for exception with non-BindException cause")
+        void returnsFalseForNonBindExceptionCause() {
+            IllegalArgumentException cause = new IllegalArgumentException("Invalid argument");
+            RuntimeException wrapper = new RuntimeException("Wrapper", cause);
+
+            assertFalse(serverManager.containsBindException(wrapper));
+        }
+
+        @Test
+        @DisplayName("returns false for exception with non-BindException suppressed")
+        void returnsFalseForNonBindExceptionSuppressed() {
+            Exception multiException = new Exception("Multiple failures");
+            multiException.addSuppressed(new IllegalStateException("State error"));
+            multiException.addSuppressed(new NullPointerException("NPE"));
+
+            assertFalse(serverManager.containsBindException(multiException));
+        }
+    }
+}
