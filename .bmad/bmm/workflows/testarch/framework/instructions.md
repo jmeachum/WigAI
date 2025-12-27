@@ -17,9 +17,9 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 
 **Critical:** Verify these requirements before proceeding. If any fail, HALT and notify the user.
 
-- ✅ `package.json` exists in project root
-- ✅ No modern E2E test harness is already configured (check for existing `playwright.config.*` or `cypress.config.*`)
-- ✅ Architectural/stack context available (project type, bundler, dependencies)
+- ✅ Project root contains a recognized build config (`package.json`, `build.gradle`, `build.gradle.kts`, or `pom.xml`)
+- ✅ No modern test framework is already configured (Playwright/Cypress for JS; JUnit/Mockito for Java)
+- ✅ Architectural/stack context available (project type, bundler/build tool, dependencies)
 
 ---
 
@@ -27,18 +27,31 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 
 ### Actions
 
-1. **Validate package.json**
-   - Read `{project-root}/package.json`
-   - Extract project type (React, Vue, Angular, Next.js, Node, etc.)
-   - Identify bundler (Vite, Webpack, Rollup, esbuild)
-   - Note existing test dependencies
+1. **Detect Build System**
+   - Look for `{project-root}/package.json`, `{project-root}/build.gradle`, `{project-root}/build.gradle.kts`, `{project-root}/pom.xml`
+   - If multiple build systems exist, prefer `framework_preference` or ask user
+   - Record detected project type and build tool
 
-2. **Check for Existing Framework**
-   - Search for `playwright.config.*`, `cypress.config.*`, `cypress.json`
-   - Check `package.json` for `@playwright/test` or `cypress` dependencies
+2. **Load Build Context**
+   - **JS/TS**: Read `package.json`
+     - Extract project type (React, Vue, Angular, Next.js, Node, etc.)
+     - Identify bundler (Vite, Webpack, Rollup, esbuild)
+     - Note existing test dependencies
+   - **Java**: Read `build.gradle(.kts)` or `pom.xml`
+     - Identify build tool (Gradle or Maven)
+     - Note existing test dependencies (JUnit, Mockito, AssertJ)
+     - Identify test source layout (default `src/test/java`)
+
+3. **Check for Existing Framework**
+   - **JS/TS**:
+     - Search for `playwright.config.*`, `cypress.config.*`, `cypress.json`
+     - Check `package.json` for `@playwright/test` or `cypress` dependencies
+   - **Java**:
+     - Check build files for `org.junit.jupiter`, `junit-jupiter`, `junit`, `org.mockito`, or `mockito-core`
+     - Check for existing `src/test/java` with test classes
    - If found, HALT with message: "Existing test framework detected. Use workflow `upgrade-framework` instead."
 
-3. **Gather Context**
+4. **Gather Context**
    - Look for architecture documents (`architecture.md`, `tech-spec*.md`)
    - Check for API documentation or endpoint lists
    - Identify authentication requirements
@@ -54,6 +67,11 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 1. **Framework Selection**
 
    **Default Logic:**
+   - **JUnit + Mockito** (recommended for):
+     - Java projects (Gradle/Maven)
+     - Service or plugin backends without browser UI
+     - Fast unit/integration feedback loops
+
    - **Playwright** (recommended for):
      - Large repositories (100+ files)
      - Performance-critical applications
@@ -68,12 +86,16 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
      - Simpler setup requirements
 
    **Detection Strategy:**
-   - Check `package.json` for existing preference
+   - If `build.gradle(.kts)` or `pom.xml` is present and no `package.json`, default to **JUnit + Mockito**
+   - If `package.json` is present, evaluate Playwright vs Cypress as before
+   - Use `framework_preference` variable if set (supports `junit`, `playwright`, `cypress`)
+   - If both Gradle and Maven exist, use `java_build_tool_preference` to choose
    - Consider `project_size` variable from workflow config
-   - Use `framework_preference` variable if set
    - Default to **Playwright** if uncertain
 
 2. **Create Directory Structure**
+
+   **JS/TS Structure**:
 
    ```
    {project-root}/
@@ -86,7 +108,20 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
    │   └── README.md                 # Test suite documentation
    ```
 
-   **Note**: Users organize test files (e2e/, api/, integration/, component/) as needed. The **support/** folder is the critical pattern for fixtures and helpers used across tests.
+   **Java Structure**:
+
+   ```
+   {project-root}/
+   ├── src/
+   │   ├── test/
+   │   │   ├── java/                 # JUnit tests
+   │   │   └── resources/            # Test fixtures/data files
+   │   └── main/
+   │       └── java/
+   └── README.md
+   ```
+
+   **Note**: JS tests use `tests/` with a **support/** folder. Java tests live in `src/test/java` with optional `src/test/resources`.
 
 3. **Generate Configuration File**
 
@@ -156,9 +191,70 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
    });
    ```
 
+   **For JUnit + Mockito (Gradle/Maven)**:
+
+   **Gradle (Groovy)**:
+
+   ```groovy
+   dependencies {
+     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+     testImplementation("org.mockito:mockito-core:5.12.0")
+     testImplementation("org.mockito:mockito-junit-jupiter:5.12.0")
+     testImplementation("org.assertj:assertj-core:3.26.0")
+   }
+
+   test {
+     useJUnitPlatform()
+   }
+   ```
+
+   **Maven**:
+
+   ```xml
+   <dependencies>
+     <dependency>
+       <groupId>org.junit.jupiter</groupId>
+       <artifactId>junit-jupiter</artifactId>
+       <version>5.11.0</version>
+       <scope>test</scope>
+     </dependency>
+     <dependency>
+       <groupId>org.mockito</groupId>
+       <artifactId>mockito-core</artifactId>
+       <version>5.12.0</version>
+       <scope>test</scope>
+     </dependency>
+     <dependency>
+       <groupId>org.mockito</groupId>
+       <artifactId>mockito-junit-jupiter</artifactId>
+       <version>5.12.0</version>
+       <scope>test</scope>
+     </dependency>
+     <dependency>
+       <groupId>org.assertj</groupId>
+       <artifactId>assertj-core</artifactId>
+       <version>3.26.0</version>
+       <scope>test</scope>
+     </dependency>
+   </dependencies>
+
+   <build>
+     <plugins>
+       <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-surefire-plugin</artifactId>
+         <version>3.5.2</version>
+         <configuration>
+           <useModulePath>false</useModulePath>
+         </configuration>
+       </plugin>
+     </plugins>
+   </build>
+   ```
+
 4. **Generate Environment Configuration**
 
-   Create `.env.example`:
+   **JS/TS**: Create `.env.example`:
 
    ```bash
    # Test Environment Configuration
@@ -177,7 +273,9 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
    TEST_API_KEY=
    ```
 
-5. **Generate Node Version File**
+   **Java (optional)**: Create `src/test/resources/application-test.properties` for test-only config.
+
+5. **Generate Node Version File (JS/TS only)**
 
    Create `.nvmrc`:
 
@@ -191,7 +289,7 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 
    **Knowledge Base Reference**: `testarch/knowledge/fixture-architecture.md`
 
-   Create `tests/support/fixtures/index.ts`:
+   **JS/TS**: Create `tests/support/fixtures/index.ts`:
 
    ```typescript
    import { test as base } from '@playwright/test';
@@ -212,11 +310,31 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
    export { expect } from '@playwright/test';
    ```
 
+   **Java**: Create a JUnit 5 extension for setup/teardown:
+
+   ```java
+   import org.junit.jupiter.api.extension.AfterEachCallback;
+   import org.junit.jupiter.api.extension.BeforeEachCallback;
+   import org.junit.jupiter.api.extension.ExtensionContext;
+
+   public class TestContextExtension implements BeforeEachCallback, AfterEachCallback {
+     @Override
+     public void beforeEach(ExtensionContext context) {
+       // Setup shared test context
+     }
+
+     @Override
+     public void afterEach(ExtensionContext context) {
+       // Cleanup shared test context
+     }
+   }
+   ```
+
 7. **Implement Data Factories**
 
    **Knowledge Base Reference**: `testarch/knowledge/data-factories.md`
 
-   Create `tests/support/fixtures/factories/user-factory.ts`:
+   **JS/TS**: Create `tests/support/fixtures/factories/user-factory.ts`:
 
    ```typescript
    import { faker } from '@faker-js/faker';
@@ -256,9 +374,27 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
    }
    ```
 
+   **Java**: Create `src/test/java/.../factories/UserFactory.java`:
+
+   ```java
+   import net.datafaker.Faker;
+
+   public class UserFactory {
+     private final Faker faker = new Faker();
+
+     public TestUser createUser() {
+       return new TestUser(
+         faker.internet().emailAddress(),
+         faker.name().fullName(),
+         faker.internet().password(12, 20)
+       );
+     }
+   }
+   ```
+
 8. **Generate Sample Tests**
 
-   Create `tests/e2e/example.spec.ts`:
+   **JS/TS**: Create `tests/e2e/example.spec.ts`:
 
    ```typescript
    import { test, expect } from '../support/fixtures';
@@ -285,7 +421,25 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
    });
    ```
 
-9. **Update package.json Scripts**
+   **Java**: Create `src/test/java/.../ExampleTest.java`:
+
+   ```java
+   import org.junit.jupiter.api.Test;
+   import org.junit.jupiter.api.extension.ExtendWith;
+   import static org.assertj.core.api.Assertions.assertThat;
+
+   @ExtendWith(TestContextExtension.class)
+   class ExampleTest {
+     @Test
+     void shouldCreateUser() {
+       UserFactory factory = new UserFactory();
+       TestUser user = factory.createUser();
+       assertThat(user.email()).contains("@");
+     }
+   }
+   ```
+
+9. **Update package.json Scripts (JS/TS only)**
 
    Add minimal test script to `package.json`:
 
@@ -299,6 +453,8 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 
    **Note**: Users can add additional scripts as needed (e.g., `--ui`, `--headed`, `--debug`, `show-report`).
 
+   **Java**: Document test commands in README (`./gradlew test` or `mvn test`).
+
 10. **Generate Documentation**
 
     Create `tests/README.md` with setup instructions (see Step 3 deliverables).
@@ -310,22 +466,26 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 ### Primary Artifacts Created
 
 1. **Configuration File**
-   - `playwright.config.ts` or `cypress.config.ts`
-   - Timeouts: action 15s, navigation 30s, test 60s
-   - Reporters: HTML + JUnit XML
+   - `playwright.config.ts` or `cypress.config.ts` (JS/TS)
+   - JUnit/Mockito dependencies in `build.gradle(.kts)` or `pom.xml` (Java)
+   - Timeouts: action 15s, navigation 30s, test 60s (JS/TS)
+   - Reporters: HTML + JUnit XML (JS/TS)
 
 2. **Directory Structure**
-   - `tests/` with `e2e/`, `api/`, `support/` subdirectories
-   - `support/fixtures/` for test fixtures
-   - `support/helpers/` for utility functions
+   - `tests/` with `e2e/`, `api/`, `support/` subdirectories (JS/TS)
+   - `support/fixtures/` for test fixtures (JS/TS)
+   - `support/helpers/` for utility functions (JS/TS)
+   - `src/test/java` with `src/test/resources` (Java)
 
 3. **Environment Configuration**
-   - `.env.example` with `TEST_ENV`, `BASE_URL`, `API_URL`
-   - `.nvmrc` with Node version
+   - `.env.example` with `TEST_ENV`, `BASE_URL`, `API_URL` (JS/TS)
+   - `.nvmrc` with Node version (JS/TS)
+   - `src/test/resources/application-test.properties` (optional for Java)
 
 4. **Test Infrastructure**
-   - Fixture architecture (`mergeTests` pattern)
-   - Data factories (faker-based, with auto-cleanup)
+   - Fixture architecture (`mergeTests` pattern) (JS/TS)
+   - Data factories (faker-based, with auto-cleanup) (JS/TS)
+   - JUnit extension + test data factory (Java)
    - Sample tests demonstrating patterns
 
 5. **Documentation**
@@ -342,6 +502,7 @@ The generated `tests/README.md` should include:
 - **Best Practices**: Selector strategy (data-testid), test isolation, cleanup
 - **CI Integration**: How tests run in CI/CD pipeline
 - **Knowledge Base References**: Links to relevant TEA knowledge fragments
+- **Java Notes (if applicable)**: Gradle/Maven commands and JUnit/Mockito usage
 
 ---
 
@@ -352,6 +513,14 @@ The generated `tests/README.md` should include:
 **Critical:** Check configuration and load appropriate fragments.
 
 Read `{config_source}` and check `config.tea_use_playwright_utils`.
+
+**If framework is Java (JUnit/Mockito):**
+
+Consult `{project-root}/.bmad/bmm/testarch/tea-index.csv` and load:
+
+- `junit-mockito.md` - JUnit 5 + Mockito patterns, lifecycle, and best practices
+- `test-quality.md` - Test design principles (deterministic, isolated, cleanup)
+- `test-levels-framework.md` - Unit vs integration vs E2E selection
 
 **If `config.tea_use_playwright_utils: true` (Playwright Utils Integration):**
 
@@ -437,25 +606,26 @@ After completing this workflow, provide a summary:
 ```markdown
 ## Framework Scaffold Complete
 
-**Framework Selected**: Playwright (or Cypress)
+**Framework Selected**: Playwright (or Cypress or JUnit/Mockito)
 
 **Artifacts Created**:
 
-- ✅ Configuration file: `playwright.config.ts`
-- ✅ Directory structure: `tests/e2e/`, `tests/support/`
-- ✅ Environment config: `.env.example`
-- ✅ Node version: `.nvmrc`
-- ✅ Fixture architecture: `tests/support/fixtures/`
-- ✅ Data factories: `tests/support/fixtures/factories/`
-- ✅ Sample tests: `tests/e2e/example.spec.ts`
+- ✅ Configuration file: `playwright.config.ts` or `cypress.config.ts` (JS/TS) / build file updates (Java)
+- ✅ Directory structure: `tests/e2e/`, `tests/support/` (JS/TS) / `src/test/java` (Java)
+- ✅ Environment config: `.env.example` (JS/TS) / `src/test/resources` (Java optional)
+- ✅ Node version: `.nvmrc` (JS/TS)
+- ✅ Fixture architecture: `tests/support/fixtures/` (JS/TS) / JUnit extension (Java)
+- ✅ Data factories: `tests/support/fixtures/factories/` (JS/TS) / `src/test/java/.../factories` (Java)
+- ✅ Sample tests: `tests/e2e/example.spec.ts` (JS/TS) / `src/test/java/.../ExampleTest.java` (Java)
 - ✅ Documentation: `tests/README.md`
 
 **Next Steps**:
 
-1. Copy `.env.example` to `.env` and fill in environment variables
-2. Run `npm install` to install test dependencies
-3. Run `npm run test:e2e` to execute sample tests
-4. Review `tests/README.md` for detailed setup instructions
+1. Copy `.env.example` to `.env` and fill in environment variables (JS/TS)
+2. Run `npm install` to install test dependencies (JS/TS)
+3. Run `npm run test:e2e` to execute sample tests (JS/TS)
+4. Run `./gradlew test` or `mvn test` to execute sample tests (Java)
+5. Review `tests/README.md` for detailed setup instructions
 
 **Knowledge Base References Applied**:
 

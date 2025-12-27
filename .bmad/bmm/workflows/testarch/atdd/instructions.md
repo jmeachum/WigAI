@@ -22,7 +22,7 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
 - ✅ Story approved with clear acceptance criteria
 - ✅ Development sandbox/environment ready
 - ✅ Framework scaffolding exists (run `framework` workflow if missing)
-- ✅ Test framework configuration available (playwright.config.ts or cypress.config.ts)
+- ✅ Test framework configuration available (playwright.config.ts, cypress.config.ts, or Java build file with JUnit/Mockito)
 
 ---
 
@@ -37,18 +37,26 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    - Note any technical constraints or dependencies
 
 2. **Load Framework Configuration**
-   - Read framework config (playwright.config.ts or cypress.config.ts)
-   - Identify test directory structure
-   - Check existing fixture patterns
-   - Note test runner capabilities
+   - **JS/TS**: Read framework config (`playwright.config.ts` or `cypress.config.ts`)
+   - **Java**: Read build file (`build.gradle(.kts)` or `pom.xml`) for JUnit/Mockito setup
+   - Identify test directory structure (`tests/` or `src/test/java`)
+   - Check existing fixture/extension patterns
+   - Note test runner capabilities (Playwright/Cypress/JUnit)
+
+2.5 **Determine Framework Mode**
+   - Read `{config_source}` and check `config.test_framework_preference`
+   - If set to `junit`, treat as Java mode
+   - If set to `playwright` or `cypress`, treat as JS/TS mode
+   - If `auto`, infer from build files (Java build files -> JUnit, package.json -> JS/TS)
 
 3. **Load Existing Test Patterns**
-   - Search `{test_dir}` for similar tests
-   - Identify reusable fixtures and helpers
+   - **JS/TS**: Search `{test_dir}` for similar tests
+   - **Java**: Search `{java_test_dir}` for similar tests
+   - Identify reusable fixtures/extensions and helpers
    - Check data factory patterns
    - Note naming conventions
 
-4. **Check Playwright Utils Flag**
+4. **Check Playwright Utils Flag (JS/TS only)**
 
    Read `{config_source}` and check `config.tea_use_playwright_utils`.
 
@@ -56,7 +64,13 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
 
    **Critical:** Consult `{project-root}/.bmad/bmm/testarch/tea-index.csv` to load:
 
-   **Core Patterns (Always load):**
+   **If framework is Java (JUnit/Mockito):**
+   - `junit-mockito.md` - JUnit 5 + Mockito patterns, lifecycle, and best practices
+   - `test-quality.md` - Test design principles (deterministic tests, isolation, cleanup)
+   - `test-levels-framework.md` - Unit vs integration vs E2E decision framework
+   - `data-factories.md` - Factory patterns with overrides and cleanup
+
+   **Core Patterns (JS/TS - Always load):**
    - `data-factories.md` - Factory patterns using faker (override patterns, nested factories, API seeding, 498 lines, 5 examples)
    - `component-tdd.md` - Component test strategies (red-green-refactor, provider isolation, accessibility, visual regression, 480 lines, 4 examples)
    - `test-quality.md` - Test design principles (deterministic tests, isolated with cleanup, explicit assertions, length limits, execution time optimization, 658 lines, 5 examples)
@@ -80,7 +94,7 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    - `fixture-architecture.md` - Test fixture patterns with auto-cleanup (pure function → fixture → mergeTests composition, 406 lines, 5 examples)
    - `network-first.md` - Route interception patterns (intercept before navigate, HAR capture, deterministic waiting, 489 lines, 5 examples)
 
-**Halt Condition:** If story has no acceptance criteria or framework is missing, HALT with message: "ATDD requires clear acceptance criteria and test framework setup"
+**Halt Condition:** If story has no acceptance criteria or framework/build config is missing, HALT with message: "ATDD requires clear acceptance criteria and test framework setup"
 
 ---
 
@@ -188,6 +202,7 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    After mode selection:
    - AI Generation: Continue to Step 2 (Select Test Levels and Strategy)
    - Recording: Skip to Step 4 (Build Data Infrastructure) - tests already generated
+   - **Java**: Always use AI generation (no UI recording) and continue to Step 2
 
 ---
 
@@ -231,6 +246,10 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    - Error handling
    - **Characteristics**: Fastest, most granular
 
+   **Java Note**:
+   - Prefer unit + integration tests in JUnit for backend/extension code
+   - Use E2E only if a UI or external system is in scope
+
 3. **Avoid Duplicate Coverage**
 
    Don't test same behavior at multiple levels unless necessary:
@@ -256,6 +275,8 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
 
 1. **Create Test File Structure**
 
+   **JS/TS**:
+
    ```
    tests/
    ├── e2e/
@@ -266,6 +287,18 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    │   └── {ComponentName}.test.tsx      # Component tests
    └── support/
        ├── fixtures/                      # Test fixtures
+       ├── factories/                     # Data factories
+       └── helpers/                       # Utility functions
+   ```
+
+   **Java**:
+
+   ```
+   src/test/java/
+   ├── {package}/
+   │   ├── {FeatureName}Test.java        # Unit/integration acceptance tests
+   └── support/
+       ├── fixtures/                      # Test fixtures/extensions
        ├── factories/                     # Data factories
        └── helpers/                       # Utility functions
    ```
@@ -300,7 +333,7 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    - data-testid selectors for stability
    - Clear Given-When-Then structure
 
-3. **Apply Network-First Pattern**
+3. **Apply Network-First Pattern (JS/TS only)**
 
    **Knowledge Base Reference**: `network-first.md`
 
@@ -351,7 +384,29 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    });
    ```
 
-5. **Write Failing Component Tests (If Applicable)**
+   **Java Example (RestAssured + JUnit 5):**
+
+   ```java
+   import org.junit.jupiter.api.Test;
+   import static io.restassured.RestAssured.given;
+   import static org.hamcrest.Matchers.equalTo;
+
+   class UserApiTest {
+     @Test
+     void shouldCreateUser() {
+       given()
+         .contentType("application/json")
+         .body("{\"email\":\"new@example.com\",\"name\":\"New User\"}")
+       .when()
+         .post("/api/users")
+       .then()
+         .statusCode(201)
+         .body("name", equalTo("New User"));
+     }
+   }
+   ```
+
+5. **Write Failing Component Tests (If Applicable - JS/TS)**
 
    **Knowledge Base Reference**: `component-tdd.md`
 
@@ -373,7 +428,28 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    });
    ```
 
-6. **Verify Tests Fail Initially**
+6. **Write Failing JUnit Tests (If Applicable)**
+
+   ```java
+   import org.junit.jupiter.api.Test;
+   import static org.assertj.core.api.Assertions.assertThat;
+
+   class McpHostValidationTest {
+     @Test
+     void shouldFallbackToLocalhostForEmptyHost() {
+       // GIVEN: Empty/whitespace host value
+       String inputHost = "   ";
+
+       // WHEN: Validation is applied
+       String sanitized = HostValidator.sanitize(inputHost);
+
+       // THEN: Loopback is enforced
+       assertThat(sanitized).isEqualTo("localhost");
+     }
+   }
+   ```
+
+7. **Verify Tests Fail Initially**
 
    **Critical verification:**
    - Run tests locally to confirm they fail
@@ -406,6 +482,24 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    });
 
    export const createUsers = (count: number) => Array.from({ length: count }, () => createUser());
+   ```
+
+   **Java Example:**
+
+   ```java
+   import net.datafaker.Faker;
+
+   public class UserFactory {
+     private final Faker faker = new Faker();
+
+     public TestUser createUser() {
+       return new TestUser(
+         faker.internet().emailAddress(),
+         faker.name().fullName(),
+         faker.internet().password(12, 20)
+       );
+     }
+   }
    ```
 
    **Factory principles:**
@@ -441,6 +535,27 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    });
    ```
 
+   **Java Example:**
+
+   ```java
+   import org.junit.jupiter.api.AfterEach;
+   import org.junit.jupiter.api.BeforeEach;
+
+   abstract class BaseTest {
+     protected TestUser user;
+
+     @BeforeEach
+     void setUp() {
+       user = new UserFactory().createUser();
+     }
+
+     @AfterEach
+     void tearDown() {
+       // Cleanup test data if persisted
+     }
+   }
+   ```
+
    **Fixture principles:**
    - Auto-cleanup (always delete created data)
    - Composable (fixtures can use other fixtures)
@@ -467,6 +582,8 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    ```
 
 4. **List Required data-testid Attributes**
+
+   **Java Note**: If no UI is in scope, mark this section as N/A.
 
    ```markdown
    ### Required data-testid Attributes
@@ -553,17 +670,27 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
    ## Running Tests
 
    ```bash
-   # Run all failing tests
+   # Run all failing tests (JS/TS)
    npm run test:e2e
 
-   # Run specific test file
+   # Run specific test file (JS/TS)
    npm run test:e2e -- login.spec.ts
 
-   # Run tests in headed mode (see browser)
+   # Run tests in headed mode (see browser) (JS/TS)
    npm run test:e2e -- --headed
 
-   # Debug specific test
+   # Debug specific test (JS/TS)
    npm run test:e2e -- login.spec.ts --debug
+
+   # Run all tests (Java)
+   ./gradlew test
+
+   # Run a specific test class (Java)
+   ./gradlew test --tests McpHostValidationTest
+
+   # Maven equivalents (Java)
+   mvn test
+   mvn -Dtest=McpHostValidationTest test
    ```
    ````
 
@@ -595,6 +722,7 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
 
    Before finalizing:
    - Run full test suite locally
+   - Use `npm run test:e2e` (JS/TS) or `./gradlew test` / `mvn test` (Java)
    - Confirm all tests in RED phase
    - Document expected failure messages
    - Ensure failures are due to missing implementation, not test bugs
@@ -673,6 +801,8 @@ email: 'test@example.com';
 
 **Auto-cleanup principle:**
 
+- For Java, prefer `net.datafaker` (or similar) for test data generation
+
 - Every factory that creates data must provide cleanup
 - Fixtures automatically cleanup in teardown
 - No manual cleanup in test code
@@ -749,6 +879,7 @@ After completing this workflow, provide a summary:
 - E2E tests: {e2e_count} tests in {e2e_files}
 - API tests: {api_count} tests in {api_files}
 - Component tests: {component_count} tests in {component_files}
+- JUnit tests: {junit_count} tests in {junit_files}
 
 **Supporting Infrastructure**:
 
@@ -765,7 +896,7 @@ After completing this workflow, provide a summary:
 
 **Next Steps for DEV Team**:
 
-1. Run failing tests: `npm run test:e2e`
+1. Run failing tests: `npm run test:e2e` (JS/TS) or `./gradlew test` / `mvn test` (Java)
 2. Review implementation checklist
 3. Implement one test at a time (RED → GREEN)
 4. Refactor with confidence (tests provide safety net)
@@ -775,6 +906,7 @@ After completing this workflow, provide a summary:
 
 **Knowledge Base References Applied**:
 
+- JUnit/Mockito patterns (if Java)
 - Fixture architecture patterns
 - Data factory patterns with faker
 - Network-first route interception

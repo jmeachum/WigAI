@@ -58,6 +58,16 @@
   - **Status:** RED - {failure_reason}
   - **Verifies:** {what_this_test_validates}
 
+### JUnit Tests ({junit_test_count} tests)
+
+**File:** `{junit_test_file_path}` ({line_count} lines)
+
+{List each JUnit test with its current status and expected failure reason}
+
+- ✅ **Test:** {test_name}
+  - **Status:** RED - {failure_reason}
+  - **Verifies:** {what_this_test_validates}
+
 ---
 
 ## Data Factories Created
@@ -66,7 +76,7 @@
 
 ### {Entity} Factory
 
-**File:** `tests/support/factories/{entity}.factory.ts`
+**File:** `tests/support/factories/{entity}.factory.ts` (JS/TS) or `src/test/java/.../factories/{Entity}Factory.java` (Java)
 
 **Exports:**
 
@@ -88,7 +98,7 @@ const users = createUsers(5); // Generate 5 random users
 
 ### {Feature} Fixtures
 
-**File:** `tests/support/fixtures/{feature}.fixture.ts`
+**File:** `tests/support/fixtures/{feature}.fixture.ts` (JS/TS) or `src/test/java/.../{Feature}TestBase.java` (Java)
 
 **Fixtures:**
 
@@ -200,10 +210,10 @@ test('should do something', async ({ {fixtureName} }) => {
 # Run all failing tests for this story
 {test_command_all}
 
-# Run specific test file
+# Run specific test file/class
 {test_command_specific_file}
 
-# Run tests in headed mode (see browser)
+# Run tests in headed mode (see browser) (JS/TS)
 {test_command_headed}
 
 # Debug specific test
@@ -211,6 +221,12 @@ test('should do something', async ({ {fixtureName} }) => {
 
 # Run tests with coverage
 {test_command_coverage}
+
+# Java commands (if applicable)
+./gradlew test
+./gradlew test --tests {TestClassName}
+mvn test
+mvn -Dtest={TestClassName} test
 ```
 
 ---
@@ -291,7 +307,7 @@ test('should do something', async ({ {fixtureName} }) => {
 ## Next Steps
 
 1. **Review this checklist** with team in standup or planning
-2. **Run failing tests** to confirm RED phase: `{test_command_all}`
+2. **Run failing tests** to confirm RED phase: `{test_command_all}` (or `./gradlew test` / `mvn test` for Java)
 3. **Begin implementation** using implementation checklist as guide
 4. **Work one test at a time** (red → green for each)
 5. **Share progress** in daily standup
@@ -310,6 +326,7 @@ This ATDD workflow consulted the following knowledge fragments:
 - **network-first.md** - Route interception patterns (intercept BEFORE navigation to prevent race conditions)
 - **test-quality.md** - Test design principles (Given-When-Then, one assertion per test, determinism, isolation)
 - **test-levels-framework.md** - Test level selection framework (E2E vs API vs Component vs Unit)
+- **junit-mockito.md** - JUnit 5 + Mockito patterns and lifecycle (if Java)
 
 See `tea-index.csv` for complete knowledge fragment mapping.
 
@@ -319,7 +336,7 @@ See `tea-index.csv` for complete knowledge fragment mapping.
 
 ### Initial Test Run (RED Phase Verification)
 
-**Command:** `{test_command_all}`
+**Command:** `{test_command_all}` (or `./gradlew test` / `mvn test` for Java)
 
 **Results:**
 

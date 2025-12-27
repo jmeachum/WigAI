@@ -8,10 +8,10 @@ This checklist ensures the framework workflow completes successfully and all del
 
 Before starting the workflow:
 
-- [ ] Project root contains valid `package.json`
-- [ ] No existing modern E2E framework detected (`playwright.config.*`, `cypress.config.*`)
-- [ ] Project type identifiable (React, Vue, Angular, Next.js, Node, etc.)
-- [ ] Bundler identifiable (Vite, Webpack, Rollup, esbuild) or not applicable
+- [ ] Project root contains valid build config (`package.json`, `build.gradle`, `build.gradle.kts`, or `pom.xml`)
+- [ ] No existing modern framework detected (`playwright.config.*`, `cypress.config.*`, or JUnit/Mockito deps)
+- [ ] Project type identifiable (React, Vue, Angular, Next.js, Node, Java, etc.)
+- [ ] Bundler/build tool identifiable (Vite, Webpack, Rollup, esbuild, Gradle, Maven) or not applicable
 - [ ] User has write permissions to create directories and files
 
 ---
@@ -20,16 +20,16 @@ Before starting the workflow:
 
 ### Step 1: Preflight Checks
 
-- [ ] package.json successfully read and parsed
+- [ ] Build config successfully read and parsed (`package.json` or build.gradle/pom.xml)
 - [ ] Project type extracted correctly
-- [ ] Bundler identified (or marked as N/A for backend projects)
+- [ ] Bundler/build tool identified (or marked as N/A)
 - [ ] No framework conflicts detected
 - [ ] Architecture documents located (if available)
 
 ### Step 2: Framework Selection
 
 - [ ] Framework auto-detection logic executed
-- [ ] Framework choice justified (Playwright vs Cypress)
+- [ ] Framework choice justified (Playwright vs Cypress vs JUnit/Mockito)
 - [ ] Framework preference respected (if explicitly set)
 - [ ] User notified of framework selection and rationale
 
@@ -43,12 +43,14 @@ Before starting the workflow:
 - [ ] `tests/support/helpers/` directory created
 - [ ] `tests/support/page-objects/` directory created (if applicable)
 - [ ] All directories have correct permissions
+- [ ] `src/test/java/` directory created (Java)
+- [ ] `src/test/resources/` directory created (Java)
 
 **Note**: Test organization is flexible (e2e/, api/, integration/). The **support/** folder is the key pattern.
 
 ### Step 4: Configuration Files
 
-- [ ] Framework config file created (`playwright.config.ts` or `cypress.config.ts`)
+- [ ] Framework config file created (`playwright.config.ts` or `cypress.config.ts`) or build file updated (Java)
 - [ ] Config file uses TypeScript (if `use_typescript: true`)
 - [ ] Timeouts configured correctly (action: 15s, navigation: 30s, test: 60s)
 - [ ] Base URL configured with environment variable fallback
@@ -57,30 +59,33 @@ Before starting the workflow:
 - [ ] Parallel execution enabled
 - [ ] CI-specific settings configured (retries, workers)
 - [ ] Config file is syntactically valid (no compilation errors)
+- [ ] JUnit Platform enabled in build tool (Java)
 
 ### Step 5: Environment Configuration
 
-- [ ] `.env.example` created in project root
-- [ ] `TEST_ENV` variable defined
-- [ ] `BASE_URL` variable defined with default
-- [ ] `API_URL` variable defined (if applicable)
-- [ ] Authentication variables defined (if applicable)
-- [ ] Feature flag variables defined (if applicable)
-- [ ] `.nvmrc` created with appropriate Node version
+- [ ] `.env.example` created in project root (JS/TS)
+- [ ] `TEST_ENV` variable defined (JS/TS)
+- [ ] `BASE_URL` variable defined with default (JS/TS)
+- [ ] `API_URL` variable defined (if applicable) (JS/TS)
+- [ ] Authentication variables defined (if applicable) (JS/TS)
+- [ ] Feature flag variables defined (if applicable) (JS/TS)
+- [ ] `.nvmrc` created with appropriate Node version (JS/TS)
+- [ ] `src/test/resources/application-test.properties` created (optional for Java)
 
 ### Step 6: Fixture Architecture
 
-- [ ] `tests/support/fixtures/index.ts` created
-- [ ] Base fixture extended from Playwright/Cypress
+- [ ] `tests/support/fixtures/index.ts` created (JS/TS)
+- [ ] Base fixture extended from Playwright/Cypress (JS/TS)
 - [ ] Type definitions for fixtures created
 - [ ] mergeTests pattern implemented (if multiple fixtures)
 - [ ] Auto-cleanup logic included in fixtures
 - [ ] Fixture architecture follows knowledge base patterns
+- [ ] JUnit extension or base test class created (Java)
 
 ### Step 7: Data Factories
 
 - [ ] At least one factory created (e.g., UserFactory)
-- [ ] Factories use @faker-js/faker for realistic data
+- [ ] Factories use @faker-js/faker (JS/TS) or net.datafaker (Java) for realistic data
 - [ ] Factories track created entities (for cleanup)
 - [ ] Factories implement `cleanup()` method
 - [ ] Factories integrate with fixtures
@@ -88,7 +93,7 @@ Before starting the workflow:
 
 ### Step 8: Sample Tests
 
-- [ ] Example test file created (`tests/e2e/example.spec.ts`)
+- [ ] Example test file created (`tests/e2e/example.spec.ts` or `src/test/java/.../ExampleTest.java`)
 - [ ] Test uses fixture architecture
 - [ ] Test demonstrates data factory usage
 - [ ] Test uses proper selector strategy (data-testid)
@@ -117,10 +122,11 @@ Before starting the workflow:
 
 ### Step 11: Package.json Updates
 
-- [ ] Minimal test script added to package.json: `test:e2e`
+- [ ] Minimal test script added to package.json: `test:e2e` (JS/TS)
 - [ ] Test framework dependency added (if not already present)
 - [ ] Type definitions added (if TypeScript)
 - [ ] Users can extend with additional scripts as needed
+- [ ] JUnit/Mockito dependencies added to build file (Java)
 
 ---
 
@@ -184,8 +190,9 @@ Before starting the workflow:
 - [ ] Fixture pattern matches `fixture-architecture.md`
 - [ ] Data factories match `data-factories.md`
 - [ ] Network handling matches `network-first.md`
-- [ ] Config follows `playwright-config.md` or `test-config.md`
+- [ ] Config follows `playwright-config.md` or `test-config.md` (JS/TS) or `junit-mockito.md` (Java)
 - [ ] Test quality matches `test-quality.md`
+- [ ] JUnit patterns match `junit-mockito.md` (if Java)
 
 ### Security Checks
 
@@ -204,7 +211,7 @@ Before starting the workflow:
 - [ ] `bmm-workflow-status.md` exists
 - [ ] Framework initialization logged in Quality & Testing Progress section
 - [ ] Status file updated with completion timestamp
-- [ ] Status file shows framework: Playwright or Cypress
+- [ ] Status file shows framework: Playwright, Cypress, or JUnit/Mockito
 
 ### Knowledge Base Integration
 
@@ -232,7 +239,7 @@ Before starting the workflow:
 - [ ] All quality checks passed
 - [ ] All integration points verified
 - [ ] Sample test executes successfully
-- [ ] User can run `npm run test:e2e` without errors
+- [ ] User can run `npm run test:e2e` (JS/TS) or `./gradlew test` / `mvn test` (Java) without errors
 - [ ] Documentation is complete and accurate
 - [ ] No critical issues or blockers identified
 
@@ -242,10 +249,10 @@ Before starting the workflow:
 
 **User must complete:**
 
-1. [ ] Copy `.env.example` to `.env`
-2. [ ] Fill in environment-specific values in `.env`
-3. [ ] Run `npm install` to install test dependencies
-4. [ ] Run `npm run test:e2e` to verify setup
+1. [ ] Copy `.env.example` to `.env` (JS/TS)
+2. [ ] Fill in environment-specific values in `.env` (JS/TS)
+3. [ ] Run `npm install` to install test dependencies (JS/TS)
+4. [ ] Run `npm run test:e2e` (JS/TS) or `./gradlew test` / `mvn test` (Java) to verify setup
 5. [ ] Review `tests/README.md` for project-specific guidance
 
 **Recommended next workflows:**
@@ -267,6 +274,8 @@ If workflow fails and needs to be rolled back:
 5. [ ] Delete framework config file
 6. [ ] Remove test dependencies from package.json (if added)
 7. [ ] Run `npm install` to clean up node_modules
+8. [ ] Delete `src/test/java` and `src/test/resources` (Java)
+9. [ ] Remove JUnit/Mockito dependencies from build file (Java)
 
 ---
 
@@ -304,6 +313,12 @@ If workflow fails and needs to be rolled back:
 - Cypress app opens on first run
 - Component testing requires additional setup
 
+**JUnit/Mockito:**
+
+- Requires Java 17+ (or project standard)
+- JUnit 5 platform enabled in build tool
+- Mockito inline mocking requires additional setup (if used)
+
 ### Version Compatibility
 
 - [ ] Node.js version matches .nvmrc
@@ -317,5 +332,5 @@ If workflow fails and needs to be rolled back:
 
 **Completed by:** {name}
 **Date:** {date}
-**Framework:** { Playwright / Cypress or something else}
+**Framework:** { Playwright / Cypress / JUnit or something else}
 **Notes:** {notes}
