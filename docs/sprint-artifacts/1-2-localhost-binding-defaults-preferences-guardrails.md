@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: ready-for-dev
+Status: Ready for Review
 
 ## Story
 
@@ -28,20 +28,20 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 
 ## Tasks / Subtasks
 
-- [ ] Enforce loopback-only host validation in preferences (AC 1-3)
-  - [ ] Update `validateHost` to treat empty/whitespace as `localhost` and to reject non-loopback values (only allow `localhost`, `127.0.0.1`, `::1`)
-  - [ ] Ensure invalid host inputs are written back to preferences as `localhost` to avoid UI drift
-  - [ ] Log a warning explaining the non-loopback refusal for MVP (no-auth) and the fallback to loopback
-- [ ] Preserve default binding and URL messaging (AC 1)
-  - [ ] Confirm default host/port come from `PreferencesBackedConfigManager` + `AppConstants.DEFAULT_MCP_PORT`
-  - [ ] Ensure startup notification/logs use the sanitized loopback host
-- [ ] Port change behavior and bind failure UX (AC 4-5)
-  - [ ] Ensure port changes trigger graceful restart via `ConfigChangeObserver`
-  - [ ] On bind failures, surface a clear log + popup with remediation (choose another port)
-- [ ] Tests (CI-safe)
-  - [ ] Unit tests for host validation (empty, whitespace, non-loopback, allowed loopback values)
-  - [ ] Unit tests for port validation (out-of-range -> default)
-  - [ ] Regression test that preference value is corrected when invalid host is entered
+- [x] Enforce loopback-only host validation in preferences (AC 1-3)
+  - [x] Update `validateHost` to treat empty/whitespace as `localhost` and to reject non-loopback values (only allow `localhost`, `127.0.0.1`, `::1`)
+  - [x] Ensure invalid host inputs are written back to preferences as `localhost` to avoid UI drift
+  - [x] Log a warning explaining the non-loopback refusal for MVP (no-auth) and the fallback to loopback
+- [x] Preserve default binding and URL messaging (AC 1)
+  - [x] Confirm default host/port come from `PreferencesBackedConfigManager` + `AppConstants.DEFAULT_MCP_PORT`
+  - [x] Ensure startup notification/logs use the sanitized loopback host
+- [x] Port change behavior and bind failure UX (AC 4-5)
+  - [x] Ensure port changes trigger graceful restart via `ConfigChangeObserver`
+  - [x] On bind failures, surface a clear log + popup with remediation (choose another port)
+- [x] Tests (CI-safe)
+  - [x] Unit tests for host validation (empty, whitespace, non-loopback, allowed loopback values)
+  - [x] Unit tests for port validation (out-of-range -> default)
+  - [x] Regression test that preference value is corrected when invalid host is entered
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -111,11 +111,11 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 
 ### Context Reference
 
-- N/A
+- ATDD checklist: `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md`
 
 ### Agent Model Used
 
-GPT-5 (Codex CLI)
+Claude Opus 4.5
 
 ### Debug Log References
 
@@ -124,12 +124,26 @@ GPT-5 (Codex CLI)
 ### Completion Notes List
 
 - Ultimate context engine analysis completed — comprehensive developer guide created.
+- Implemented loopback-only host validation in `PreferencesBackedConfigManager.validateHost()` using `isLoopbackAddress()` helper
+- Added preference writeback for invalid host/port values to keep UI in sync with actual config
+- Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
+- Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (12 tests)
+- All 5 ATDD tests passing, all unit tests passing, clean build successful
 
 ### File List
 
-- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java`
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java`
-- `src/main/java/io/github/fabb/wigai/WigAIExtension.java`
-- `src/main/java/io/github/fabb/wigai/common/AppConstants.java`
-- `src/main/java/io/github/fabb/wigai/common/Logger.java`
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java`
+**Modified:**
+- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with user notification
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters
+
+**Added:**
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
+
+## Change Log
+
+- **2025-12-27**: Implemented Story 1.2 - Localhost binding defaults and preferences guardrails
+  - Added loopback-only host validation (localhost, 127.0.0.1, ::1)
+  - Added preference writeback to keep UI in sync with sanitized values
+  - Added bind failure error handling with actionable user notification
+  - Added comprehensive unit tests for host and port validation

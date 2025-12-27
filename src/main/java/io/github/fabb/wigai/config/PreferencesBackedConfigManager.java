@@ -52,11 +52,11 @@ public class PreferencesBackedConfigManager implements ConfigManager {
         this.portSetting = preferences.getNumberSetting(
             "MCP Port",
             "Network Settings",
-            1024,
-            65535,
-            1,
+            1024.0,
+            65535.0,
+            1.0,
             "",
-            AppConstants.DEFAULT_MCP_PORT
+            (double) AppConstants.DEFAULT_MCP_PORT
         );
 
         // Initialize current values from settings
@@ -78,7 +78,12 @@ public class PreferencesBackedConfigManager implements ConfigManager {
         hostSetting.addValueObserver(newHost -> {
             if (newHost != null && !newHost.equals(currentHost)) {
                 String oldHost = currentHost;
-                currentHost = validateHost(newHost);
+                String validatedHost = validateHost(newHost);
+                currentHost = validatedHost;
+                // Write back corrected value to preferences if validation changed it
+                if (!validatedHost.equals(newHost)) {
+                    hostSetting.set(validatedHost);
+                }
                 notifyHostChanged(oldHost, currentHost);
                 logger.info("PreferencesBackedConfigManager: Host changed from '" + oldHost + "' to '" + currentHost + "'");
             }
@@ -89,7 +94,12 @@ public class PreferencesBackedConfigManager implements ConfigManager {
             int newPortInt = (int) newPort;
             if (newPortInt != currentPort) {
                 int oldPort = currentPort;
-                currentPort = validatePort(newPortInt);
+                int validatedPort = validatePort(newPortInt);
+                currentPort = validatedPort;
+                // Write back corrected value to preferences if validation changed it
+                if (validatedPort != newPortInt) {
+                    portSetting.set(validatedPort);
+                }
                 notifyPortChanged(oldPort, currentPort);
                 logger.info("PreferencesBackedConfigManager: Port changed from " + oldPort + " to " + currentPort);
             }
@@ -98,13 +108,33 @@ public class PreferencesBackedConfigManager implements ConfigManager {
 
     /**
      * Validates and sanitizes host input.
+     * Enforces loopback-only hosts for MVP (no-auth) security.
+     *
+     * @param host the host to validate
+     * @return validated host (always a loopback address)
      */
     private String validateHost(String host) {
         if (host == null || host.trim().isEmpty()) {
             logger.warn("PreferencesBackedConfigManager: Invalid host '" + host + "', using 'localhost'");
             return "localhost";
         }
-        return host.trim();
+        String trimmedHost = host.trim();
+        if (!isLoopbackAddress(trimmedHost)) {
+            logger.warn("PreferencesBackedConfigManager: Rejected non-loopback host '" + trimmedHost +
+                "'. WigAI MVP (no-auth) only allows localhost binding for security. Using 'localhost'.");
+            return "localhost";
+        }
+        return trimmedHost;
+    }
+
+    /**
+     * Checks if the given host is a loopback address.
+     * Allowed values: localhost, 127.0.0.1, ::1
+     */
+    private boolean isLoopbackAddress(String host) {
+        return "localhost".equalsIgnoreCase(host) ||
+               "127.0.0.1".equals(host) ||
+               "::1".equals(host);
     }
 
     /**

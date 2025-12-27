@@ -62,11 +62,11 @@ class PreferencesBackedConfigManagerAtddTest {
         when(mockPreferences.getNumberSetting(
             eq("MCP Port"),
             eq("Network Settings"),
-            eq(1024),
-            eq(65535),
-            eq(1),
+            eq(1024.0),
+            eq(65535.0),
+            eq(1.0),
             eq(""),
-            eq(AppConstants.DEFAULT_MCP_PORT)
+            eq((double) AppConstants.DEFAULT_MCP_PORT)
         )).thenReturn(mockPortSetting);
 
         when(mockHostSetting.get()).thenReturn("localhost");

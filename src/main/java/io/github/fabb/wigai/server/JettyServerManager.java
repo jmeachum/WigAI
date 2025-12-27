@@ -12,6 +12,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.BindException;
 
 /**
  * Manages the Jetty server lifecycle and configuration.
@@ -75,9 +76,41 @@ public class JettyServerManager {
         }
 
         // Start the Jetty server
-        jettyServer.start();
+        try {
+            jettyServer.start();
+        } catch (BindException e) {
+            notifyBindFailure(configManager.getMcpPort());
+            throw e;
+        } catch (Exception e) {
+            // Check if root cause is BindException
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                if (cause instanceof BindException) {
+                    notifyBindFailure(configManager.getMcpPort());
+                    throw e;
+                }
+                cause = cause.getCause();
+            }
+            throw e;
+        }
 
         notifyServerStarted();
+    }
+
+    /**
+     * Notifies the user that the port could not be bound.
+     */
+    private void notifyBindFailure(int port) {
+        String message = String.format(
+            "WigAI: Port %d is already in use. Please choose another port in Bitwig Preferences → WigAI → Network Settings.",
+            port);
+        logger.error(message);
+
+        try {
+            host.showPopupNotification(message);
+        } catch (Exception e) {
+            logger.error("WigAI Extension: Error showing bind failure notification", e);
+        }
     }
 
     /**
