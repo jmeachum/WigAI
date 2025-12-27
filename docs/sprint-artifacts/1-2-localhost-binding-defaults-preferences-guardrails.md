@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Review
+Status: Ready for Dev
 
 ## Story
 
@@ -49,6 +49,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Expand bind failure detection to cover Jetty MultiException/suppressed BindException so AC5 always logs/pops up. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:84]
 - [x] [AI-Review][Medium] Update Dev Agent Record File List to include story + sprint-status changes from last commit. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:133]
 - [x] [AI-Review][Low] Add CI-safe test coverage for bind failure notification/error path. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
+
+### Review Follow-ups (AI) — refresh review (last commit scope)
+- [ ] [AI-Review][Medium] Align Dev Agent Record File List with last commit scope (remove extra files or expand scope) to avoid review drift. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:145]
+- [ ] [AI-Review][Medium] Confirm constructor preference writeback cannot trigger unwanted restarts/side effects before observers are registered; document/guard if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:69]
+- [ ] [AI-Review][Low] Fix test method typo `returnsFlaseForNull` → `returnsFalseForNull`. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:50]
+- [ ] [AI-Review][Low] Document `containsBindException` as a test seam (or make it private + test via behavior) for maintainability. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:95]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
