@@ -1,0 +1,262 @@
+# ATDD Checklist - Epic 1, Story 1.2: Localhost Binding Defaults + Preferences Guardrails
+
+**Date:** 2025-12-27T12:57:42-07:00
+**Author:** Josh
+**Primary Test Level:** Unit (config validation) + lightweight integration (observer notifications)
+
+---
+
+## Story Summary
+
+Story 1.2 enforces loopback-only binding defaults and preference guardrails so the MCP server is never exposed on the network in the no-auth MVP. It also requires clear warnings, consistent preference UI behavior, and graceful restarts on valid port changes.
+
+**As a** WigAI user
+**I want** the MCP server to bind to localhost by default with guardrails on host/port preferences
+**So that** WigAI is not accidentally exposed on the network and connection details remain predictable
+
+---
+
+## Acceptance Criteria
+
+1. **Given** WigAI is enabled for the first time in Bitwig
+   **When** the MCP server starts
+   **Then** it binds to `localhost` on the default port `61169` and advertises `http://localhost:61169/mcp` in logs/notification.
+2. **Given** the user edits "MCP Host" in Bitwig preferences
+   **When** the host value is empty or whitespace
+   **Then** it is sanitized to `localhost` and the server remains reachable at a loopback address.
+3. **Given** the user attempts to set "MCP Host" to a non-loopback value (e.g., `0.0.0.0`, `192.168.x.x`, a public hostname)
+   **When** the setting is applied
+   **Then** WigAI refuses for MVP (no-auth) and reverts to `localhost`, logging a clear warning explaining why.
+4. **Given** the user changes "MCP Port" to another valid port (1024–65535)
+   **When** the setting is applied
+   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at `http://localhost:{new_port}/mcp`.
+5. **Given** the configured port cannot be bound (e.g., already in use)
+   **When** WigAI tries to start or restart the server
+   **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.
+
+---
+
+## Failing Tests Created (RED Phase)
+
+This repo is Java/JUnit-based (not Playwright/Cypress). For this story, acceptance tests map to CI-safe unit tests that exercise the configuration guardrails in `PreferencesBackedConfigManager`.
+
+### JUnit Tests (5 tests)
+
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` (144 lines)
+
+- ✅ **Test:** `1.2-ATDD-001 defaults_to_localhost_and_default_port_on_first_load`
+  - **Status:** RED - initialization does not sanitize invalid defaults before use
+  - **Verifies:** Default host/port are loopback-safe for first enable
+- ✅ **Test:** `1.2-ATDD-002 empty_or_whitespace_host_is_sanitized_and_written_back`
+  - **Status:** RED - preference value is not written back to `localhost`
+  - **Verifies:** Empty/whitespace host is sanitized and persisted to avoid UI drift
+- ✅ **Test:** `1.2-ATDD-003 non_loopback_host_is_rejected_and_reverted`
+  - **Status:** RED - non-loopback hosts are accepted and not warned
+  - **Verifies:** Non-loopback values are refused with warning and reverted to `localhost`
+- ✅ **Test:** `1.2-ATDD-004 valid_port_change_notifies_observers`
+  - **Status:** RED - restart behavior not yet validated end-to-end
+  - **Verifies:** Valid port changes notify observers for restart
+- ✅ **Test:** `1.2-ATDD-005 invalid_port_reverts_to_default_and_is_written_back`
+  - **Status:** RED - invalid port is not written back to default
+  - **Verifies:** Out-of-range port values fall back to `AppConstants.DEFAULT_MCP_PORT` and persist to preferences
+
+### E2E Tests (0 tests)
+
+Not applicable: WigAI is a Bitwig extension with no browser UI.
+
+### API Tests (0 tests)
+
+Not applicable: no REST API surface in scope.
+
+### Component Tests (0 tests)
+
+Not applicable: no UI component layer in scope.
+
+---
+
+## Data Factories Created
+
+Not applicable for Story 1.2 (no persisted domain entities required).
+
+---
+
+## Fixtures Created
+
+Not applicable (JUnit tests are isolated with Mockito-based stubs).
+
+---
+
+## Mock Requirements
+
+Use Mockito stubs for Bitwig interfaces:
+
+- `ControllerHost` + `Preferences`
+- `SettableStringValue` for host preference
+- `SettableRangedValue` for port preference
+
+No external services required.
+
+---
+
+## Required data-testid Attributes
+
+Not applicable (no UI tests).
+
+---
+
+## Implementation Checklist
+
+### Test: `1.2-ATDD-001 defaults_to_localhost_and_default_port_on_first_load`
+
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java`
+
+**Tasks to make this test pass:**
+
+- [ ] Sanitize host/port on initialization (apply `validateHost`/`validatePort` to initial values)
+- [ ] Ensure defaults remain `localhost` + `AppConstants.DEFAULT_MCP_PORT` on first enable
+- [ ] Run test: `./gradlew atddRedTest`
+- [ ] ✅ Test passes (green phase)
+
+**Estimated Effort:** 0.5–1.0 hours
+
+---
+
+### Test: `1.2-ATDD-002 empty_or_whitespace_host_is_sanitized_and_written_back`
+
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java`
+
+**Tasks to make this test pass:**
+
+- [ ] Update `validateHost` to treat empty/whitespace as `localhost`
+- [ ] On invalid host input via preference observer, write back `localhost`
+- [ ] Run test: `./gradlew atddRedTest`
+- [ ] ✅ Test passes (green phase)
+
+**Estimated Effort:** 0.5–1.0 hours
+
+---
+
+### Test: `1.2-ATDD-003 non_loopback_host_is_rejected_and_reverted`
+
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java`
+
+**Tasks to make this test pass:**
+
+- [ ] Enforce loopback-only host allowlist (`localhost`, `127.0.0.1`, `::1`)
+- [ ] Reject non-loopback values and revert preferences to `localhost`
+- [ ] Log a clear warning describing the refusal for MVP (no-auth)
+- [ ] Run test: `./gradlew atddRedTest`
+- [ ] ✅ Test passes (green phase)
+
+**Estimated Effort:** 1.0–2.0 hours
+
+---
+
+### Test: `1.2-ATDD-004 valid_port_change_notifies_observers`
+
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java`
+
+**Tasks to make this test pass:**
+
+- [ ] Ensure `ConfigChangeObserver` is notified on valid port change
+- [ ] Confirm `WigAIExtension` performs graceful restart on observer callback
+- [ ] Run test: `./gradlew atddRedTest`
+- [ ] ✅ Test passes (green phase)
+
+**Estimated Effort:** 0.5–1.0 hours
+
+---
+
+### Test: `1.2-ATDD-005 invalid_port_reverts_to_default_and_is_written_back`
+
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java`
+
+**Tasks to make this test pass:**
+
+- [ ] On invalid port input via preference observer, revert to `AppConstants.DEFAULT_MCP_PORT`
+- [ ] Persist the fallback port value back into preferences
+- [ ] Log a clear warning for the invalid port
+- [ ] Run test: `./gradlew atddRedTest`
+- [ ] ✅ Test passes (green phase)
+
+**Estimated Effort:** 0.5–1.0 hours
+
+---
+
+## Running Tests
+
+```bash
+# CI-safe unit/integration tests (does NOT include ATDD red-tagged tests)
+./gradlew test
+
+# Run ATDD RED tests for this story only (expected to fail until implemented)
+./gradlew atddRedTest
+```
+
+---
+
+## Red-Green-Refactor Workflow
+
+### RED Phase (Complete) ✅
+
+- ✅ Acceptance criteria mapped to atomic tests
+- ✅ Tests written and tagged `@Tag("atdd_red")`
+- ✅ Implementation checklist created
+
+**Verification:**
+
+- Run `./gradlew atddRedTest` and confirm failures are due to missing guardrails (not test bugs).
+
+---
+
+### GREEN Phase (DEV Team - Next Steps)
+
+1. Implement host validation guardrails in `PreferencesBackedConfigManager`.
+2. Ensure invalid host/port values are written back to preferences for UI consistency.
+3. Keep graceful restart flow intact in `WigAIExtension`.
+
+---
+
+### REFACTOR Phase (DEV Team - After All Tests Pass)
+
+1. Simplify validation logic and ensure warnings are consistent.
+2. Add shared helper methods for loopback checks to avoid duplication.
+3. Confirm logs and notifications are actionable.
+
+---
+
+## Next Steps
+
+1. Review this checklist in planning/standup.
+2. Implement guardrails to make `./gradlew atddRedTest` green.
+3. Verify bind-failure messaging behavior during manual testing.
+
+---
+
+## Knowledge Base References Applied
+
+- `junit-mockito.md` - JUnit 5 + Mockito patterns and lifecycle
+- `test-quality.md` - Determinism, isolation, explicit assertions
+- `test-levels-framework.md` - Unit vs integration selection
+- `data-factories.md` - Factory patterns (not required for this story)
+
+---
+
+## Test Execution Evidence
+
+### Initial Test Run (RED Phase Verification)
+
+**Command:** `./gradlew atddRedTest`
+
+**Results:**
+
+Not executed in this run. Capture failing output here when running the ATDD red suite.
+
+---
+
+## Notes
+
+- Validation targets: `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java`
+- Restart behavior: `src/main/java/io/github/fabb/wigai/WigAIExtension.java`
+- Default port: `src/main/java/io/github/fabb/wigai/common/AppConstants.java`
+- Server start notifications: `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java`
