@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -77,6 +77,11 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Ensure `stopServer()` destroys and clears server state (`jettyServer`, `contextHandler`) to avoid resource leaks/stale state across restarts. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:169]
 - [x] [AI-Review][Medium] Ensure `startServer(null, null)` clears `currentEndpointPath` so notify URLs don't advertise an endpoint path that wasn't registered. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:72]
 - [x] [AI-Review][Low] Tighten restart success logging: avoid logging "restart completed successfully" if start was a no-op or if stop failed. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:199]
+
+### Review Follow-ups (AI) — code review 2025-12-28 (status hygiene)
+- [ ] [AI-Review][Medium] Normalize Story `Status:` to canonical keywords (`review`, `in-progress`, `done`) to align with `docs/sprint-artifacts/sprint-status.yaml` (avoid "Ready for Review"). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
+- [ ] [AI-Review][Medium] Fix BMAD project context auto-load mismatch: repo uses `docs/project_context.md` but workflows look for `**/project-context.md`; rename/copy or update workflow config and then update story notes. [docs/project_context.md:1]
+- [ ] [AI-Review][Low] Consider clearing Jetty state even when `jettyServer != null` but not running (avoid stale references if server stops unexpectedly). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:176]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -127,7 +132,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Use architecture doc as the current source of truth for versions (Java 21, Jetty 11.0.20, MCP BOM 0.11.0, Bitwig API v19). [Source: docs/architecture.md]
 
 ### Project Context Reference
-- No `project-context.md` found in repository.
+- Found `docs/project_context.md`; BMAD workflows look for `**/project-context.md` (dash), so project context auto-load is currently skipped.
 
 ### Story Completion Status
 - Update `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = in-progress` in `docs/sprint-artifacts/sprint-status.yaml`.
@@ -218,9 +223,17 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 3 Medium, 1 Low
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (post-fix regression)”.
+- Date: 2025-12-28 (follow-up)
+- Outcome: Changes Requested
+- Issues found: 2 Medium, 1 Low
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (status hygiene)”.
 
 ## Change Log
 
+- **2025-12-28**: Senior Developer Review (AI) — action items created (3 items)
+  - [Medium] Normalize story status keywords to match sprint tracking
+  - [Medium] Align project context filename with BMAD workflow expectations
+  - [Low] Consider defensive Jetty state clearing when server is unexpectedly not running
 - **2025-12-28**: Addressed post-fix regression review follow-ups (4 items)
   - [Medium] Added `formatHostForUrl()` for IPv6 URL formatting (brackets for `::1` etc.)
   - [Medium] Enhanced `stopServer()` to properly destroy and clear all server state
