@@ -112,6 +112,7 @@ public class JettyServerManager {
             }
             jettyServer = null;
             contextHandler = null;
+            currentEndpointPath = null;
         }
     }
 

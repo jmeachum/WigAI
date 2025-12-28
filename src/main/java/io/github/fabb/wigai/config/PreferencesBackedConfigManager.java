@@ -87,6 +87,8 @@ public class PreferencesBackedConfigManager implements ConfigManager {
      */
     private void setupChangeListeners() {
         // Host change listener
+        // Note: Null updates are ignored as a defensive pattern. Bitwig string preferences
+        // shouldn't send null values, but if they do, we keep the current valid host.
         hostSetting.addValueObserver(newHost -> {
             if (newHost != null && !newHost.equals(currentHost)) {
                 String oldHost = currentHost;

@@ -193,6 +193,22 @@ class PreferencesBackedConfigManagerTest {
 
             assertEquals("localhost", configManager.getMcpHost());
         }
+
+        @Test
+        @DisplayName("Null host update is ignored (defensive pattern)")
+        void nullHostUpdateIsIgnored() {
+            // First change to a non-default value
+            hostObserver.valueChanged("127.0.0.1");
+            assertEquals("127.0.0.1", configManager.getMcpHost());
+
+            // Simulate null update (shouldn't happen with Bitwig, but defensive)
+            hostObserver.valueChanged(null);
+
+            // Host should remain unchanged
+            assertEquals("127.0.0.1", configManager.getMcpHost());
+            // No writeback should occur for null
+            verify(mockHostSetting, never()).set(null);
+        }
     }
 
     @Nested

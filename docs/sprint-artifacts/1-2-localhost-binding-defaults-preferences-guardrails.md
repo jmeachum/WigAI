@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -84,10 +84,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Consider clearing Jetty state even when `jettyServer != null` but not running (avoid stale references if server stops unexpectedly). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:176]
 
 ### Review Follow-ups (AI) — code review 2025-12-28 (fresh context)
-- [ ] [AI-Review][Medium] Fix Dev Agent Record claim about `isLoopbackAddress()` helper (code uses `canonicalizeLoopback()`); update record or reintroduce helper. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:167]
-- [ ] [AI-Review][Medium] Reconcile “Git Intelligence Summary” with the File List (currently contradictory). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:127]
-- [ ] [AI-Review][Low] Decide whether null host updates should be sanitized/written back or explicitly ignored; document + add test if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:91]
-- [ ] [AI-Review][Low] Clear `currentEndpointPath` in `cleanupFailedServer()` for consistent state. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:105]
+- [x] [AI-Review][Medium] Fix Dev Agent Record claim about `isLoopbackAddress()` helper (code uses `canonicalizeLoopback()`); update record or reintroduce helper. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:167]
+- [x] [AI-Review][Medium] Reconcile "Git Intelligence Summary" with the File List (currently contradictory). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:127]
+- [x] [AI-Review][Low] Decide whether null host updates should be sanitized/written back or explicitly ignored; document + add test if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:91]
+- [x] [AI-Review][Low] Clear `currentEndpointPath` in `cleanupFailedServer()` for consistent state. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:105]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -131,7 +131,8 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Story 1.1 confirmed MCP endpoint path is `/mcp` and default port is `61169`; keep logging consistent with these defaults. [Source: docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md]
 
 ### Git Intelligence Summary
-- Recent commits focus on smoke harness tests and story docs; no recent changes in config/server code paths.
+- Story implementation commits modified config/server code paths extensively; see File List for full scope.
+- Pre-implementation note (obsolete): Recent commits focused on smoke harness tests and story docs.
 
 ### Latest Technical Information
 - Network access is restricted for this run; no external version research performed.
@@ -170,7 +171,7 @@ Claude Opus 4.5
 ### Completion Notes List
 
 - Ultimate context engine analysis completed — comprehensive developer guide created.
-- Implemented loopback-only host validation in `PreferencesBackedConfigManager.validateHost()` using `isLoopbackAddress()` helper
+- Implemented loopback-only host validation in `PreferencesBackedConfigManager.validateHost()` using `canonicalizeLoopback()` helper
 - Added preference writeback for invalid host/port values to keep UI in sync with actual config
 - Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
 - Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (12 tests)
@@ -208,6 +209,11 @@ Claude Opus 4.5
   - [Medium] Story Status already uses canonical keywords (`in-progress`, `review`, `done`); ensured compliance
   - [Medium] Renamed `docs/project_context.md` → `docs/project-context.md` to match BMAD workflow pattern
   - [Low] Added defensive Jetty state clearing in `stopServer()` for unexpectedly stopped servers
+- **Fresh context review 2025-12-28 addressed (4/4)**:
+  - [Medium] Fixed Dev Agent Record claim: changed `isLoopbackAddress()` → `canonicalizeLoopback()` in Completion Notes
+  - [Medium] Updated Git Intelligence Summary to reflect implementation scope (no longer contradicts File List)
+  - [Low] Documented null host update behavior as defensive pattern; added test `nullHostUpdateIsIgnored()`
+  - [Low] Added `currentEndpointPath = null` in `cleanupFailedServer()` for consistent state
 
 ### File List
 
@@ -216,7 +222,7 @@ Claude Opus 4.5
 - `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing for unexpectedly stopped servers
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher (16 total tests)
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (17 total tests)
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added 3 behavioral tests for notifyBindFailure (12 total tests)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
@@ -247,6 +253,11 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-28**: Addressed fresh context review follow-ups (4 items)
+  - [Medium] Fixed Dev Agent Record helper method claim (`isLoopbackAddress()` → `canonicalizeLoopback()`)
+  - [Medium] Updated Git Intelligence Summary to align with File List scope
+  - [Low] Documented null host update handling + added test
+  - [Low] Clear `currentEndpointPath` in `cleanupFailedServer()` for consistent state
 - **2025-12-28**: Senior Developer Review (AI) — action items created (4 items) and status moved to `in-progress`
 - **2025-12-28**: Addressed status hygiene review follow-ups (3 items)
   - [Medium] Confirmed story status uses canonical keywords
