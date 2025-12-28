@@ -174,8 +174,22 @@ public class JettyServerManager {
      * @return true if the server was successfully stopped, false if stop failed or server wasn't running
      */
     public boolean stopServer() {
-        if (jettyServer == null || !jettyServer.isRunning()) {
+        if (jettyServer == null) {
             logger.info("WigAI Server is not running");
+            return false;
+        }
+
+        // Defensive cleanup: clear stale state if server stopped unexpectedly
+        if (!jettyServer.isRunning()) {
+            logger.info("WigAI Server is not running, clearing stale state");
+            try {
+                jettyServer.destroy();
+            } catch (Exception e) {
+                logger.error("Error destroying stopped server", e);
+            }
+            jettyServer = null;
+            contextHandler = null;
+            currentEndpointPath = null;
             return false;
         }
 

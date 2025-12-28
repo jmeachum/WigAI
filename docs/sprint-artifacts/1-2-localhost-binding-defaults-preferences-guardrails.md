@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -79,9 +79,9 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Tighten restart success logging: avoid logging "restart completed successfully" if start was a no-op or if stop failed. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:199]
 
 ### Review Follow-ups (AI) — code review 2025-12-28 (status hygiene)
-- [ ] [AI-Review][Medium] Normalize Story `Status:` to canonical keywords (`review`, `in-progress`, `done`) to align with `docs/sprint-artifacts/sprint-status.yaml` (avoid "Ready for Review"). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
-- [ ] [AI-Review][Medium] Fix BMAD project context auto-load mismatch: repo uses `docs/project_context.md` but workflows look for `**/project-context.md`; rename/copy or update workflow config and then update story notes. [docs/project_context.md:1]
-- [ ] [AI-Review][Low] Consider clearing Jetty state even when `jettyServer != null` but not running (avoid stale references if server stops unexpectedly). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:176]
+- [x] [AI-Review][Medium] Normalize Story `Status:` to canonical keywords (`review`, `in-progress`, `done`) to align with `docs/sprint-artifacts/sprint-status.yaml` (avoid "Ready for Review"). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
+- [x] [AI-Review][Medium] Fix BMAD project context auto-load mismatch: repo uses `docs/project_context.md` but workflows look for `**/project-context.md`; rename/copy or update workflow config and then update story notes. [docs/project_context.md:1]
+- [x] [AI-Review][Low] Consider clearing Jetty state even when `jettyServer != null` but not running (avoid stale references if server stops unexpectedly). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:176]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -132,7 +132,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Use architecture doc as the current source of truth for versions (Java 21, Jetty 11.0.20, MCP BOM 0.11.0, Bitwig API v19). [Source: docs/architecture.md]
 
 ### Project Context Reference
-- Found `docs/project_context.md`; BMAD workflows look for `**/project-context.md` (dash), so project context auto-load is currently skipped.
+- Renamed `docs/project_context.md` → `docs/project-context.md` to match BMAD workflow pattern `**/project-context.md`.
 
 ### Story Completion Status
 - Update `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = in-progress` in `docs/sprint-artifacts/sprint-status.yaml`.
@@ -198,12 +198,16 @@ Claude Opus 4.5
   - [Medium] Enhanced `stopServer()` to call `destroy()` and clear all state (`jettyServer`, `contextHandler`, `currentEndpointPath`)
   - [Medium] Fixed `startServer()` to clear `currentEndpointPath` when called without servlet
   - [Low] Changed `startServer()`/`stopServer()` to return boolean; restart logging now respects actual outcomes
+- **Status hygiene review 2025-12-28 addressed (3/3)**:
+  - [Medium] Story Status already uses canonical keywords (`in-progress`, `review`, `done`); ensured compliance
+  - [Medium] Renamed `docs/project_context.md` → `docs/project-context.md` to match BMAD workflow pattern
+  - [Low] Added defensive Jetty state clearing in `stopServer()` for unexpectedly stopped servers
 
 ### File List
 
 **Modified:**
 - `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added canonicalizeLoopback()
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer()
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing for unexpectedly stopped servers
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher (16 total tests)
@@ -211,6 +215,9 @@ Claude Opus 4.5
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
+
+**Renamed:**
+- `docs/project_context.md` → `docs/project-context.md` - Fixed BMAD workflow pattern matching
 
 **Added (prior commits, not in 5-commit scope):**
 - `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - ATDD checklist (commit 6d37835, prior to 5-commit scope)
@@ -230,6 +237,10 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-28**: Addressed status hygiene review follow-ups (3 items)
+  - [Medium] Confirmed story status uses canonical keywords
+  - [Medium] Renamed `docs/project_context.md` → `docs/project-context.md` for BMAD workflow compatibility
+  - [Low] Added defensive Jetty state clearing for unexpectedly stopped servers in `stopServer()`
 - **2025-12-28**: Senior Developer Review (AI) — action items created (3 items)
   - [Medium] Normalize story status keywords to match sprint tracking
   - [Medium] Align project context filename with BMAD workflow expectations
