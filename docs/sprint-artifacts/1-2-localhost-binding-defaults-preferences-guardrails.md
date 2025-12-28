@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -82,6 +82,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Normalize Story `Status:` to canonical keywords (`review`, `in-progress`, `done`) to align with `docs/sprint-artifacts/sprint-status.yaml` (avoid "Ready for Review"). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
 - [x] [AI-Review][Medium] Fix BMAD project context auto-load mismatch: repo uses `docs/project_context.md` but workflows look for `**/project-context.md`; rename/copy or update workflow config and then update story notes. [docs/project_context.md:1]
 - [x] [AI-Review][Low] Consider clearing Jetty state even when `jettyServer != null` but not running (avoid stale references if server stops unexpectedly). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:176]
+
+### Review Follow-ups (AI) — code review 2025-12-28 (fresh context)
+- [ ] [AI-Review][Medium] Fix Dev Agent Record claim about `isLoopbackAddress()` helper (code uses `canonicalizeLoopback()`); update record or reintroduce helper. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:167]
+- [ ] [AI-Review][Medium] Reconcile “Git Intelligence Summary” with the File List (currently contradictory). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:127]
+- [ ] [AI-Review][Low] Decide whether null host updates should be sanitized/written back or explicitly ignored; document + add test if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:91]
+- [ ] [AI-Review][Low] Clear `currentEndpointPath` in `cleanupFailedServer()` for consistent state. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:105]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -234,9 +240,14 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 2 Medium, 1 Low
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (status hygiene)”.
+- Date: 2025-12-28 (follow-up 2)
+- Outcome: Changes Requested
+- Issues found: 2 Medium, 2 Low
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (fresh context)” and moved story to `in-progress`.
 
 ## Change Log
 
+- **2025-12-28**: Senior Developer Review (AI) — action items created (4 items) and status moved to `in-progress`
 - **2025-12-28**: Addressed status hygiene review follow-ups (3 items)
   - [Medium] Confirmed story status uses canonical keywords
   - [Medium] Renamed `docs/project_context.md` → `docs/project-context.md` for BMAD workflow compatibility
