@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -71,6 +71,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Fix docs drift: component deep dive claims default port `8765` but code uses `61169`. [docs/reference/component-architecture-deep-dive.md:74]
 - [x] [AI-Review][Low] Fix brittle Mockito matcher: `SettableRangedValue#set(double)` should use `anyDouble()` (not `any(Integer.class)`). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java:346]
 - [x] [AI-Review][Low] Fix formatting/whitespace around method boundaries for readability. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:80]
+
+### Review Follow-ups (AI) — code review 2025-12-28 (post-fix regression)
+- [ ] [AI-Review][Medium] Fix IPv6 loopback URL formatting in startup notification/logs (wrap host in `[]` when IPv6) so `::1` yields `http://[::1]:{port}/mcp`. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:239]
+- [ ] [AI-Review][Medium] Ensure `stopServer()` destroys and clears server state (`jettyServer`, `contextHandler`) to avoid resource leaks/stale state across restarts. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:169]
+- [ ] [AI-Review][Medium] Ensure `startServer(null, null)` clears `currentEndpointPath` so notify URLs don’t advertise an endpoint path that wasn’t registered. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:72]
+- [ ] [AI-Review][Low] Tighten restart success logging: avoid logging “restart completed successfully” if start was a no-op or if stop failed. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:199]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -124,7 +130,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - No `project-context.md` found in repository.
 
 ### Story Completion Status
-- Update `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = ready-for-dev` in `docs/sprint-artifacts/sprint-status.yaml`.
+- Update `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = in-progress` in `docs/sprint-artifacts/sprint-status.yaml`.
 
 ### References
 - Epic + acceptance criteria: `docs/epics.md` (Story 1.2)
@@ -201,8 +207,16 @@ Claude Opus 4.5
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
 
+## Senior Developer Review (AI)
+
+- Date: 2025-12-28
+- Outcome: Changes Requested
+- Issues found: 3 Medium, 1 Low
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (post-fix regression)”.
+
 ## Change Log
 
+- **2025-12-28**: Senior Developer Review (AI) — action items created (4 items)
 - **2025-12-28**: Addressed Senior code review follow-ups (6 items)
   - [High] Removed blocking `Thread.sleep(500)` from restart path - Jetty's stop() is synchronous
   - [Medium] Added `canonicalizeLoopback()` to normalize localhost casing
