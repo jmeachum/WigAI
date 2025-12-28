@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -88,6 +88,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Reconcile "Git Intelligence Summary" with the File List (currently contradictory). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:127]
 - [x] [AI-Review][Low] Decide whether null host updates should be sanitized/written back or explicitly ignored; document + add test if needed. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:91]
 - [x] [AI-Review][Low] Clear `currentEndpointPath` in `cleanupFailedServer()` for consistent state. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:105]
+
+### Review Follow-ups (AI) — code review 2025-12-28 (scope + record hygiene)
+- [ ] [AI-Review][Medium] Update Dev Agent Record Completion Notes test counts to match current reality (e.g., `PreferencesBackedConfigManagerTest` now has 19 tests; `JettyServerManagerTest` now has 20). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:177]
+- [ ] [AI-Review][Medium] Update File List test totals to match current test files (remove stale “(17 total tests)” / “(12 total tests)” claims). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:224]
+- [ ] [AI-Review][Medium] Document review scope explicitly: treat all changes since the last merge commit as in-scope; record last merge commit hash + range (`<merge>..HEAD`); include last 20 commit subjects (scope updates each time review is run). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:139]
+- [ ] [AI-Review][Low] Prevent potential resource leak: if `JettyServerManager.startServer()` is called when `jettyServer != null` but not running, destroy/clear before overwriting references. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:55]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -250,9 +256,14 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 2 Medium, 2 Low
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (fresh context)” and moved story to `in-progress`.
+- Date: 2025-12-28 (follow-up 3)
+- Outcome: Changes Requested
+- Issues found: 3 Medium, 1 Low
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (scope + record hygiene)”.
 
 ## Change Log
 
+- **2025-12-28**: Senior Developer Review (AI) — action items created (4 items) for review scope + record hygiene
 - **2025-12-28**: Addressed fresh context review follow-ups (4 items)
   - [Medium] Fixed Dev Agent Record helper method claim (`isLoopbackAddress()` → `canonicalizeLoopback()`)
   - [Medium] Updated Git Intelligence Summary to align with File List scope
