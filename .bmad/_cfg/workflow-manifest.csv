@@ -22,7 +22,7 @@ name,description,module,path
 "create-excalidraw-flowchart","Create a flowchart visualization in Excalidraw format for processes, pipelines, or logic flows","bmm",".bmad/bmm/workflows/diagrams/create-flowchart/workflow.yaml"
 "create-excalidraw-wireframe","Create website or app wireframes in Excalidraw format","bmm",".bmad/bmm/workflows/diagrams/create-wireframe/workflow.yaml"
 "document-project","Analyzes and documents brownfield projects by scanning codebase, architecture, and patterns to create comprehensive reference documentation for AI-assisted development","bmm",".bmad/bmm/workflows/document-project/workflow.yaml"
-"generate-project-context","Creates a concise project_context.md file with critical rules and patterns that AI agents must follow when implementing code. Optimized for LLM context efficiency.","bmm",".bmad/bmm/workflows/generate-project-context/workflow.md"
+"generate-project-context","Creates a concise project-context.md file with critical rules and patterns that AI agents must follow when implementing code. Optimized for LLM context efficiency.","bmm",".bmad/bmm/workflows/generate-project-context/workflow.md"
 "testarch-atdd","Generate failing acceptance tests before implementation using TDD red-green-refactor cycle","bmm",".bmad/bmm/workflows/testarch/atdd/workflow.yaml"
 "testarch-automate","Expand test automation coverage after implementation or analyze existing codebase to generate comprehensive test suite","bmm",".bmad/bmm/workflows/testarch/automate/workflow.yaml"
 "testarch-ci","Scaffold CI/CD quality pipeline with test execution, burn-in loops, and artifact collection","bmm",".bmad/bmm/workflows/testarch/ci/workflow.yaml"
