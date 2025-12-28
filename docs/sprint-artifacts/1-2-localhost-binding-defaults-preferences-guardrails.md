@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -63,6 +63,14 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Dev Agent Record File List: remove/qualify "Added ATDD checklist" if file wasn't added in this 5-commit scope. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:155]
 - [x] [AI-Review][Low] Remove unused `host` field in config manager (or use it) to avoid dead state. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:20]
 - [x] [AI-Review][Low] Revisit `@Tag("atdd_red")` name/intent now that tests are green. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:28]
+
+### Review Follow-ups (AI) — Senior code review 2025-12-28
+- [ ] [AI-Review][High] Remove blocking `Thread.sleep(500)` from restart path (or move restart off the Bitwig thread) to avoid UI/host responsiveness risk. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:187]
+- [ ] [AI-Review][Medium] Canonicalize `localhost` casing in `validateHost()` to prevent needless restarts and ensure log/notification URLs stay stable. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:134]
+- [ ] [AI-Review][Medium] On bind/start failure, reset/cleanup Jetty server state to avoid partial initialization/leaks (e.g., stop/destroy + null refs). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:61]
+- [ ] [AI-Review][Medium] Fix docs drift: component deep dive claims default port `8765` but code uses `61169`. [docs/reference/component-architecture-deep-dive.md:74]
+- [ ] [AI-Review][Low] Fix brittle Mockito matcher: `SettableRangedValue#set(double)` should use `anyDouble()` (not `any(Integer.class)`). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java:346]
+- [ ] [AI-Review][Low] Fix formatting/whitespace around method boundaries for readability. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:80]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
