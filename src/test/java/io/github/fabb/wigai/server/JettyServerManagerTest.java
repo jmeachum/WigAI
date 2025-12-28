@@ -129,6 +129,47 @@ class JettyServerManagerTest {
     }
 
     @Nested
+    @DisplayName("formatHostForUrl")
+    class FormatHostForUrlTests {
+
+        @Test
+        @DisplayName("returns localhost for null host")
+        void returnsLocalhostForNull() {
+            assertEquals("localhost", serverManager.formatHostForUrl(null));
+        }
+
+        @Test
+        @DisplayName("returns localhost unchanged")
+        void returnsLocalhostUnchanged() {
+            assertEquals("localhost", serverManager.formatHostForUrl("localhost"));
+        }
+
+        @Test
+        @DisplayName("returns 127.0.0.1 unchanged (IPv4)")
+        void returnsIpv4Unchanged() {
+            assertEquals("127.0.0.1", serverManager.formatHostForUrl("127.0.0.1"));
+        }
+
+        @Test
+        @DisplayName("wraps IPv6 loopback ::1 in brackets")
+        void wrapsIpv6LoopbackInBrackets() {
+            assertEquals("[::1]", serverManager.formatHostForUrl("::1"));
+        }
+
+        @Test
+        @DisplayName("wraps full IPv6 address in brackets")
+        void wrapsFullIpv6InBrackets() {
+            assertEquals("[2001:db8::1]", serverManager.formatHostForUrl("2001:db8::1"));
+        }
+
+        @Test
+        @DisplayName("wraps IPv6 localhost form in brackets")
+        void wrapsIpv6LocalhostInBrackets() {
+            assertEquals("[0:0:0:0:0:0:0:1]", serverManager.formatHostForUrl("0:0:0:0:0:0:0:1"));
+        }
+    }
+
+    @Nested
     @DisplayName("notifyBindFailure")
     class NotifyBindFailureTests {
 
@@ -158,6 +199,32 @@ class JettyServerManagerTest {
 
             verify(host).showPopupNotification(contains("Bitwig Preferences"));
             verify(host).showPopupNotification(contains("Network Settings"));
+        }
+    }
+
+    @Nested
+    @DisplayName("stopServer")
+    class StopServerTests {
+
+        @Test
+        @DisplayName("returns false when server is not running")
+        void returnsFalseWhenServerNotRunning() {
+            // Server was never started, so stopServer should return false
+            boolean result = serverManager.stopServer();
+
+            assertFalse(result);
+            verify(logger).info("WigAI Server is not running");
+        }
+    }
+
+    @Nested
+    @DisplayName("isRunning")
+    class IsRunningTests {
+
+        @Test
+        @DisplayName("returns false when server was never started")
+        void returnsFalseWhenNeverStarted() {
+            assertFalse(serverManager.isRunning());
         }
     }
 }

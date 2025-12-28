@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: Ready for Review
 
 ## Story
 
@@ -73,10 +73,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Fix formatting/whitespace around method boundaries for readability. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:80]
 
 ### Review Follow-ups (AI) — code review 2025-12-28 (post-fix regression)
-- [ ] [AI-Review][Medium] Fix IPv6 loopback URL formatting in startup notification/logs (wrap host in `[]` when IPv6) so `::1` yields `http://[::1]:{port}/mcp`. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:239]
-- [ ] [AI-Review][Medium] Ensure `stopServer()` destroys and clears server state (`jettyServer`, `contextHandler`) to avoid resource leaks/stale state across restarts. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:169]
-- [ ] [AI-Review][Medium] Ensure `startServer(null, null)` clears `currentEndpointPath` so notify URLs don’t advertise an endpoint path that wasn’t registered. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:72]
-- [ ] [AI-Review][Low] Tighten restart success logging: avoid logging “restart completed successfully” if start was a no-op or if stop failed. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:199]
+- [x] [AI-Review][Medium] Fix IPv6 loopback URL formatting in startup notification/logs (wrap host in `[]` when IPv6) so `::1` yields `http://[::1]:{port}/mcp`. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:239]
+- [x] [AI-Review][Medium] Ensure `stopServer()` destroys and clears server state (`jettyServer`, `contextHandler`) to avoid resource leaks/stale state across restarts. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:169]
+- [x] [AI-Review][Medium] Ensure `startServer(null, null)` clears `currentEndpointPath` so notify URLs don't advertise an endpoint path that wasn't registered. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:72]
+- [x] [AI-Review][Low] Tighten restart success logging: avoid logging "restart completed successfully" if start was a no-op or if stop failed. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:199]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -188,6 +188,11 @@ Claude Opus 4.5
   - [Medium] Fixed docs drift: default port 8765 → 61169 in component-architecture-deep-dive.md
   - [Low] Fixed Mockito matcher: `any(Integer.class)` → `anyDouble()` for SettableRangedValue.set()
   - [Low] Fixed formatting in WigAIExtension.java (added missing blank lines between methods)
+- **Post-fix regression review 2025-12-28 addressed (4/4)**:
+  - [Medium] Added `formatHostForUrl()` to wrap IPv6 addresses in brackets for valid URL construction
+  - [Medium] Enhanced `stopServer()` to call `destroy()` and clear all state (`jettyServer`, `contextHandler`, `currentEndpointPath`)
+  - [Medium] Fixed `startServer()` to clear `currentEndpointPath` when called without servlet
+  - [Low] Changed `startServer()`/`stopServer()` to return boolean; restart logging now respects actual outcomes
 
 ### File List
 
@@ -216,6 +221,12 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-28**: Addressed post-fix regression review follow-ups (4 items)
+  - [Medium] Added `formatHostForUrl()` for IPv6 URL formatting (brackets for `::1` etc.)
+  - [Medium] Enhanced `stopServer()` to properly destroy and clear all server state
+  - [Medium] Fixed `startServer()` to clear `currentEndpointPath` when no servlet provided
+  - [Low] Tightened restart logging: only logs success when stop and start both succeed
+  - Added 8 unit tests for IPv6 formatting, stopServer, and isRunning
 - **2025-12-28**: Senior Developer Review (AI) — action items created (4 items)
 - **2025-12-28**: Addressed Senior code review follow-ups (6 items)
   - [High] Removed blocking `Thread.sleep(500)` from restart path - Jetty's stop() is synchronous

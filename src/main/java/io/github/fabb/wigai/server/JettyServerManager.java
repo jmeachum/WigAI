@@ -49,12 +49,13 @@ public class JettyServerManager {
      *
      * @param mcpServlet The MCP servlet to register, or null to start without servlet
      * @param endpointPath The endpoint path for the servlet, or null if no servlet provided
+     * @return true if the server was actually started, false if it was already running (no-op)
      * @throws Exception if the server fails to start
      */
-    public void startServer(ServletHolder mcpServlet, String endpointPath) throws Exception {
+    public boolean startServer(ServletHolder mcpServlet, String endpointPath) throws Exception {
         if (jettyServer != null && jettyServer.isRunning()) {
             logger.info("WigAI Server is already running");
-            return;
+            return false;
         }
 
         // Create and configure Jetty server
@@ -69,10 +70,12 @@ public class JettyServerManager {
         contextHandler.setContextPath("/");
         jettyServer.setHandler(contextHandler);
 
-        // Register servlet if provided
+        // Register servlet if provided, otherwise clear endpoint path
         if (mcpServlet != null && endpointPath != null) {
             contextHandler.addServlet(mcpServlet, endpointPath);
             this.currentEndpointPath = endpointPath;
+        } else {
+            this.currentEndpointPath = null;
         }
 
         // Start the Jetty server
@@ -92,6 +95,7 @@ public class JettyServerManager {
         }
 
         notifyServerStarted();
+        return true;
     }
 
     /**
@@ -165,17 +169,22 @@ public class JettyServerManager {
 
     /**
      * Stops the Jetty server and all servlets.
+     * Properly destroys and clears server state to avoid resource leaks.
+     *
+     * @return true if the server was successfully stopped, false if stop failed or server wasn't running
      */
-    public void stopServer() {
+    public boolean stopServer() {
         if (jettyServer == null || !jettyServer.isRunning()) {
             logger.info("WigAI Server is not running");
-            return;
+            return false;
         }
 
         try {
             logger.info("Stopping Jetty server");
             jettyServer.stop();
+            jettyServer.destroy();
             notifyServerStopped();
+            return true;
         } catch (Exception e) {
             StringWriter stringWriter = new StringWriter();
             PrintWriter printWriter = new PrintWriter(stringWriter);
@@ -183,6 +192,12 @@ public class JettyServerManager {
             String fullStackTrace = stringWriter.toString();
 
             logger.error("Error stopping WigAI Server\n" + fullStackTrace);
+            return false;
+        } finally {
+            // Always clear state, even on error, to avoid stale references
+            jettyServer = null;
+            contextHandler = null;
+            currentEndpointPath = null;
         }
     }
 
@@ -199,18 +214,26 @@ public class JettyServerManager {
     public void restartServer(ServletHolder mcpServlet, String endpointPath) throws Exception {
         logger.info("WigAI Extension: Beginning graceful server restart");
 
+        boolean stopSucceeded = true;
         // Stop the current server if running
         // Jetty's stop() is synchronous and waits for connectors to close properly
         if (jettyServer != null && jettyServer.isRunning()) {
             logger.info("WigAI Extension: Stopping current server for restart");
-            stopServer();
+            stopSucceeded = stopServer();
         }
 
         // Start the server with new configuration
         logger.info("WigAI Extension: Starting server with updated configuration");
-        startServer(mcpServlet, endpointPath);
+        boolean startSucceeded = startServer(mcpServlet, endpointPath);
 
-        logger.info("WigAI Extension: Server restart completed successfully");
+        // Only log success if both stop (if needed) and start actually succeeded
+        if (stopSucceeded && startSucceeded) {
+            logger.info("WigAI Extension: Server restart completed successfully");
+        } else if (!startSucceeded) {
+            logger.info("WigAI Extension: Server was already running, no restart needed");
+        } else {
+            logger.warn("WigAI Extension: Server restart completed with warnings (stop may have failed)");
+        }
     }
 
     /**
@@ -232,12 +255,33 @@ public class JettyServerManager {
     }
 
     /**
+     * Formats a host for use in a URL. IPv6 addresses must be wrapped in brackets.
+     *
+     * <p><b>Visibility Note:</b> Package-private visibility is intentional to allow unit testing
+     * of URL formatting logic without starting actual servers.
+     *
+     * @param host the host to format
+     * @return the formatted host suitable for URL construction
+     */
+    String formatHostForUrl(String host) {
+        if (host == null) {
+            return "localhost";
+        }
+        // IPv6 addresses contain colons and must be wrapped in brackets for URLs
+        if (host.contains(":")) {
+            return "[" + host + "]";
+        }
+        return host;
+    }
+
+    /**
      * Notifies that the server started successfully.
      */
     private void notifyServerStarted() {
         String endpointPath = currentEndpointPath != null ? currentEndpointPath : "";
+        String formattedHost = formatHostForUrl(configManager.getMcpHost());
         String connectionUrl = String.format("http://%s:%d%s",
-            configManager.getMcpHost(), configManager.getMcpPort(), endpointPath);
+            formattedHost, configManager.getMcpPort(), endpointPath);
         String message = String.format("WigAI MCP Server v%s started. Connect AI agents to: %s",
             extensionDefinition.getVersion(), connectionUrl);
         logger.info(message);
