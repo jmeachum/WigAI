@@ -79,9 +79,11 @@ public class JettyServerManager {
         try {
             jettyServer.start();
         } catch (BindException e) {
+            cleanupFailedServer();
             notifyBindFailure(configManager.getMcpPort());
             throw e;
         } catch (Exception e) {
+            cleanupFailedServer();
             // Check if root cause is BindException (including suppressed exceptions for Jetty MultiException)
             if (containsBindException(e)) {
                 notifyBindFailure(configManager.getMcpPort());
@@ -90,6 +92,23 @@ public class JettyServerManager {
         }
 
         notifyServerStarted();
+    }
+
+    /**
+     * Cleans up server state after a failed start attempt.
+     * Stops any partially initialized server and resets references to avoid leaks.
+     */
+    private void cleanupFailedServer() {
+        if (jettyServer != null) {
+            try {
+                jettyServer.stop();
+                jettyServer.destroy();
+            } catch (Exception e) {
+                logger.error("Error during server cleanup after failed start", e);
+            }
+            jettyServer = null;
+            contextHandler = null;
+        }
     }
 
     /**
@@ -170,6 +189,9 @@ public class JettyServerManager {
     /**
      * Gracefully restarts the server with new configuration and registers the provided servlet.
      *
+     * <p>Uses Jetty's synchronous stop() which properly closes connectors and releases ports.
+     * No artificial delay is needed since stop() waits for the server to fully shut down.
+     *
      * @param mcpServlet The MCP servlet to register, or null to restart without servlet
      * @param endpointPath The endpoint path for the servlet, or null if no servlet provided
      * @throws Exception if the server fails to restart
@@ -178,13 +200,11 @@ public class JettyServerManager {
         logger.info("WigAI Extension: Beginning graceful server restart");
 
         // Stop the current server if running
+        // Jetty's stop() is synchronous and waits for connectors to close properly
         if (jettyServer != null && jettyServer.isRunning()) {
             logger.info("WigAI Extension: Stopping current server for restart");
             stopServer();
         }
-
-        // Small delay to ensure clean shutdown
-        Thread.sleep(500);
 
         // Start the server with new configuration
         logger.info("WigAI Extension: Starting server with updated configuration");

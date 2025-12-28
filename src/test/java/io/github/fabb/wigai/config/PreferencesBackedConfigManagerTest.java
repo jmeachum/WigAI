@@ -18,6 +18,7 @@ import org.mockito.MockitoAnnotations;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -343,7 +344,7 @@ class PreferencesBackedConfigManagerTest {
             assertEquals("127.0.0.1", mgr.getMcpHost());
             assertEquals(8080, mgr.getMcpPort());
             verify(hostSetting, never()).set(any());
-            verify(portSetting, never()).set(any(Integer.class));
+            verify(portSetting, never()).set(anyDouble());
         }
 
         @Test

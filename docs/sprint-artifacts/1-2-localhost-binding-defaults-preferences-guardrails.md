@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: Ready for Review
 
 ## Story
 
@@ -65,12 +65,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Revisit `@Tag("atdd_red")` name/intent now that tests are green. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:28]
 
 ### Review Follow-ups (AI) — Senior code review 2025-12-28
-- [ ] [AI-Review][High] Remove blocking `Thread.sleep(500)` from restart path (or move restart off the Bitwig thread) to avoid UI/host responsiveness risk. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:187]
-- [ ] [AI-Review][Medium] Canonicalize `localhost` casing in `validateHost()` to prevent needless restarts and ensure log/notification URLs stay stable. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:134]
-- [ ] [AI-Review][Medium] On bind/start failure, reset/cleanup Jetty server state to avoid partial initialization/leaks (e.g., stop/destroy + null refs). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:61]
-- [ ] [AI-Review][Medium] Fix docs drift: component deep dive claims default port `8765` but code uses `61169`. [docs/reference/component-architecture-deep-dive.md:74]
-- [ ] [AI-Review][Low] Fix brittle Mockito matcher: `SettableRangedValue#set(double)` should use `anyDouble()` (not `any(Integer.class)`). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java:346]
-- [ ] [AI-Review][Low] Fix formatting/whitespace around method boundaries for readability. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:80]
+- [x] [AI-Review][High] Remove blocking `Thread.sleep(500)` from restart path (or move restart off the Bitwig thread) to avoid UI/host responsiveness risk. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:187]
+- [x] [AI-Review][Medium] Canonicalize `localhost` casing in `validateHost()` to prevent needless restarts and ensure log/notification URLs stay stable. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:134]
+- [x] [AI-Review][Medium] On bind/start failure, reset/cleanup Jetty server state to avoid partial initialization/leaks (e.g., stop/destroy + null refs). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:61]
+- [x] [AI-Review][Medium] Fix docs drift: component deep dive claims default port `8765` but code uses `61169`. [docs/reference/component-architecture-deep-dive.md:74]
+- [x] [AI-Review][Low] Fix brittle Mockito matcher: `SettableRangedValue#set(double)` should use `anyDouble()` (not `any(Integer.class)`). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java:346]
+- [x] [AI-Review][Low] Fix formatting/whitespace around method boundaries for readability. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:80]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -175,15 +175,24 @@ Claude Opus 4.5
   - [Medium] Qualified ATDD checklist entry (added in earlier commit, not in 5-commit scope)
   - [Low] Removed unused `host` field from PreferencesBackedConfigManager
   - [Low] Updated `@Tag("atdd_red")` → `@Tag("atdd")` since tests are now green
+- **Senior code review 2025-12-28 addressed (6/6)**:
+  - [High] Removed blocking `Thread.sleep(500)` from restart path - Jetty's stop() is synchronous
+  - [Medium] Added `canonicalizeLoopback()` to normalize localhost casing (e.g., "LOCALHOST" → "localhost")
+  - [Medium] Added `cleanupFailedServer()` to reset Jetty state on bind/start failure
+  - [Medium] Fixed docs drift: default port 8765 → 61169 in component-architecture-deep-dive.md
+  - [Low] Fixed Mockito matcher: `any(Integer.class)` → `anyDouble()` for SettableRangedValue.set()
+  - [Low] Fixed formatting in WigAIExtension.java (added missing blank lines between methods)
 
 ### File List
 
 **Modified:**
-- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing
+- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added canonicalizeLoopback()
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer()
+- `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests (16 total tests)
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher (16 total tests)
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added 3 behavioral tests for notifyBindFailure (12 total tests)
+- `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
@@ -194,6 +203,13 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-28**: Addressed Senior code review follow-ups (6 items)
+  - [High] Removed blocking `Thread.sleep(500)` from restart path - Jetty's stop() is synchronous
+  - [Medium] Added `canonicalizeLoopback()` to normalize localhost casing
+  - [Medium] Added `cleanupFailedServer()` to reset Jetty state on bind/start failure
+  - [Medium] Fixed docs drift: default port 8765 → 61169 in component-architecture-deep-dive.md
+  - [Low] Fixed Mockito matcher: `any(Integer.class)` → `anyDouble()` for SettableRangedValue.set()
+  - [Low] Fixed formatting in WigAIExtension.java (added missing blank lines)
 - **2025-12-27**: Addressed 5-commit scope re-review follow-ups (6 items)
   - [Critical] Verified typo was already fixed (story record was stale)
   - [Critical] Added behavioral tests for bind failure UX (3 tests for notifyBindFailure)

@@ -127,9 +127,10 @@ public class PreferencesBackedConfigManager implements ConfigManager {
     /**
      * Validates and sanitizes host input.
      * Enforces loopback-only hosts for MVP (no-auth) security.
+     * Canonicalizes accepted hosts to ensure consistent casing and stable URLs.
      *
      * @param host the host to validate
-     * @return validated host (always a loopback address)
+     * @return validated host (always a canonical loopback address)
      */
     private String validateHost(String host) {
         if (host == null || host.trim().isEmpty()) {
@@ -137,22 +138,33 @@ public class PreferencesBackedConfigManager implements ConfigManager {
             return "localhost";
         }
         String trimmedHost = host.trim();
-        if (!isLoopbackAddress(trimmedHost)) {
+        String canonicalHost = canonicalizeLoopback(trimmedHost);
+        if (canonicalHost == null) {
             logger.warn("PreferencesBackedConfigManager: Rejected non-loopback host '" + trimmedHost +
                 "'. WigAI MVP (no-auth) only allows localhost binding for security. Using 'localhost'.");
             return "localhost";
         }
-        return trimmedHost;
+        return canonicalHost;
     }
 
     /**
-     * Checks if the given host is a loopback address.
-     * Allowed values: localhost, 127.0.0.1, ::1
+     * Canonicalizes a loopback address to its standard form.
+     * Returns null if the host is not a recognized loopback address.
+     *
+     * @param host the host to canonicalize
+     * @return canonical form ("localhost", "127.0.0.1", or "::1"), or null if not loopback
      */
-    private boolean isLoopbackAddress(String host) {
-        return "localhost".equalsIgnoreCase(host) ||
-               "127.0.0.1".equals(host) ||
-               "::1".equals(host);
+    private String canonicalizeLoopback(String host) {
+        if ("localhost".equalsIgnoreCase(host)) {
+            return "localhost"; // Normalize casing (e.g., "LOCALHOST" -> "localhost")
+        }
+        if ("127.0.0.1".equals(host)) {
+            return "127.0.0.1";
+        }
+        if ("::1".equals(host)) {
+            return "::1";
+        }
+        return null; // Not a loopback address
     }
 
     /**

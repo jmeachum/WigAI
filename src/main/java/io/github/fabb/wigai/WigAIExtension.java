@@ -77,7 +77,9 @@ public class WigAIExtension extends ControllerExtension implements ConfigChangeO
         } catch (Exception e) {
             logger.error("Failed to create MCP servlet or start server", e);
         }
-    }    /**
+    }
+
+    /**
      * Stops the Jetty server and all servlets.
      */
     private void stopServer() {
@@ -97,7 +99,9 @@ public class WigAIExtension extends ControllerExtension implements ConfigChangeO
         } catch (Exception e) {
             logger.error("Failed to create MCP servlet or restart server", e);
         }
-    }    /**
+    }
+
+    /**
      * Called when the MCP server host changes.
      * Triggers a graceful restart of the entire server.
      *
