@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -141,6 +141,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled "Added (prior commits, not in 5-commit scope)" are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
 - [x] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
 - [x] [AI-Review][Low] Strengthen AC1 tests to assert advertised URL/logging in `notifyServerStarted()` rather than only string construction. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:333]
+- [ ] [AI-Review][High] Reconcile AC1/story note "advertise configured loopback host" with bind-host advertising; choose consistent behavior and update code/tests/docs accordingly. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:401]
+- [ ] [AI-Review][Medium] Update ATDD checklist count and file metadata to reflect 6 ATDD tests (not 5). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:45]
+- [ ] [AI-Review][Medium] Add reachability validation for AC4 (post-restart endpoint reachable) or explicitly scope it as integration-only with a tracking test. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:138]
+- [ ] [AI-Review][Low] Align story and sprint status with Changes Requested outcome after review (in-progress while issues remain). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
