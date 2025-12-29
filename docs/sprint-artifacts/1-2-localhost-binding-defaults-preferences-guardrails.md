@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: done
 
 ## Story
 
@@ -167,7 +167,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Default host is `localhost` and default port is `61169` (AppConstants). [Source: src/main/java/io/github/fabb/wigai/common/AppConstants.java]
 - Empty or whitespace `MCP Host` inputs must sanitize to `localhost` and immediately update preferences.
 - Non-loopback host inputs must be rejected for MVP and reverted to `localhost` with a clear warning.
-- Port changes to 1024–65535 must trigger a graceful restart and result in a reachable `http://localhost:{port}/mcp`.
+- Port changes to 1024–65535 must trigger a graceful restart and result in a reachable `http://127.0.0.1:{port}/mcp` or `http://[::1]:{port}/mcp`.
 - Bind failures must not crash Bitwig; log and show a clear, actionable message.
 
 ### Architecture Compliance
@@ -300,6 +300,7 @@ Claude Opus 4.5
 - Added preference writeback for invalid host/port values to keep UI in sync with actual config
 - Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
 - Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (19 tests)
+- Added `WigAIExtension` restart-hook unit tests and aligned AC4 example URLs to numeric loopback (`127.0.0.1`/`[::1]`)
 - All 6 ATDD tests passing, all unit tests passing, clean build successful
 - **Review follow-ups addressed (5/5)**:
   - Added init-time validation of persisted host/port with writeback in constructor
@@ -415,6 +416,9 @@ Claude Opus 4.5
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
+**Added:**
+- `src/test/java/io/github/fabb/wigai/WigAIExtensionTest.java` - Added unit tests to verify restart hooks call `restartServer()` on host/port changes
+
 **Renamed:**
 - `docs/project_context.md` → `docs/project-context.md` - Fixed BMAD workflow pattern matching
 
@@ -467,6 +471,11 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-29**: Addressed code review (current) follow-ups (3 items)
+  - [Medium] Aligned AC4 example URLs in epics/ATDD checklist to numeric loopback (`127.0.0.1`/`[::1]`)
+  - [Medium] Added `WigAIExtension` restart-hook unit tests for host/port change restarts
+  - [Medium] Updated Dev Notes AC4 example to use actual bind-address URLs
+  - [Low] Updated story and sprint status to `done`
 - **2025-12-29**: Addressed code review (current) follow-ups (4 items) — moved story to `review`
   - [Medium] Corrected Dev Agent Record claim: "All 5 ATDD tests" → "All 6 ATDD tests"
   - [Medium] Aligned AC4 example URL with bind-address behavior (numeric loopback instead of `localhost`)

@@ -31,7 +31,7 @@ Story 1.2 enforces loopback-only binding defaults and preference guardrails so t
    **Then** WigAI refuses for MVP (no-auth) and reverts to `localhost`, logging a clear warning explaining why.
 4. **Given** the user changes "MCP Port" to another valid port (1024–65535)
    **When** the setting is applied
-   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the configured loopback host and new port (e.g., `http://localhost:{new_port}/mcp` or `http://127.0.0.1:{new_port}/mcp`).
+   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the loopback address and new port (e.g., `http://127.0.0.1:{new_port}/mcp` or `http://[::1]:{new_port}/mcp`).
 5. **Given** the configured port cannot be bound (e.g., already in use)
    **When** WigAI tries to start or restart the server
    **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.

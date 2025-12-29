@@ -198,7 +198,7 @@ So that WigAI isn't accidentally exposed on the network (no-auth MVP) and connec
 
 **Given** the user changes "MCP Port" to another valid port (1024–65535)
 **When** the setting is applied
-**Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the configured loopback host and new port (e.g., `http://localhost:{new_port}/mcp` or `http://127.0.0.1:{new_port}/mcp`).
+**Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the loopback address and new port (e.g., `http://127.0.0.1:{new_port}/mcp` or `http://[::1]:{new_port}/mcp`).
 
 **Given** the configured port cannot be bound (e.g., already in use)
 **When** WigAI tries to start or restart the server
