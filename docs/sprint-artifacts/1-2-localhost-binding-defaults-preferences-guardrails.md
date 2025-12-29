@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -44,6 +44,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
   - [x] Unit tests for host validation (empty, whitespace, non-loopback, allowed loopback values)
   - [x] Unit tests for port validation (out-of-range -> default)
   - [x] Regression test that preference value is corrected when invalid host is entered
+
+### Review Follow-ups (AI) — code review 2025-12-30
+- [ ] [AI-Review][Medium] Align Epic 1.2 AC wording with story/implementation: advertise actual bind address (not configured host) to avoid IPv4/IPv6 mismatch. [docs/epics.md:183]
+- [ ] [AI-Review][Medium] Update ATDD checklist RED/green status to reflect current passing tests or include real execution evidence. [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:41]
+- [ ] [AI-Review][Medium] Reconcile File List exclusion for validation report within scope `6b2f94b..HEAD` (include it or document explicit scope rationale). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:403]
+- [ ] [AI-Review][Low] Document AC4 reachability as integration-only in the story/record (not just ATDD), since restart is inferred in unit tests. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:133]
 
 ### Review Follow-ups (AI)
 - [x] [AI-Review][High] Replace placeholder "stale state cleanup" test with assertion-based coverage (or remove misleading test). [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:231]
