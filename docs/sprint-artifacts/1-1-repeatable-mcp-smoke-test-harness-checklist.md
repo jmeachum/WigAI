@@ -173,6 +173,7 @@ so that MCP regressions and integration issues are caught early before we build 
 **Score:** 100/100 (A+ - Excellent)  
 **Recommendation:** Approve  
 **Review File:** `docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md`
+**Traceability Matrix:** `docs/traceability-matrix-1-1-repeatable-mcp-smoke-test-harness-checklist.md`
 
 **Key Findings:**
 - Full AC1-AC5 coverage across 55 JUnit tests (ATDD + unit)
