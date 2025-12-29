@@ -53,9 +53,21 @@ public class JettyServerManager {
      * @throws Exception if the server fails to start
      */
     public boolean startServer(ServletHolder mcpServlet, String endpointPath) throws Exception {
-        if (jettyServer != null && jettyServer.isRunning()) {
-            logger.info("WigAI Server is already running");
-            return false;
+        if (jettyServer != null) {
+            if (jettyServer.isRunning()) {
+                logger.info("WigAI Server is already running");
+                return false;
+            }
+            // Server exists but not running - clean up stale state to prevent resource leak
+            logger.info("Cleaning up stale server state before starting");
+            try {
+                jettyServer.destroy();
+            } catch (Exception e) {
+                logger.error("Error destroying stale server", e);
+            }
+            jettyServer = null;
+            contextHandler = null;
+            currentEndpointPath = null;
         }
 
         // Create and configure Jetty server

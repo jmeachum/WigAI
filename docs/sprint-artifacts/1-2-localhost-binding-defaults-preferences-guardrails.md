@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -90,10 +90,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Clear `currentEndpointPath` in `cleanupFailedServer()` for consistent state. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:105]
 
 ### Review Follow-ups (AI) — code review 2025-12-28 (scope + record hygiene)
-- [ ] [AI-Review][Medium] Update Dev Agent Record Completion Notes test counts to match current reality (e.g., `PreferencesBackedConfigManagerTest` now has 19 tests; `JettyServerManagerTest` now has 20). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:177]
-- [ ] [AI-Review][Medium] Update File List test totals to match current test files (remove stale “(17 total tests)” / “(12 total tests)” claims). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:224]
-- [ ] [AI-Review][Medium] Document review scope explicitly: treat all changes since the last merge commit as in-scope; record last merge commit hash + range (`<merge>..HEAD`); include last 20 commit subjects (scope updates each time review is run). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:139]
-- [ ] [AI-Review][Low] Prevent potential resource leak: if `JettyServerManager.startServer()` is called when `jettyServer != null` but not running, destroy/clear before overwriting references. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:55]
+- [x] [AI-Review][Medium] Update Dev Agent Record Completion Notes test counts to match current reality (e.g., `PreferencesBackedConfigManagerTest` now has 19 tests; `JettyServerManagerTest` now has 21). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:177]
+- [x] [AI-Review][Medium] Update File List test totals to match current test files (remove stale "(17 total tests)" / "(12 total tests)" claims). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:224]
+- [x] [AI-Review][Medium] Document review scope explicitly: treat all changes since the last merge commit as in-scope; record last merge commit hash + range (`<merge>..HEAD`); include last 20 commit subjects (scope updates each time review is run). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:139]
+- [x] [AI-Review][Low] Prevent potential resource leak: if `JettyServerManager.startServer()` is called when `jettyServer != null` but not running, destroy/clear before overwriting references. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:55]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -140,6 +140,31 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Story implementation commits modified config/server code paths extensively; see File List for full scope.
 - Pre-implementation note (obsolete): Recent commits focused on smoke harness tests and story docs.
 
+### Review Scope Definition
+- **Base commit (last merge):** `6b2f94b` (Merge pull request #20 from jmeachum/implementation/story-1-1)
+- **Scope range:** `6b2f94b..HEAD`
+- **Last 20 commits in scope:**
+  1. `faa0e1e` docs(story-1-2): set 1-2 in-progress; add scope/record hygiene follow-ups
+  2. `b63c63f` fix(story-1.2): address fresh context review follow-ups (4 items)
+  3. `0e78ebf` docs(story-1-2): mark story 1-2 in-progress; add fresh-context follow-ups
+  4. `d84ab58` chore(bmad): rename project_context.md references to project-context.md
+  5. `a5618b2` fix(story-1.2): address status hygiene review follow-ups
+  6. `6957522` docs(story-1.2): add code-review action items and sync sprint status
+  7. `5fb6817` fix(story-1.2): address post-fix regression review follow-ups
+  8. `1b9063c` docs(story-1.2): record review follow-ups and set status in-progress
+  9. `58021b4` fix(story-1.2): address senior code review findings
+  10. `bd93287` docs(story-1.2): record review follow-ups and set status in-progress
+  11. `845c9e1` fix(story-1.2): address 5-commit scope re-review findings
+  12. `c38a3fa` docs: mark story 1.2 ready-for-dev and add 5-commit review action items
+  13. `24e3e31` fix(story-1.2): address refresh review follow-ups
+  14. `f5db91c` docs: record code review findings for story 1.2
+  15. `065da16` fix(config): address code review follow-ups for story 1.2
+  16. `9ef0ac9` docs: add AI review follow-ups for story 1.2
+  17. `e7eb44a` feat(config): enforce localhost-only binding with preference guardrails
+  18. `6d37835` docs(story): Add ATDD checklist and red-phase JUnit tests for story 1.2
+  19. `3b58cec` docs: Set default framework to junit
+  20. `93013d4` docs: Add Java auto-detection and JUnit/Mockito support to TEA workflows
+
 ### Latest Technical Information
 - Network access is restricted for this run; no external version research performed.
 - Use architecture doc as the current source of truth for versions (Java 21, Jetty 11.0.20, MCP BOM 0.11.0, Bitwig API v19). [Source: docs/architecture.md]
@@ -180,13 +205,13 @@ Claude Opus 4.5
 - Implemented loopback-only host validation in `PreferencesBackedConfigManager.validateHost()` using `canonicalizeLoopback()` helper
 - Added preference writeback for invalid host/port values to keep UI in sync with actual config
 - Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
-- Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (12 tests)
+- Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (19 tests)
 - All 5 ATDD tests passing, all unit tests passing, clean build successful
 - **Review follow-ups addressed (5/5)**:
   - Added init-time validation of persisted host/port with writeback in constructor
   - Fixed no-op restart issue by only notifying when oldValue != validatedValue
   - Added `containsBindException()` helper to handle Jetty MultiException/suppressed exceptions
-  - Created `JettyServerManagerTest.java` with 9 tests for bind failure detection logic
+  - Created `JettyServerManagerTest.java` with 21 tests for bind failure detection, URL formatting, and server state management
 - **Refresh review follow-ups addressed (4/4)**:
   - Fixed test method typo `returnsFlaseForNull` → `returnsFalseForNull`
   - Documented constructor writeback safety (occurs before observer registration)
@@ -220,6 +245,11 @@ Claude Opus 4.5
   - [Medium] Updated Git Intelligence Summary to reflect implementation scope (no longer contradicts File List)
   - [Low] Documented null host update behavior as defensive pattern; added test `nullHostUpdateIsIgnored()`
   - [Low] Added `currentEndpointPath = null` in `cleanupFailedServer()` for consistent state
+- **Scope + record hygiene review 2025-12-28 addressed (4/4)**:
+  - [Medium] Updated Dev Agent Record test counts (PreferencesBackedConfigManagerTest: 12→19, JettyServerManagerTest: 9→21)
+  - [Medium] Updated File List test totals (removed stale "(17 total tests)" and "(12 total tests)" claims)
+  - [Medium] Added Review Scope Definition section with base merge commit `6b2f94b`, range `6b2f94b..HEAD`, and last 20 commits
+  - [Low] Added stale server state cleanup in `startServer()` to prevent resource leak when server exists but isn't running
 
 ### File List
 
@@ -228,8 +258,8 @@ Claude Opus 4.5
 - `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing for unexpectedly stopped servers
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (17 total tests)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added 3 behavioral tests for notifyBindFailure (12 total tests)
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (19 tests total)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, and stale state cleanup (21 tests total)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
@@ -263,6 +293,11 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-28**: Addressed scope + record hygiene review follow-ups (4 items)
+  - [Medium] Updated Dev Agent Record test counts to match reality (19 and 21 tests)
+  - [Medium] Updated File List test totals to match current test files
+  - [Medium] Added Review Scope Definition section with merge commit `6b2f94b` and commit list
+  - [Low] Added stale server state cleanup in `startServer()` to prevent resource leak
 - **2025-12-28**: Senior Developer Review (AI) — action items created (4 items) for review scope + record hygiene
 - **2025-12-28**: Addressed fresh context review follow-ups (4 items)
   - [Medium] Fixed Dev Agent Record helper method claim (`isLoopbackAddress()` → `canonicalizeLoopback()`)
