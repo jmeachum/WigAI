@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -127,6 +127,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Evaluate Bitwig responsiveness risk: preference callbacks trigger synchronous stop+start; consider scheduling restart off the preferences callback path. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
 - [x] [AI-Review][Medium] Add assertion-based test coverage for advertised connection URL (`http://{loopback}:{port}/mcp`) in startup notification/log messaging (AC1), not just host formatting. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:300]
 - [x] [AI-Review][Low] Tighten `formatHostForUrl()` to bracket only IPv6 literals (not arbitrary strings containing `:`). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:286]
+
+### Review Follow-ups (AI) — code review 2025-12-29 (story integrity + tests)
+- [ ] [AI-Review][High] Reconcile Dev Agent Record File List with clean git state; update File List to reflect actual changes or document the expected scope. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:348]
+- [ ] [AI-Review][Medium] Add behavioral coverage for bind-failure handling in `startServer()` (assert notify path for BindException/MultiException), not just direct `notifyBindFailure()` tests. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:284]
+- [ ] [AI-Review][Medium] Update ATDD checklist references to `./gradlew atddRedTest` to match current `@Tag(\"atdd\")` usage and Gradle commands. [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:233]
+- [ ] [AI-Review][Low] Fix Dev Agent Record claim about getBindHost test count (list says 11 but there are 10 in file). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:354]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
