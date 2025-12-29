@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -12,7 +12,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 
 1. **Given** WigAI is enabled for the first time in Bitwig
    **When** the MCP server starts
-   **Then** it binds to `localhost` on the default port `61169` and advertises `http://localhost:61169/mcp` in logs/notification.
+   **Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the configured loopback host in logs/notification (e.g., `http://localhost:61169/mcp` or `http://[::1]:61169/mcp`).
 2. **Given** the user edits "MCP Host" in Bitwig preferences
    **When** the host value is empty or whitespace
    **Then** it is sanitized to `localhost` and the server remains reachable at a loopback address.
@@ -21,10 +21,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
    **Then** WigAI refuses for MVP (no-auth) and reverts to `localhost`, logging a clear warning explaining why.
 4. **Given** the user changes "MCP Port" to another valid port (1024–65535)
    **When** the setting is applied
-   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at `http://localhost:{new_port}/mcp`.
+   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the configured loopback host and new port (e.g., `http://localhost:{new_port}/mcp` or `http://127.0.0.1:{new_port}/mcp`).
 5. **Given** the configured port cannot be bound (e.g., already in use)
    **When** WigAI tries to start or restart the server
    **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.
+
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) but preserves the user's choice of loopback address for binding and URL advertisement.
 
 ## Tasks / Subtasks
 
@@ -96,9 +98,9 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Prevent potential resource leak: if `JettyServerManager.startServer()` is called when `jettyServer != null` but not running, destroy/clear before overwriting references. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:55]
 
 ### Review Follow-ups (AI) — code review 2025-12-29 (workflow + docs alignment)
-- [ ] [AI-Review][Medium] Clarify status transition timing: keep Story/Sprint status at `review` during review, then set to `in-progress` when “Changes Requested” so `*develop-story` resumes the correct story. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:175]
-- [ ] [AI-Review][Medium] Update Acceptance Criteria wording to treat `localhost` and `127.0.0.1` as equivalent loopback hosts (and allow `::1`), and to expect logs/notifications to advertise the configured loopback host. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:13]
-- [ ] [AI-Review][Medium] Align File List with Review Scope Definition: either include `.bmad/**` workflow/config edits as in-scope changed files or explicitly document why they are excluded. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:254]
+- [x] [AI-Review][Medium] Clarify status transition timing: keep Story/Sprint status at `review` during review, then set to `in-progress` when "Changes Requested" so `*develop-story` resumes the correct story. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:175]
+- [x] [AI-Review][Medium] Update Acceptance Criteria wording to treat `localhost` and `127.0.0.1` as equivalent loopback hosts (and allow `::1`), and to expect logs/notifications to advertise the configured loopback host. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:13]
+- [x] [AI-Review][Medium] Align File List with Review Scope Definition: either include `.bmad/**` workflow/config edits as in-scope changed files or explicitly document why they are excluded. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:254]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -179,6 +181,13 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 ### Project Context Reference
 - Renamed `docs/project_context.md` → `docs/project-context.md` to match BMAD workflow pattern `**/project-context.md`.
 
+### Status Workflow
+- **During implementation:** Story status = `in-progress`, Sprint status = `in-progress`
+- **Ready for review:** Story status = `review`, Sprint status = `review`
+- **During review (no changes):** Status remains `review` until reviewer approves or requests changes
+- **Changes Requested:** Story status = `in-progress`, Sprint status = `in-progress` (allows `*develop-story` to pick up the story for follow-up work)
+- **Approved:** Story status = `done`, Sprint status = `done`
+
 ### Story Completion Status
 - Update `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = in-progress` in `docs/sprint-artifacts/sprint-status.yaml`.
 
@@ -257,6 +266,10 @@ Claude Opus 4.5
   - [Medium] Updated File List test totals (removed stale "(17 total tests)" and "(12 total tests)" claims)
   - [Medium] Added Review Scope Definition section with base merge commit `6b2f94b`, range `6b2f94b..HEAD`, and last 20 commits
   - [Low] Added stale server state cleanup in `startServer()` to prevent resource leak when server exists but isn't running
+- **Workflow + docs alignment review 2025-12-29 addressed (3/3)**:
+  - [Medium] Added Status Workflow section documenting status transitions (review → in-progress when Changes Requested)
+  - [Medium] Updated Acceptance Criteria to treat `localhost`, `127.0.0.1`, and `::1` as equivalent loopback hosts
+  - [Medium] Added explicit File List exclusion note for `.bmad/**` framework files (18 files in scope)
 
 ### File List
 
@@ -278,6 +291,9 @@ Claude Opus 4.5
 - `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - ATDD checklist (commit 6d37835, prior to 5-commit scope)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
+
+**Excluded from File List (BMAD framework, not story implementation):**
+- `.bmad/**` files (18 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
 
 ## Senior Developer Review (AI)
 
@@ -304,6 +320,10 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-29**: Addressed workflow + docs alignment review follow-ups (3 items)
+  - [Medium] Added Status Workflow section with status transition documentation
+  - [Medium] Updated Acceptance Criteria for loopback host equivalence (`localhost`, `127.0.0.1`, `::1`)
+  - [Medium] Documented `.bmad/**` file exclusion in File List (18 framework files in scope, not story implementation)
 - **2025-12-29**: Senior Developer Review (AI) — action items created (3 items), refreshed scope commit count (22), status moved to `in-progress`
 - **2025-12-28**: Addressed scope + record hygiene review follow-ups (4 items)
   - [Medium] Updated Dev Agent Record test counts to match reality (19 and 21 tests)
