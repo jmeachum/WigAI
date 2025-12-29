@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -143,6 +143,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Fix Dev Agent Record claim about getBindHost test count (list says 11 but there are 10 in file). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:354]
 
 ### Review Follow-ups (AI) — code review (current)
+- [ ] [AI-Review][Medium] Correct Dev Agent Record claim: update “All 5 ATDD tests passing” to reflect 6 ATDD tests (or update counts/evidence). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:298]
+- [ ] [AI-Review][Medium] Align AC4 example URL with actual bind-address behavior (avoid `localhost` example if we always advertise the numeric bind host). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:24]
+- [ ] [AI-Review][Medium] Add unit test for `WigAIExtension` restart hook (onHostChanged/onPortChanged → restartServer) or document why it remains integration-only. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
+- [ ] [AI-Review][Low] Trim `configuredHost` before loopback checks in `getBindHost()` to avoid throwing on whitespace-padded loopback values if config bypasses validation. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:141]
 - [x] [AI-Review][High] Align advertised MCP URL host with actual bind host when configured `localhost` to avoid IPv6/IPv4 mismatch (advertising `localhost` while binding `127.0.0.1` can make the advertised URL unreachable on IPv6-preferred systems). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
 - [x] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled "Added (prior commits, not in 5-commit scope)" are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
 - [x] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
