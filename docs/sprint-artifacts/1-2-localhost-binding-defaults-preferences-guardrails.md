@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -26,7 +26,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
    **When** WigAI tries to start or restart the server
    **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.
 
-> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) but preserves the user's choice of loopback address for binding and URL advertisement.
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) and preserves the user's choice for URL advertisement, but uses deterministic numeric loopback for binding when `localhost` is configured (defense-in-depth, no DNS).
 
 ## Tasks / Subtasks
 
@@ -130,7 +130,9 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 
 ### Review Follow-ups (AI) — code review 2025-12-29 (story integrity + tests)
 - [x] [AI-Review][High] Reconcile Dev Agent Record File List with clean git state; update File List to reflect actual changes or document the expected scope. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:348]
-- [x] [AI-Review][Medium] Add behavioral coverage for bind-failure handling in `startServer()` (assert notify path for BindException/MultiException), not just direct `notifyBindFailure()` tests. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:284]
+- [ ] [AI-Review][Medium] Bind-failure coverage is indirect only (tests do not exercise `startServer()` bind-failure path); add a seam or integration test to assert notify path for BindException/MultiException. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:513]
+- [x] [AI-Review][Medium] Align story status to `in-progress` and update sprint-status to match Changes Requested outcome. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3] [docs/sprint-artifacts/sprint-status.yaml:36]
+- [x] [AI-Review][Medium] Correct Change Log and Dev Agent Record entries that prematurely claimed bind-failure tests were added; reflect that bind-failure coverage remains open. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:420]
 - [x] [AI-Review][Medium] Update ATDD checklist references to `./gradlew atddRedTest` to match current `@Tag(\"atdd\")` usage and Gradle commands. [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:233]
 - [x] [AI-Review][Low] Fix Dev Agent Record claim about getBindHost test count (list says 11 but there are 10 in file). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:354]
 ## Dev Notes
@@ -348,11 +350,11 @@ Claude Opus 4.5
   - [Medium] Documented Bitwig responsiveness evaluation in Dev Notes - accepted synchronous restart for MVP with risk assessment
   - [Medium] Added 5 assertion-based tests for advertised connection URL format (AC1 coverage)
   - [Low] Tightened `formatHostForUrl()` to only bracket true IPv6 literals (added `isIpv6Literal()` helper)
-- **Story integrity + tests review 2025-12-29 addressed (4/4)**:
+- **Story integrity + tests review 2025-12-29 addressed (3/4)**:
   - [High] Reconciled File List with clean git state (git shows nothing to commit, File List reflects committed scope changes)
-  - [Medium] Added 4 behavioral tests for bind-failure handling: cleanupFailedServer() state clearing, null server handling, exception chain detection, and notification feedback (AC5)
   - [Medium] Updated ATDD checklist: `./gradlew atddRedTest` → `./gradlew test --tests "*AtddTest"` to match `@Tag("atdd")` usage
   - [Low] Fixed getBindHost test count: 11 → 10, and updated total from 41 → 45 tests
+  - [Medium] Bind-failure coverage follow-up remains open (startServer() bind-failure path untested)
 
 ### File List
 
@@ -416,12 +418,16 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 1 High, 5 Medium, 1 Low
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (loopback enforcement gaps)” and moved story to `in-progress`.
+- Date: 2025-12-29 (follow-up 4)
+- Outcome: Changes Requested
+- Issues found: 2 Medium
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (story integrity + tests)” and moved story to `in-progress`.
 
 ## Change Log
 
-- **2025-12-29**: Addressed story integrity + tests review follow-ups (4 items)
+- **2025-12-29**: Senior Developer Review (AI) — follow-up; action items created (2) for change log accuracy + status alignment; story status moved to `in-progress`
+- **2025-12-29**: Addressed story integrity + tests review follow-ups (3 items); bind-failure coverage remains open
   - [High] Reconciled Dev Agent Record File List with clean git state (verified scope matches committed changes)
-  - [Medium] Added 4 behavioral tests for bind-failure handling in startServer(): cleanupFailedServer() tests + notification verification
   - [Medium] Updated ATDD checklist `./gradlew atddRedTest` → `./gradlew test --tests "*AtddTest"` to match current @Tag usage
   - [Low] Fixed getBindHost test count (11 → 10) and JettyServerManagerTest total (41 → 45)
 - **2025-12-29**: Addressed loopback enforcement gaps review follow-ups (7 items)

@@ -161,8 +161,9 @@ public class PreferencesBackedConfigManager implements ConfigManager {
      * Returns null if the host is not a recognized loopback address.
      *
      * <p>Accepts "localhost" (case-insensitive), "127.0.0.1", and "::1" as valid loopback
-     * addresses. Normalizes casing for localhost. If localhost is misconfigured at the OS
-     * level, Jetty's bind failure will catch it with a clear error (AC5).
+     * addresses. Normalizes casing for localhost. Binding uses numeric loopback for "localhost"
+     * in JettyServerManager (defense-in-depth), so OS-level localhost misconfiguration affects
+     * client resolution, not server binding.
      *
      * @param host the host to canonicalize
      * @return canonical form ("localhost", "127.0.0.1", or "::1"), or null if not loopback
