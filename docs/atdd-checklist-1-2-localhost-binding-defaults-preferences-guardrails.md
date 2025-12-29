@@ -18,11 +18,11 @@ Story 1.2 enforces loopback-only binding defaults and preference guardrails so t
 
 ## Acceptance Criteria
 
-> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) but preserves the user's choice of loopback address for binding and URL advertisement. IPv6 addresses are formatted with brackets in URLs (e.g., `http://[::1]:61169/mcp`).
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) and uses deterministic numeric loopback for binding when `localhost` is configured (defense-in-depth, no DNS). The advertised URL always uses the actual bind address to ensure reachability (e.g., `localhost` configured → binds to `127.0.0.1` → advertises `http://127.0.0.1:{port}/mcp`). IPv6 addresses are formatted with brackets in URLs (e.g., `http://[::1]:61169/mcp`).
 
 1. **Given** WigAI is enabled for the first time in Bitwig
    **When** the MCP server starts
-   **Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the configured loopback host in logs/notification (e.g., `http://localhost:61169/mcp` or `http://[::1]:61169/mcp`).
+   **Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the actual bind address in logs/notification (e.g., `http://127.0.0.1:61169/mcp` or `http://[::1]:61169/mcp`).
 2. **Given** the user edits "MCP Host" in Bitwig preferences
    **When** the host value is empty or whitespace
    **Then** it is sanitized to `localhost` and the server remains reachable at a loopback address.
@@ -42,9 +42,9 @@ Story 1.2 enforces loopback-only binding defaults and preference guardrails so t
 
 This repo is Java/JUnit-based (not Playwright/Cypress). For this story, acceptance tests map to CI-safe unit tests that exercise the configuration guardrails in `PreferencesBackedConfigManager`.
 
-### JUnit Tests (5 tests)
+### JUnit Tests (6 tests)
 
-**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` (144 lines)
+**File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` (183 lines)
 
 - ✅ **Test:** `1.2-ATDD-001 defaults_to_localhost_and_default_port_on_first_load`
   - **Status:** RED - initialization does not sanitize invalid defaults before use
@@ -58,6 +58,9 @@ This repo is Java/JUnit-based (not Playwright/Cypress). For this story, acceptan
 - ✅ **Test:** `1.2-ATDD-004 valid_port_change_notifies_observers`
   - **Status:** RED - restart behavior not yet validated end-to-end
   - **Verifies:** Valid port changes notify observers for restart
+- ✅ **Test:** `1.2-ATDD-004b valid_port_change_triggers_restart_with_new_port`
+  - **Status:** RED - AC4 full flow restart trigger not validated
+  - **Verifies:** Valid port changes trigger restart with correct port values (AC4 config→observer→restart chain; actual endpoint reachability requires integration testing with a running server)
 - ✅ **Test:** `1.2-ATDD-005 invalid_port_reverts_to_default_and_is_written_back`
   - **Status:** RED - invalid port is not written back to default
   - **Verifies:** Out-of-range port values fall back to `AppConstants.DEFAULT_MCP_PORT` and persist to preferences

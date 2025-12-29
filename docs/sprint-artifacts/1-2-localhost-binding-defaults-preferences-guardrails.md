@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -12,7 +12,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 
 1. **Given** WigAI is enabled for the first time in Bitwig
    **When** the MCP server starts
-   **Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the configured loopback host in logs/notification (e.g., `http://localhost:61169/mcp` or `http://[::1]:61169/mcp`).
+   **Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the actual bind address in logs/notification (e.g., `http://127.0.0.1:61169/mcp` or `http://[::1]:61169/mcp`).
 2. **Given** the user edits "MCP Host" in Bitwig preferences
    **When** the host value is empty or whitespace
    **Then** it is sanitized to `localhost` and the server remains reachable at a loopback address.
@@ -26,7 +26,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
    **When** WigAI tries to start or restart the server
    **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.
 
-> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) and preserves the user's choice for URL advertisement, but uses deterministic numeric loopback for binding when `localhost` is configured (defense-in-depth, no DNS).
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) and uses deterministic numeric loopback for binding when `localhost` is configured (defense-in-depth, no DNS). The advertised URL always uses the actual bind address to ensure reachability (e.g., `localhost` configured → binds to `127.0.0.1` → advertises `http://127.0.0.1:{port}/mcp`).
 
 ## Tasks / Subtasks
 
@@ -141,10 +141,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled "Added (prior commits, not in 5-commit scope)" are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
 - [x] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
 - [x] [AI-Review][Low] Strengthen AC1 tests to assert advertised URL/logging in `notifyServerStarted()` rather than only string construction. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:333]
-- [ ] [AI-Review][High] Reconcile AC1/story note "advertise configured loopback host" with bind-host advertising; choose consistent behavior and update code/tests/docs accordingly. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:401]
-- [ ] [AI-Review][Medium] Update ATDD checklist count and file metadata to reflect 6 ATDD tests (not 5). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:45]
-- [ ] [AI-Review][Medium] Add reachability validation for AC4 (post-restart endpoint reachable) or explicitly scope it as integration-only with a tracking test. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:138]
-- [ ] [AI-Review][Low] Align story and sprint status with Changes Requested outcome after review (in-progress while issues remain). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
+- [x] [AI-Review][High] Reconcile AC1/story note "advertise configured loopback host" with bind-host advertising; choose consistent behavior and update code/tests/docs accordingly. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:401]
+- [x] [AI-Review][Medium] Update ATDD checklist count and file metadata to reflect 6 ATDD tests (not 5). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:45]
+- [x] [AI-Review][Medium] Add reachability validation for AC4 (post-restart endpoint reachable) or explicitly scope it as integration-only with a tracking test. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:138]
+- [x] [AI-Review][Low] Align story and sprint status with Changes Requested outcome after review (in-progress while issues remain). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:3]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -370,6 +370,12 @@ Claude Opus 4.5
   - [Medium] Reworded File List "Added" section scope note — clarified items are within `6b2f94b..HEAD` scope, removed duplicate ATDD checklist entry
   - [Medium] Added AC4 restart trigger test (`valid_port_change_triggers_restart_with_new_port`) to verify config → observer → restart flow
   - [Low] Added 4 `notifyServerStarted` logging tests — verify actual logger.info() and showPopupNotification() calls contain correct URL
+- **Final docs alignment review 2025-12-29 addressed (4/4)**:
+  - [High] Reconciled AC1 wording: changed "advertises the configured loopback host" → "advertises the actual bind address" to match code behavior and ensure URL reachability
+  - [Medium] Updated ATDD checklist count: 5 → 6 tests (added `1.2-ATDD-004b`)
+  - [Medium] Added AC4 reachability scope note: endpoint reachability is explicitly scoped as integration-only (test comment at line 138)
+  - [Low] Verified story/sprint status alignment (already `in-progress`)
+- All 6 ATDD tests passing, all 72+ unit tests passing, clean build successful
 
 ### File List
 
@@ -439,7 +445,12 @@ Claude Opus 4.5
 
 ## Change Log
 
-- **2025-12-29**: Addressed code review follow-ups (4 items) — moved story to `review`
+- **2025-12-29**: Addressed final docs alignment review follow-ups (4 items) — moved story to `review`
+  - [High] Reconciled AC1 wording: "advertises the configured loopback host" → "advertises the actual bind address" in story and ATDD checklist
+  - [Medium] Updated ATDD checklist count: 5 → 6 tests (added `1.2-ATDD-004b`)
+  - [Medium] Added AC4 reachability scope note in ATDD checklist (integration-only)
+  - [Low] Verified story/sprint status alignment
+- **2025-12-29**: Addressed code review follow-ups (4 items)
   - [High] Fixed advertised URL to use actual bind host in `notifyServerStarted()` — eliminates IPv6/IPv4 mismatch
   - [Medium] Reworded File List "Added" section scope note and removed duplicate ATDD checklist entry
   - [Medium] Added AC4 restart trigger test (`valid_port_change_triggers_restart_with_new_port`)
