@@ -18,9 +18,11 @@ Story 1.2 enforces loopback-only binding defaults and preference guardrails so t
 
 ## Acceptance Criteria
 
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) but preserves the user's choice of loopback address for binding and URL advertisement. IPv6 addresses are formatted with brackets in URLs (e.g., `http://[::1]:61169/mcp`).
+
 1. **Given** WigAI is enabled for the first time in Bitwig
    **When** the MCP server starts
-   **Then** it binds to `localhost` on the default port `61169` and advertises `http://localhost:61169/mcp` in logs/notification.
+   **Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the configured loopback host in logs/notification (e.g., `http://localhost:61169/mcp` or `http://[::1]:61169/mcp`).
 2. **Given** the user edits "MCP Host" in Bitwig preferences
    **When** the host value is empty or whitespace
    **Then** it is sanitized to `localhost` and the server remains reachable at a loopback address.
@@ -29,7 +31,7 @@ Story 1.2 enforces loopback-only binding defaults and preference guardrails so t
    **Then** WigAI refuses for MVP (no-auth) and reverts to `localhost`, logging a clear warning explaining why.
 4. **Given** the user changes "MCP Port" to another valid port (1024–65535)
    **When** the setting is applied
-   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at `http://localhost:{new_port}/mcp`.
+   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the configured loopback host and new port (e.g., `http://localhost:{new_port}/mcp` or `http://127.0.0.1:{new_port}/mcp`).
 5. **Given** the configured port cannot be bound (e.g., already in use)
    **When** WigAI tries to start or restart the server
    **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.
@@ -112,10 +114,10 @@ Not applicable (no UI tests).
 
 **Tasks to make this test pass:**
 
-- [ ] Sanitize host/port on initialization (apply `validateHost`/`validatePort` to initial values)
-- [ ] Ensure defaults remain `localhost` + `AppConstants.DEFAULT_MCP_PORT` on first enable
-- [ ] Run test: `./gradlew atddRedTest`
-- [ ] ✅ Test passes (green phase)
+- [x] Sanitize host/port on initialization (apply `validateHost`/`validatePort` to initial values)
+- [x] Ensure defaults remain `localhost` + `AppConstants.DEFAULT_MCP_PORT` on first enable
+- [x] Run test: `./gradlew test --tests "*AtddTest"`
+- [x] ✅ Test passes (green phase)
 
 **Estimated Effort:** 0.5–1.0 hours
 
@@ -127,10 +129,10 @@ Not applicable (no UI tests).
 
 **Tasks to make this test pass:**
 
-- [ ] Update `validateHost` to treat empty/whitespace as `localhost`
-- [ ] On invalid host input via preference observer, write back `localhost`
-- [ ] Run test: `./gradlew atddRedTest`
-- [ ] ✅ Test passes (green phase)
+- [x] Update `validateHost` to treat empty/whitespace as `localhost`
+- [x] On invalid host input via preference observer, write back `localhost`
+- [x] Run test: `./gradlew test --tests "*AtddTest"`
+- [x] ✅ Test passes (green phase)
 
 **Estimated Effort:** 0.5–1.0 hours
 
@@ -142,11 +144,11 @@ Not applicable (no UI tests).
 
 **Tasks to make this test pass:**
 
-- [ ] Enforce loopback-only host allowlist (`localhost`, `127.0.0.1`, `::1`)
-- [ ] Reject non-loopback values and revert preferences to `localhost`
-- [ ] Log a clear warning describing the refusal for MVP (no-auth)
-- [ ] Run test: `./gradlew atddRedTest`
-- [ ] ✅ Test passes (green phase)
+- [x] Enforce loopback-only host allowlist (`localhost`, `127.0.0.1`, `::1`)
+- [x] Reject non-loopback values and revert preferences to `localhost`
+- [x] Log a clear warning describing the refusal for MVP (no-auth)
+- [x] Run test: `./gradlew test --tests "*AtddTest"`
+- [x] ✅ Test passes (green phase)
 
 **Estimated Effort:** 1.0–2.0 hours
 
@@ -158,10 +160,10 @@ Not applicable (no UI tests).
 
 **Tasks to make this test pass:**
 
-- [ ] Ensure `ConfigChangeObserver` is notified on valid port change
-- [ ] Confirm `WigAIExtension` performs graceful restart on observer callback
-- [ ] Run test: `./gradlew atddRedTest`
-- [ ] ✅ Test passes (green phase)
+- [x] Ensure `ConfigChangeObserver` is notified on valid port change
+- [x] Confirm `WigAIExtension` performs graceful restart on observer callback
+- [x] Run test: `./gradlew test --tests "*AtddTest"`
+- [x] ✅ Test passes (green phase)
 
 **Estimated Effort:** 0.5–1.0 hours
 
@@ -173,11 +175,11 @@ Not applicable (no UI tests).
 
 **Tasks to make this test pass:**
 
-- [ ] On invalid port input via preference observer, revert to `AppConstants.DEFAULT_MCP_PORT`
-- [ ] Persist the fallback port value back into preferences
-- [ ] Log a clear warning for the invalid port
-- [ ] Run test: `./gradlew atddRedTest`
-- [ ] ✅ Test passes (green phase)
+- [x] On invalid port input via preference observer, revert to `AppConstants.DEFAULT_MCP_PORT`
+- [x] Persist the fallback port value back into preferences
+- [x] Log a clear warning for the invalid port
+- [x] Run test: `./gradlew test --tests "*AtddTest"`
+- [x] ✅ Test passes (green phase)
 
 **Estimated Effort:** 0.5–1.0 hours
 
@@ -186,11 +188,11 @@ Not applicable (no UI tests).
 ## Running Tests
 
 ```bash
-# CI-safe unit/integration tests (does NOT include ATDD red-tagged tests)
+# Run all tests including ATDD tests (now GREEN after implementation)
 ./gradlew test
 
-# Run ATDD RED tests for this story only (expected to fail until implemented)
-./gradlew atddRedTest
+# Run ATDD tests specifically
+./gradlew test --tests "*AtddTest"
 ```
 
 ---
@@ -200,12 +202,12 @@ Not applicable (no UI tests).
 ### RED Phase (Complete) ✅
 
 - ✅ Acceptance criteria mapped to atomic tests
-- ✅ Tests written and tagged `@Tag("atdd_red")`
+- ✅ Tests written and tagged `@Tag("atdd")`
 - ✅ Implementation checklist created
 
 **Verification:**
 
-- Run `./gradlew atddRedTest` and confirm failures are due to missing guardrails (not test bugs).
+- Run `./gradlew test` to verify all ATDD tests pass (now GREEN).
 
 ---
 

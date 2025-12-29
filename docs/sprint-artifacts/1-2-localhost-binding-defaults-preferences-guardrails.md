@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -46,13 +46,13 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
   - [x] Regression test that preference value is corrected when invalid host is entered
 
 ### Review Follow-ups (AI)
-- [ ] [AI-Review][High] Replace placeholder “stale state cleanup” test with assertion-based coverage (or remove misleading test). [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:231]
-- [ ] [AI-Review][High] Harden loopback enforcement for `localhost` by verifying it resolves only to loopback (or bind explicitly to numeric loopback) to avoid misconfigured host/DNS exposure. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:137]
-- [ ] [AI-Review][Medium] Update ATDD checklist “RED phase” instructions to match current tags/Gradle task (no `@Tag(\"atdd_red\")` / `atddRedTest`). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:203]
-- [ ] [AI-Review][Medium] Update ATDD checklist Acceptance Criteria to treat `localhost`, `127.0.0.1`, and `::1` as equivalent loopback hosts (and to expect IPv6 URL bracket formatting). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:21]
-- [ ] [AI-Review][Medium] Reconcile `docs/epics.md` Story 1.2 AC wording with this story’s loopback equivalence note (`localhost`, `127.0.0.1`, `::1`). [docs/epics.md:185]
-- [ ] [AI-Review][Medium] Fix Dev Agent Record File List drift: include `docs/sprint-artifacts/validation-report-2025-12-25T00-54-14Z.md` (in scope `6b2f94b..HEAD`) or explicitly exclude it. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:274]
-- [ ] [AI-Review][Low] Prefer logging `stopServer()` failures with a throwable (if `Logger#error(String, Throwable)` exists) instead of stringifying stack traces. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:216]
+- [x] [AI-Review][High] Replace placeholder "stale state cleanup" test with assertion-based coverage (or remove misleading test). [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:231]
+- [x] [AI-Review][High] Harden loopback enforcement for `localhost` by verifying it resolves only to loopback (or bind explicitly to numeric loopback) to avoid misconfigured host/DNS exposure. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:137]
+- [x] [AI-Review][Medium] Update ATDD checklist "RED phase" instructions to match current tags/Gradle task (no `@Tag(\"atdd_red\")` / `atddRedTest`). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:203]
+- [x] [AI-Review][Medium] Update ATDD checklist Acceptance Criteria to treat `localhost`, `127.0.0.1`, and `::1` as equivalent loopback hosts (and to expect IPv6 URL bracket formatting). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:21]
+- [x] [AI-Review][Medium] Reconcile `docs/epics.md` Story 1.2 AC wording with this story's loopback equivalence note (`localhost`, `127.0.0.1`, `::1`). [docs/epics.md:185]
+- [x] [AI-Review][Medium] Fix Dev Agent Record File List drift: include `docs/sprint-artifacts/validation-report-2025-12-25T00-54-14Z.md` (in scope `6b2f94b..HEAD`) or explicitly exclude it. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:274]
+- [x] [AI-Review][Low] Prefer logging `stopServer()` failures with a throwable (if `Logger#error(String, Throwable)` exists) instead of stringifying stack traces. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:216]
 
 - [x] [AI-Review][High] Validate and sanitize persisted host/port values on initialization (and write back) before use to enforce loopback defaults. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
 - [x] [AI-Review][Medium] Avoid triggering host/port change notifications (and server restart) when validation normalizes to current value (no-op). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:78]
@@ -278,17 +278,27 @@ Claude Opus 4.5
   - [Medium] Added Status Workflow section documenting status transitions (review → in-progress when Changes Requested)
   - [Medium] Updated Acceptance Criteria to treat `localhost`, `127.0.0.1`, and `::1` as equivalent loopback hosts
   - [Medium] Added explicit File List exclusion note for `.bmad/**` framework files (18 files in scope)
+- **Adversarial refresh review 2025-12-29 addressed (7/7)**:
+  - [High] Replaced placeholder stale state cleanup test with 3 assertion-based tests using reflection/mocking
+  - [High] Added `verifyLocalhostResolvesToLoopback()` DNS verification - if localhost resolves to non-loopback, falls back to 127.0.0.1
+  - [Medium] Updated ATDD checklist RED phase instructions to use `@Tag("atdd")` and `./gradlew test --tests "*AtddTest"`
+  - [Medium] Updated ATDD checklist AC with loopback equivalence note and IPv6 bracket formatting
+  - [Medium] Updated `docs/epics.md` Story 1.2 AC with loopback equivalence note
+  - [Medium] Added explicit File List exclusion for `validation-report-*.md` generated artifacts
+  - [Low] Changed `stopServer()` to use `logger.error(message, throwable)` instead of manual stack trace stringification
 
 ### File List
 
 **Modified:**
-- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added canonicalizeLoopback()
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing for unexpectedly stopped servers
+- `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added canonicalizeLoopback(), added verifyLocalhostResolvesToLoopback() DNS verification
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable)
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (19 tests total)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, and stale state cleanup (21 tests total)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, and 3 stale state cleanup tests (24 tests total)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
+- `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - Updated RED phase instructions and AC for loopback equivalence
+- `docs/epics.md` - Updated Story 1.2 AC with loopback equivalence note
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
@@ -302,6 +312,7 @@ Claude Opus 4.5
 
 **Excluded from File List (BMAD framework, not story implementation):**
 - `.bmad/**` files (18 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
+- `docs/sprint-artifacts/validation-report-*.md` - Validation reports are generated artifacts from the readiness check workflow, not story implementation deliverables.
 
 ## Senior Developer Review (AI)
 
@@ -332,6 +343,13 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-28**: Addressed adversarial refresh review follow-ups (7 items)
+  - [High] Replaced placeholder stale state cleanup test with 3 assertion-based tests
+  - [High] Added DNS verification for localhost - falls back to 127.0.0.1 if localhost resolves to non-loopback
+  - [Medium] Updated ATDD checklist RED phase instructions and implementation checklists
+  - [Medium] Updated ATDD checklist and epics.md AC with loopback equivalence note
+  - [Medium] Added explicit File List exclusion for validation-report-*.md generated artifacts
+  - [Low] Changed stopServer() to use logger.error(String, Throwable) instead of manual stack trace
 - **2025-12-29**: Senior Developer Review (AI) — adversarial refresh; action items created (7); story status moved to `in-progress`
 - **2025-12-29**: Addressed workflow + docs alignment review follow-ups (3 items)
   - [Medium] Added Status Workflow section with status transition documentation

@@ -10,8 +10,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.BindException;
 
 /**
@@ -213,12 +211,7 @@ public class JettyServerManager {
             notifyServerStopped();
             return true;
         } catch (Exception e) {
-            StringWriter stringWriter = new StringWriter();
-            PrintWriter printWriter = new PrintWriter(stringWriter);
-            e.printStackTrace(printWriter);
-            String fullStackTrace = stringWriter.toString();
-
-            logger.error("Error stopping WigAI Server\n" + fullStackTrace);
+            logger.error("Error stopping WigAI Server", e);
             return false;
         } finally {
             // Always clear state, even on error, to avoid stale references

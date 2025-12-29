@@ -7,6 +7,8 @@ import com.bitwig.extension.controller.api.SettableStringValue;
 import io.github.fabb.wigai.common.AppConstants;
 import io.github.fabb.wigai.common.Logger;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -153,12 +155,24 @@ public class PreferencesBackedConfigManager implements ConfigManager {
      * Canonicalizes a loopback address to its standard form.
      * Returns null if the host is not a recognized loopback address.
      *
+     * <p>For "localhost", performs DNS resolution verification to ensure it only
+     * resolves to loopback addresses (127.0.0.1, ::1). If localhost resolves to
+     * any non-loopback address (misconfigured DNS), falls back to 127.0.0.1 for safety.
+     *
      * @param host the host to canonicalize
      * @return canonical form ("localhost", "127.0.0.1", or "::1"), or null if not loopback
      */
     private String canonicalizeLoopback(String host) {
         if ("localhost".equalsIgnoreCase(host)) {
-            return "localhost"; // Normalize casing (e.g., "LOCALHOST" -> "localhost")
+            // Verify localhost resolves only to loopback addresses
+            if (verifyLocalhostResolvesToLoopback()) {
+                return "localhost"; // Normalize casing (e.g., "LOCALHOST" -> "localhost")
+            } else {
+                // DNS misconfigured - localhost resolves to non-loopback; use explicit numeric loopback
+                logger.warn("PreferencesBackedConfigManager: 'localhost' resolves to non-loopback address. " +
+                    "Using '127.0.0.1' for safety. Check your system's hosts file or DNS configuration.");
+                return "127.0.0.1";
+            }
         }
         if ("127.0.0.1".equals(host)) {
             return "127.0.0.1";
@@ -167,6 +181,33 @@ public class PreferencesBackedConfigManager implements ConfigManager {
             return "::1";
         }
         return null; // Not a loopback address
+    }
+
+    /**
+     * Verifies that "localhost" resolves only to loopback addresses.
+     *
+     * <p>Checks all resolved addresses for localhost. If any address is not a loopback,
+     * returns false. If resolution fails entirely, returns true conservatively
+     * (DNS might be temporarily unavailable but localhost usually works).
+     *
+     * @return true if localhost resolves only to loopback addresses or if resolution fails
+     */
+    private boolean verifyLocalhostResolvesToLoopback() {
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName("localhost");
+            for (InetAddress addr : addresses) {
+                if (!addr.isLoopbackAddress()) {
+                    logger.warn("PreferencesBackedConfigManager: 'localhost' resolved to non-loopback: " +
+                        addr.getHostAddress());
+                    return false;
+                }
+            }
+            return true;
+        } catch (UnknownHostException e) {
+            // Resolution failed - conservatively allow localhost (it usually works even if DNS is slow)
+            logger.info("PreferencesBackedConfigManager: Could not resolve 'localhost', allowing it anyway");
+            return true;
+        }
     }
 
     /**

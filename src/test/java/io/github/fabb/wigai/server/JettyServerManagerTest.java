@@ -11,11 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import org.eclipse.jetty.server.Server;
+
+import java.lang.reflect.Field;
 import java.net.BindException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 /**
  * CI-safe unit tests for JettyServerManager.
@@ -233,14 +236,73 @@ class JettyServerManagerTest {
     class StartServerStaleStateTests {
 
         @Test
-        @DisplayName("logs stale state cleanup message when server exists but not running")
-        void logsStaleStateCleanupWhenServerExistsButNotRunning() throws Exception {
-            // First start will create stale state that we can test cleanup for in a follow-up
-            // For now, verify that fresh start doesn't log stale state message
-            // (This test documents the expected behavior; full integration testing requires actual server)
-            assertFalse(serverManager.isRunning());
-            // Stale state cleanup only occurs when jettyServer != null but !isRunning()
-            // Since we've never started, there's no stale state to clean up
+        @DisplayName("cleans up stale server state when server exists but not running")
+        void cleansUpStaleStateWhenServerExistsButNotRunning() throws Exception {
+            // Arrange: Create a mock server that simulates stale state (exists but not running)
+            Server mockStaleServer = mock(Server.class);
+            when(mockStaleServer.isRunning()).thenReturn(false);
+
+            // Inject the mock server via reflection to simulate stale state
+            Field jettyServerField = JettyServerManager.class.getDeclaredField("jettyServer");
+            jettyServerField.setAccessible(true);
+            jettyServerField.set(serverManager, mockStaleServer);
+
+            // Act: Attempt to start server (will fail due to missing config, but cleanup should happen first)
+            try {
+                serverManager.startServer(null, null);
+            } catch (Exception e) {
+                // Expected - server start fails because configManager returns null host
+                // But the stale state cleanup should have happened before the failure
+            }
+
+            // Assert: Verify stale state cleanup occurred
+            verify(mockStaleServer).isRunning(); // Checked running state
+            verify(mockStaleServer).destroy();   // Destroyed the stale server
+            verify(logger).info("Cleaning up stale server state before starting");
+        }
+
+        @Test
+        @DisplayName("does not log stale state cleanup on fresh start")
+        void doesNotLogStaleStateCleanupOnFreshStart() throws Exception {
+            // Arrange: Fresh start with no prior server state
+            assertNull(getJettyServerField());
+
+            // Act: Attempt to start (will fail due to null config, but that's fine)
+            try {
+                serverManager.startServer(null, null);
+            } catch (Exception e) {
+                // Expected - configManager.getMcpHost() returns null
+            }
+
+            // Assert: No stale state cleanup message logged
+            verify(logger, never()).info("Cleaning up stale server state before starting");
+        }
+
+        @Test
+        @DisplayName("skips cleanup when server is already running")
+        void skipsCleanupWhenServerAlreadyRunning() throws Exception {
+            // Arrange: Mock a running server
+            Server mockRunningServer = mock(Server.class);
+            when(mockRunningServer.isRunning()).thenReturn(true);
+
+            Field jettyServerField = JettyServerManager.class.getDeclaredField("jettyServer");
+            jettyServerField.setAccessible(true);
+            jettyServerField.set(serverManager, mockRunningServer);
+
+            // Act: Attempt to start server
+            boolean result = serverManager.startServer(null, null);
+
+            // Assert: Server was already running, no cleanup or new start attempted
+            assertFalse(result);
+            verify(mockRunningServer, never()).destroy();
+            verify(logger).info("WigAI Server is already running");
+            verify(logger, never()).info("Cleaning up stale server state before starting");
+        }
+
+        private Server getJettyServerField() throws Exception {
+            Field jettyServerField = JettyServerManager.class.getDeclaredField("jettyServer");
+            jettyServerField.setAccessible(true);
+            return (Server) jettyServerField.get(serverManager);
         }
     }
 }
