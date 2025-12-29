@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -94,6 +94,11 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Update File List test totals to match current test files (remove stale "(17 total tests)" / "(12 total tests)" claims). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:224]
 - [x] [AI-Review][Medium] Document review scope explicitly: treat all changes since the last merge commit as in-scope; record last merge commit hash + range (`<merge>..HEAD`); include last 20 commit subjects (scope updates each time review is run). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:139]
 - [x] [AI-Review][Low] Prevent potential resource leak: if `JettyServerManager.startServer()` is called when `jettyServer != null` but not running, destroy/clear before overwriting references. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:55]
+
+### Review Follow-ups (AI) — code review 2025-12-29 (workflow + docs alignment)
+- [ ] [AI-Review][Medium] Clarify status transition timing: keep Story/Sprint status at `review` during review, then set to `in-progress` when “Changes Requested” so `*develop-story` resumes the correct story. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:175]
+- [ ] [AI-Review][Medium] Update Acceptance Criteria wording to treat `localhost` and `127.0.0.1` as equivalent loopback hosts (and allow `::1`), and to expect logs/notifications to advertise the configured loopback host. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:13]
+- [ ] [AI-Review][Medium] Align File List with Review Scope Definition: either include `.bmad/**` workflow/config edits as in-scope changed files or explicitly document why they are excluded. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:254]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -143,27 +148,29 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 ### Review Scope Definition
 - **Base commit (last merge):** `6b2f94b` (Merge pull request #20 from jmeachum/implementation/story-1-1)
 - **Scope range:** `6b2f94b..HEAD`
-- **Last 20 commits in scope:**
-  1. `faa0e1e` docs(story-1-2): set 1-2 in-progress; add scope/record hygiene follow-ups
-  2. `b63c63f` fix(story-1.2): address fresh context review follow-ups (4 items)
-  3. `0e78ebf` docs(story-1-2): mark story 1-2 in-progress; add fresh-context follow-ups
-  4. `d84ab58` chore(bmad): rename project_context.md references to project-context.md
-  5. `a5618b2` fix(story-1.2): address status hygiene review follow-ups
-  6. `6957522` docs(story-1.2): add code-review action items and sync sprint status
-  7. `5fb6817` fix(story-1.2): address post-fix regression review follow-ups
-  8. `1b9063c` docs(story-1.2): record review follow-ups and set status in-progress
-  9. `58021b4` fix(story-1.2): address senior code review findings
-  10. `bd93287` docs(story-1.2): record review follow-ups and set status in-progress
-  11. `845c9e1` fix(story-1.2): address 5-commit scope re-review findings
-  12. `c38a3fa` docs: mark story 1.2 ready-for-dev and add 5-commit review action items
-  13. `24e3e31` fix(story-1.2): address refresh review follow-ups
-  14. `f5db91c` docs: record code review findings for story 1.2
-  15. `065da16` fix(config): address code review follow-ups for story 1.2
-  16. `9ef0ac9` docs: add AI review follow-ups for story 1.2
-  17. `e7eb44a` feat(config): enforce localhost-only binding with preference guardrails
-  18. `6d37835` docs(story): Add ATDD checklist and red-phase JUnit tests for story 1.2
-  19. `3b58cec` docs: Set default framework to junit
-  20. `93013d4` docs: Add Java auto-detection and JUnit/Mockito support to TEA workflows
+- **Last 22 commits in scope:**
+  1. `4f097e4` fix(story-1.2): address scope + record hygiene review follow-ups (4 items)
+  2. `faa0e1e` docs(story-1-2): set 1-2 in-progress; add scope/record hygiene follow-ups
+  3. `b63c63f` fix(story-1.2): address fresh context review follow-ups (4 items)
+  4. `0e78ebf` docs(story-1-2): mark story 1-2 in-progress; add fresh-context follow-ups
+  5. `d84ab58` chore(bmad): rename project_context.md references to project-context.md
+  6. `a5618b2` fix(story-1.2): address status hygiene review follow-ups
+  7. `6957522` docs(story-1.2): add code-review action items and sync sprint status
+  8. `5fb6817` fix(story-1.2): address post-fix regression review follow-ups
+  9. `1b9063c` docs(story-1.2): record review follow-ups and set status in-progress
+  10. `58021b4` fix(story-1.2): address senior code review findings
+  11. `bd93287` docs(story-1.2): record review follow-ups and set status in-progress
+  12. `845c9e1` fix(story-1.2): address 5-commit scope re-review findings
+  13. `c38a3fa` docs: mark story 1.2 ready-for-dev and add 5-commit review action items
+  14. `24e3e31` fix(story-1.2): address refresh review follow-ups
+  15. `f5db91c` docs: record code review findings for story 1.2
+  16. `065da16` fix(config): address code review follow-ups for story 1.2
+  17. `9ef0ac9` docs: add AI review follow-ups for story 1.2
+  18. `e7eb44a` feat(config): enforce localhost-only binding with preference guardrails
+  19. `6d37835` docs(story): Add ATDD checklist and red-phase JUnit tests for story 1.2
+  20. `3b58cec` docs: Set default framework to junit
+  21. `93013d4` docs: Add Java auto-detection and JUnit/Mockito support to TEA workflows
+  22. `58cfdcd` docs(story): draft story 1.2 and mark ready-for-dev
 
 ### Latest Technical Information
 - Network access is restricted for this run; no external version research performed.
@@ -290,9 +297,14 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 3 Medium, 1 Low
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-28 (scope + record hygiene)”.
+- Date: 2025-12-29
+- Outcome: Changes Requested
+- Issues found: 3 Medium
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (workflow + docs alignment)” and moved story to `in-progress`.
 
 ## Change Log
 
+- **2025-12-29**: Senior Developer Review (AI) — action items created (3 items), refreshed scope commit count (22), status moved to `in-progress`
 - **2025-12-28**: Addressed scope + record hygiene review follow-ups (4 items)
   - [Medium] Updated Dev Agent Record test counts to match reality (19 and 21 tests)
   - [Medium] Updated File List test totals to match current test files
