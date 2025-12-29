@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -46,6 +46,14 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
   - [x] Regression test that preference value is corrected when invalid host is entered
 
 ### Review Follow-ups (AI)
+- [ ] [AI-Review][High] Replace placeholder “stale state cleanup” test with assertion-based coverage (or remove misleading test). [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:231]
+- [ ] [AI-Review][High] Harden loopback enforcement for `localhost` by verifying it resolves only to loopback (or bind explicitly to numeric loopback) to avoid misconfigured host/DNS exposure. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:137]
+- [ ] [AI-Review][Medium] Update ATDD checklist “RED phase” instructions to match current tags/Gradle task (no `@Tag(\"atdd_red\")` / `atddRedTest`). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:203]
+- [ ] [AI-Review][Medium] Update ATDD checklist Acceptance Criteria to treat `localhost`, `127.0.0.1`, and `::1` as equivalent loopback hosts (and to expect IPv6 URL bracket formatting). [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:21]
+- [ ] [AI-Review][Medium] Reconcile `docs/epics.md` Story 1.2 AC wording with this story’s loopback equivalence note (`localhost`, `127.0.0.1`, `::1`). [docs/epics.md:185]
+- [ ] [AI-Review][Medium] Fix Dev Agent Record File List drift: include `docs/sprint-artifacts/validation-report-2025-12-25T00-54-14Z.md` (in scope `6b2f94b..HEAD`) or explicitly exclude it. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:274]
+- [ ] [AI-Review][Low] Prefer logging `stopServer()` failures with a throwable (if `Logger#error(String, Throwable)` exists) instead of stringifying stack traces. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:216]
+
 - [x] [AI-Review][High] Validate and sanitize persisted host/port values on initialization (and write back) before use to enforce loopback defaults. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:62]
 - [x] [AI-Review][Medium] Avoid triggering host/port change notifications (and server restart) when validation normalizes to current value (no-op). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:78]
 - [x] [AI-Review][Medium] Expand bind failure detection to cover Jetty MultiException/suppressed BindException so AC5 always logs/pops up. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:84]
@@ -317,9 +325,14 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 3 Medium
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (workflow + docs alignment)” and moved story to `in-progress`.
+- Date: 2025-12-29 (follow-up)
+- Outcome: Changes Requested
+- Issues found: 2 High, 4 Medium, 1 Low
+- Action: Added follow-ups under “Review Follow-ups (AI)” and moved story to `in-progress`.
 
 ## Change Log
 
+- **2025-12-29**: Senior Developer Review (AI) — adversarial refresh; action items created (7); story status moved to `in-progress`
 - **2025-12-29**: Addressed workflow + docs alignment review follow-ups (3 items)
   - [Medium] Added Status Workflow section with status transition documentation
   - [Medium] Updated Acceptance Criteria for loopback host equivalence (`localhost`, `127.0.0.1`, `::1`)
