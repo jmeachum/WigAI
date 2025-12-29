@@ -16,7 +16,11 @@ import org.eclipse.jetty.server.Server;
 import java.lang.reflect.Field;
 import java.net.BindException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
@@ -242,20 +246,23 @@ class JettyServerManagerTest {
             Server mockStaleServer = mock(Server.class);
             when(mockStaleServer.isRunning()).thenReturn(false);
 
+            // Make configManager throw to fail BEFORE Jetty.start() (CI-safety: no actual port binding)
+            when(configManager.getMcpHost()).thenThrow(new RuntimeException("Test: fail fast before Jetty start"));
+
             // Inject the mock server via reflection to simulate stale state
             Field jettyServerField = JettyServerManager.class.getDeclaredField("jettyServer");
             jettyServerField.setAccessible(true);
             jettyServerField.set(serverManager, mockStaleServer);
 
-            // Act: Attempt to start server (will fail due to missing config, but cleanup should happen first)
+            // Act: Attempt to start server - cleanup happens BEFORE getMcpHost() is called
             try {
                 serverManager.startServer(null, null);
-            } catch (Exception e) {
-                // Expected - server start fails because configManager returns null host
-                // But the stale state cleanup should have happened before the failure
+                fail("Expected exception from getMcpHost()");
+            } catch (RuntimeException e) {
+                assertEquals("Test: fail fast before Jetty start", e.getMessage());
             }
 
-            // Assert: Verify stale state cleanup occurred
+            // Assert: Verify stale state cleanup occurred before the failure
             verify(mockStaleServer).isRunning(); // Checked running state
             verify(mockStaleServer).destroy();   // Destroyed the stale server
             verify(logger).info("Cleaning up stale server state before starting");
@@ -267,11 +274,15 @@ class JettyServerManagerTest {
             // Arrange: Fresh start with no prior server state
             assertNull(getJettyServerField());
 
-            // Act: Attempt to start (will fail due to null config, but that's fine)
+            // Make configManager throw to fail BEFORE Jetty.start() (CI-safety: no actual port binding)
+            when(configManager.getMcpHost()).thenThrow(new RuntimeException("Test: fail fast before Jetty start"));
+
+            // Act: Attempt to start (will fail due to getMcpHost() throwing)
             try {
                 serverManager.startServer(null, null);
-            } catch (Exception e) {
-                // Expected - configManager.getMcpHost() returns null
+                fail("Expected exception from getMcpHost()");
+            } catch (RuntimeException e) {
+                assertEquals("Test: fail fast before Jetty start", e.getMessage());
             }
 
             // Assert: No stale state cleanup message logged
