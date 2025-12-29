@@ -162,8 +162,11 @@ public class JettyServerManager {
     /**
      * Cleans up server state after a failed start attempt.
      * Stops any partially initialized server and resets references to avoid leaks.
+     *
+     * <p><b>Visibility Note:</b> Package-private visibility is intentional to allow unit testing
+     * of cleanup behavior without starting actual servers.
      */
-    private void cleanupFailedServer() {
+    void cleanupFailedServer() {
         if (jettyServer != null) {
             try {
                 jettyServer.stop();

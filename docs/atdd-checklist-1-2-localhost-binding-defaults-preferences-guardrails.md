@@ -230,7 +230,7 @@ Not applicable (no UI tests).
 ## Next Steps
 
 1. Review this checklist in planning/standup.
-2. Implement guardrails to make `./gradlew atddRedTest` green.
+2. Implement guardrails to make `./gradlew test --tests "*AtddTest"` green.
 3. Verify bind-failure messaging behavior during manual testing.
 
 ---
@@ -248,7 +248,7 @@ Not applicable (no UI tests).
 
 ### Initial Test Run (RED Phase Verification)
 
-**Command:** `./gradlew atddRedTest`
+**Command:** `./gradlew test --tests "*AtddTest"`
 
 **Results:**
 

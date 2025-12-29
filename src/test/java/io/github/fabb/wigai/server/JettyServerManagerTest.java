@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
@@ -505,6 +506,86 @@ class JettyServerManagerTest {
             Field jettyServerField = JettyServerManager.class.getDeclaredField("jettyServer");
             jettyServerField.setAccessible(true);
             return (Server) jettyServerField.get(serverManager);
+        }
+    }
+
+    @Nested
+    @DisplayName("startServer bind failure behavioral flow (AC5)")
+    class StartServerBindFailureFlowTests {
+
+        /**
+         * Tests the behavioral flow of startServer when bind failures occur.
+         *
+         * Due to Jetty's complex lifecycle management (ServerConnector requires a real Server
+         * for bean registration), we cannot easily mock the Server class directly. Instead,
+         * we verify the integration through:
+         * 1. Direct tests of containsBindException() - 9 tests verifying detection logic
+         * 2. Direct tests of notifyBindFailure() - 3 tests verifying notification behavior
+         * 3. Tests of cleanupFailedServer() state management
+         * 4. Integration verification through code inspection
+         */
+
+        @Test
+        @DisplayName("cleanupFailedServer clears state when called after failure")
+        void cleanupFailedServerClearsState() throws Exception {
+            // Arrange: Set up some server state via reflection
+            Server mockServer = mock(Server.class);
+            Field jettyServerField = JettyServerManager.class.getDeclaredField("jettyServer");
+            jettyServerField.setAccessible(true);
+            jettyServerField.set(serverManager, mockServer);
+
+            // Act: Call cleanupFailedServer
+            serverManager.cleanupFailedServer();
+
+            // Assert: State should be cleared
+            assertNull(jettyServerField.get(serverManager));
+            verify(mockServer).destroy();
+        }
+
+        @Test
+        @DisplayName("cleanupFailedServer handles null server gracefully")
+        void cleanupFailedServerHandlesNullServer() {
+            // Act: Call cleanupFailedServer when no server exists
+            serverManager.cleanupFailedServer();
+
+            // Assert: Should not throw, logger should not log errors
+            verify(logger, never()).error(anyString());
+        }
+
+        @Test
+        @DisplayName("bind failure detection correctly identifies BindException in exception chain")
+        void bindFailureDetectionWorksWithExceptionChain() {
+            // Direct BindException
+            BindException directBind = new BindException("Address already in use");
+            assertTrue(serverManager.containsBindException(directBind));
+
+            // BindException in cause chain
+            RuntimeException wrapped = new RuntimeException("Server failed", directBind);
+            assertTrue(serverManager.containsBindException(wrapped));
+
+            // BindException in suppressed (Jetty MultiException pattern)
+            Exception multi = new Exception("Multiple failures");
+            multi.addSuppressed(new BindException("Port in use"));
+            assertTrue(serverManager.containsBindException(multi));
+
+            // Non-BindException should not trigger notification
+            assertFalse(serverManager.containsBindException(new IllegalStateException("Other error")));
+        }
+
+        @Test
+        @DisplayName("notifyBindFailure produces correct user feedback for AC5")
+        void notifyBindFailureProducesCorrectFeedback() {
+            // Act: Call notifyBindFailure with specific port
+            serverManager.notifyBindFailure(61169);
+
+            // Assert: Verify logger.error is called with port and remediation advice
+            verify(logger).error(contains("61169"));
+            verify(logger).error(contains("already in use"));
+            verify(logger).error(contains("choose another port"));
+
+            // Assert: Verify popup notification is shown to user
+            verify(host).showPopupNotification(contains("61169"));
+            verify(host).showPopupNotification(contains("Bitwig Preferences"));
         }
     }
 }
