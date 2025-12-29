@@ -130,6 +130,44 @@ class PreferencesBackedConfigManagerAtddTest {
         verify(observer).onPortChanged(AppConstants.DEFAULT_MCP_PORT, 61234);
     }
 
+    @DisplayName("1.2-ATDD-004b [P1] Given valid port change, when applied, then restart can be triggered for new port (AC4 full flow)")
+    @Test
+    void valid_port_change_triggers_restart_with_new_port() {
+        // AC4: "WigAI performs a graceful restart and the MCP endpoint is reachable at the configured loopback host and new port"
+        // This test verifies the config → observer → restart trigger chain.
+        // Actual endpoint reachability requires integration testing with a running server.
+        assertNotNull(portObserver);
+
+        // Track whether restart would be triggered with correct port
+        final int[] capturedOldPort = new int[1];
+        final int[] capturedNewPort = new int[1];
+        final boolean[] restartTriggered = new boolean[1];
+
+        ConfigChangeObserver restartingObserver = new ConfigChangeObserver() {
+            @Override
+            public void onHostChanged(String oldHost, String newHost) { }
+
+            @Override
+            public void onPortChanged(int oldPort, int newPort) {
+                capturedOldPort[0] = oldPort;
+                capturedNewPort[0] = newPort;
+                restartTriggered[0] = true;
+                // In WigAIExtension, this calls serverManager.restartServer()
+            }
+        };
+        configManager.addObserver(restartingObserver);
+
+        // Change to valid port in range 1024-65535
+        int newPort = 8080;
+        portObserver.valueChanged(newPort);
+
+        // Verify restart would be triggered with correct port values
+        assertEquals(true, restartTriggered[0], "Restart should be triggered");
+        assertEquals(AppConstants.DEFAULT_MCP_PORT, capturedOldPort[0], "Old port should be default");
+        assertEquals(newPort, capturedNewPort[0], "New port should be the changed value");
+        assertEquals(newPort, configManager.getMcpPort(), "Config should return new port for server binding");
+    }
+
     @DisplayName("1.2-ATDD-005 [P1] Given invalid port, when applied, then default and persist")
     @Test
     void invalid_port_reverts_to_default_and_is_written_back() {

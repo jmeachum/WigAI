@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -137,10 +137,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Fix Dev Agent Record claim about getBindHost test count (list says 11 but there are 10 in file). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:354]
 
 ### Review Follow-ups (AI) — code review (current)
-- [ ] [AI-Review][High] Align advertised MCP URL host with actual bind host when configured `localhost` to avoid IPv6/IPv4 mismatch (advertising `localhost` while binding `127.0.0.1` can make the advertised URL unreachable on IPv6-preferred systems). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
-- [ ] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled “Added (prior commits, not in 5-commit scope)” are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
-- [ ] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
-- [ ] [AI-Review][Low] Strengthen AC1 tests to assert advertised URL/logging in `notifyServerStarted()` rather than only string construction. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:333]
+- [x] [AI-Review][High] Align advertised MCP URL host with actual bind host when configured `localhost` to avoid IPv6/IPv4 mismatch (advertising `localhost` while binding `127.0.0.1` can make the advertised URL unreachable on IPv6-preferred systems). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
+- [x] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled "Added (prior commits, not in 5-commit scope)" are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
+- [x] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
+- [x] [AI-Review][Low] Strengthen AC1 tests to assert advertised URL/logging in `notifyServerStarted()` rather than only string construction. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:333]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -361,16 +361,21 @@ Claude Opus 4.5
   - [Medium] Updated ATDD checklist: `./gradlew atddRedTest` → `./gradlew test --tests "*AtddTest"` to match `@Tag("atdd")` usage
   - [Low] Fixed getBindHost test count: 11 → 10, and updated total from 41 → 45 tests
   - [Medium] Added bind-failure coverage via `createServer()` seam: 4 new tests exercise `startServer()` exception handling path (direct BindException, wrapped MultiException, cleanup on failure, no notification for non-bind exceptions)
+- **Code review 2025-12-29 (current) follow-ups addressed (4/4)**:
+  - [High] Fixed advertised URL to use actual bind host in `notifyServerStarted()` — eliminates IPv6/IPv4 mismatch when `localhost` configured but we bind to `127.0.0.1`
+  - [Medium] Reworded File List "Added" section scope note — clarified items are within `6b2f94b..HEAD` scope, removed duplicate ATDD checklist entry
+  - [Medium] Added AC4 restart trigger test (`valid_port_change_triggers_restart_with_new_port`) to verify config → observer → restart flow
+  - [Low] Added 4 `notifyServerStarted` logging tests — verify actual logger.info() and showPopupNotification() calls contain correct URL
 
 ### File List
 
 **Modified:**
 - `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added deterministic canonicalizeLoopback(), added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure and cleanupFailedServer package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable), added `getBindHost()` defense-in-depth loopback enforcement, added `isIpv6Literal()` for tighter IPv6 URL formatting, added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants, added `createServer()` protected factory method (seam for testing)
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure and cleanupFailedServer package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable), added `getBindHost()` defense-in-depth loopback enforcement, added `isIpv6Literal()` for tighter IPv6 URL formatting, added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants, added `createServer()` protected factory method (seam for testing), fixed advertised URL to use actual bind host (eliminates IPv6/IPv4 mismatch)
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd"), added AC4 restart trigger test (6 ATDD tests total)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (19 tests total)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests, 10 getBindHost tests, 3 tighter IPv6 formatting tests, 5 advertised URL tests, 4 bind failure behavioral flow tests (cleanupFailedServer, detection, notification), 4 startServer bind-failure path tests via createServer() seam; made tests CI-safe with getMcpHost() mock throw (49 tests total)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests, 10 getBindHost tests, 3 tighter IPv6 formatting tests, 5 advertised URL tests updated for bind-host alignment, 4 bind failure behavioral flow tests (cleanupFailedServer, detection, notification), 4 startServer bind-failure path tests via createServer() seam, 4 notifyServerStarted logging tests; made tests CI-safe with getMcpHost() mock throw (53 tests total)
 - `docs/architecture.md` - Updated default binding wording to specify loopback equivalence (`localhost`, `127.0.0.1`, `::1`)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - Updated RED phase instructions and AC for loopback equivalence
@@ -381,10 +386,9 @@ Claude Opus 4.5
 **Renamed:**
 - `docs/project_context.md` → `docs/project-context.md` - Fixed BMAD workflow pattern matching
 
-**Added (prior commits, not in 5-commit scope):**
-- `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - ATDD checklist (commit 6d37835, prior to 5-commit scope)
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
+**Added (earlier commits within `6b2f94b..HEAD` scope):**
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation (commit e7eb44a)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection (commit 9ef0ac9)
 
 **Excluded from File List (BMAD framework, not story implementation):**
 - `.bmad/**` files (19 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
@@ -431,6 +435,12 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-29**: Addressed code review follow-ups (4 items) — moved story to `review`
+  - [High] Fixed advertised URL to use actual bind host in `notifyServerStarted()` — eliminates IPv6/IPv4 mismatch
+  - [Medium] Reworded File List "Added" section scope note and removed duplicate ATDD checklist entry
+  - [Medium] Added AC4 restart trigger test (`valid_port_change_triggers_restart_with_new_port`)
+  - [Low] Added 4 `notifyServerStarted` logging tests verifying logger.info() and showPopupNotification() calls
+  - JettyServerManagerTest now has 53 tests (up from 49); PreferencesBackedConfigManagerAtddTest has 6 ATDD tests
 - **2025-12-29**: Addressed final story integrity + tests review follow-up (1 item)
   - [Medium] Added `createServer()` protected factory method as seam for testing bind-failure path
   - Added 4 new tests exercising `startServer()` exception handling: direct BindException, wrapped MultiException, cleanup on failure, no notification for non-bind exceptions

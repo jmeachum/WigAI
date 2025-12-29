@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.lang.reflect.Field;
 import java.net.BindException;
@@ -334,85 +335,95 @@ class JettyServerManagerTest {
     class AdvertisedConnectionUrlTests {
 
         @Test
-        @DisplayName("builds correct URL for localhost with default port")
-        void buildsCorrectUrlForLocalhost() {
-            // The URL construction logic in notifyServerStarted uses formatHostForUrl + getMcpHost/Port
-            // Test the URL format by verifying the components
+        @DisplayName("advertised URL uses actual bind host (127.0.0.1) when localhost is configured")
+        void advertisedUrlUsesBindHostForLocalhost() {
+            // notifyServerStarted now uses getBindHost() to ensure advertised URL matches actual binding.
+            // When localhost is configured, we bind to 127.0.0.1 (deterministic), so URL should show 127.0.0.1.
             when(configManager.getMcpHost()).thenReturn("localhost");
             when(configManager.getMcpPort()).thenReturn(61169);
 
-            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            // Simulate the URL construction in notifyServerStarted:
+            // actualBindHost = getBindHost(configManager.getMcpHost());
+            // formattedHost = formatHostForUrl(actualBindHost);
+            String actualBindHost = serverManager.getBindHost(configManager.getMcpHost());
+            String formattedHost = serverManager.formatHostForUrl(actualBindHost);
             int port = configManager.getMcpPort();
             String endpointPath = "/mcp";
 
-            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
-            assertEquals("http://localhost:61169/mcp", expectedUrl);
+            String advertisedUrl = String.format("http://%s:%d%s", formattedHost, port, endpointPath);
+            // Expect 127.0.0.1 (not localhost) to avoid IPv6/IPv4 mismatch
+            assertEquals("http://127.0.0.1:61169/mcp", advertisedUrl);
         }
 
         @Test
-        @DisplayName("builds correct URL for 127.0.0.1")
-        void buildsCorrectUrlForIpv4Loopback() {
+        @DisplayName("advertised URL matches bind host for 127.0.0.1")
+        void advertisedUrlMatchesBindHostForIpv4Loopback() {
             when(configManager.getMcpHost()).thenReturn("127.0.0.1");
             when(configManager.getMcpPort()).thenReturn(61169);
 
-            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            String actualBindHost = serverManager.getBindHost(configManager.getMcpHost());
+            String formattedHost = serverManager.formatHostForUrl(actualBindHost);
             int port = configManager.getMcpPort();
             String endpointPath = "/mcp";
 
-            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
-            assertEquals("http://127.0.0.1:61169/mcp", expectedUrl);
+            String advertisedUrl = String.format("http://%s:%d%s", formattedHost, port, endpointPath);
+            assertEquals("http://127.0.0.1:61169/mcp", advertisedUrl);
         }
 
         @Test
-        @DisplayName("builds correct URL for IPv6 loopback ::1 (bracketed)")
-        void buildsCorrectUrlForIpv6Loopback() {
+        @DisplayName("advertised URL uses IPv6 brackets for ::1")
+        void advertisedUrlUsesIpv6BracketsForIpv6Loopback() {
             when(configManager.getMcpHost()).thenReturn("::1");
             when(configManager.getMcpPort()).thenReturn(61169);
 
-            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            String actualBindHost = serverManager.getBindHost(configManager.getMcpHost());
+            String formattedHost = serverManager.formatHostForUrl(actualBindHost);
             int port = configManager.getMcpPort();
             String endpointPath = "/mcp";
 
-            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
-            assertEquals("http://[::1]:61169/mcp", expectedUrl);
+            String advertisedUrl = String.format("http://%s:%d%s", formattedHost, port, endpointPath);
+            assertEquals("http://[::1]:61169/mcp", advertisedUrl);
         }
 
         @Test
-        @DisplayName("builds correct URL for custom port")
-        void buildsCorrectUrlForCustomPort() {
+        @DisplayName("advertised URL uses custom port with bind host")
+        void advertisedUrlUsesCustomPortWithBindHost() {
             when(configManager.getMcpHost()).thenReturn("localhost");
             when(configManager.getMcpPort()).thenReturn(8080);
 
-            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            String actualBindHost = serverManager.getBindHost(configManager.getMcpHost());
+            String formattedHost = serverManager.formatHostForUrl(actualBindHost);
             int port = configManager.getMcpPort();
             String endpointPath = "/mcp";
 
-            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
-            assertEquals("http://localhost:8080/mcp", expectedUrl);
+            String advertisedUrl = String.format("http://%s:%d%s", formattedHost, port, endpointPath);
+            // Expect 127.0.0.1 (not localhost) because getBindHost normalizes localhost
+            assertEquals("http://127.0.0.1:8080/mcp", advertisedUrl);
         }
 
         @Test
-        @DisplayName("URL matches format expected by AC1: http://{loopback}:{port}/mcp")
-        void urlMatchesAc1Format() {
-            // AC1 specifies: advertises the configured loopback host in logs/notification
-            // (e.g., http://localhost:61169/mcp or http://[::1]:61169/mcp)
+        @DisplayName("advertised URL always matches actual bind address (defense-in-depth)")
+        void advertisedUrlAlwaysMatchesBindAddress() {
+            // This test verifies the fix for IPv6/IPv4 mismatch issue:
+            // The advertised URL should always use the actual bind address (from getBindHost),
+            // not the configured host, to prevent unreachable URLs on systems where
+            // localhost resolves to a different address family than what we bind to.
 
-            // Test localhost variant
-            when(configManager.getMcpHost()).thenReturn("localhost");
-            when(configManager.getMcpPort()).thenReturn(61169);
-            String url1 = String.format("http://%s:%d/mcp",
-                serverManager.formatHostForUrl("localhost"), 61169);
-            assertTrue(url1.matches("http://localhost:\\d+/mcp"));
+            // localhost → binds to 127.0.0.1, advertises 127.0.0.1
+            assertEquals("127.0.0.1", serverManager.getBindHost("localhost"));
+            assertEquals("127.0.0.1", serverManager.formatHostForUrl(serverManager.getBindHost("localhost")));
 
-            // Test IPv6 variant
-            String url2 = String.format("http://%s:%d/mcp",
-                serverManager.formatHostForUrl("::1"), 61169);
-            assertTrue(url2.matches("http://\\[::1\\]:\\d+/mcp"));
+            // LOCALHOST (uppercase) → binds to 127.0.0.1, advertises 127.0.0.1
+            assertEquals("127.0.0.1", serverManager.getBindHost("LOCALHOST"));
+            assertEquals("127.0.0.1", serverManager.formatHostForUrl(serverManager.getBindHost("LOCALHOST")));
 
-            // Test IPv4 variant
-            String url3 = String.format("http://%s:%d/mcp",
-                serverManager.formatHostForUrl("127.0.0.1"), 61169);
-            assertTrue(url3.matches("http://127\\.0\\.0\\.1:\\d+/mcp"));
+            // 127.0.0.1 → binds to 127.0.0.1, advertises 127.0.0.1
+            assertEquals("127.0.0.1", serverManager.getBindHost("127.0.0.1"));
+            assertEquals("127.0.0.1", serverManager.formatHostForUrl(serverManager.getBindHost("127.0.0.1")));
+
+            // ::1 → binds to ::1, advertises [::1] (bracketed for URL)
+            assertEquals("::1", serverManager.getBindHost("::1"));
+            assertEquals("[::1]", serverManager.formatHostForUrl(serverManager.getBindHost("::1")));
         }
     }
 
@@ -424,6 +435,123 @@ class JettyServerManagerTest {
         @DisplayName("returns false when server was never started")
         void returnsFalseWhenNeverStarted() {
             assertFalse(serverManager.isRunning());
+        }
+    }
+
+    @Nested
+    @DisplayName("notifyServerStarted logging/notification (AC1)")
+    class NotifyServerStartedTests {
+
+        @Test
+        @DisplayName("logs and shows popup with correct URL when server starts with localhost")
+        void logsCorrectUrlForLocalhost() throws Exception {
+            // Arrange: Mock config to return localhost:61169
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+            when(extensionDefinition.getVersion()).thenReturn("0.4.0");
+
+            // Use spy on real Server to allow bean registration while controlling start() behavior
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doNothing().when(spyServer).start(); // Prevent actual server start
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act: Start server with servlet + endpoint path so URL includes /mcp
+            ServletHolder mockServlet = mock(ServletHolder.class);
+            testableManager.startServer(mockServlet, "/mcp");
+
+            // Assert: notifyServerStarted logs/shows URL with actual bind host (127.0.0.1, not localhost)
+            // This verifies the fix for IPv6/IPv4 mismatch issue
+            verify(logger).info(contains("http://127.0.0.1:61169/mcp"));
+            verify(host).showPopupNotification(contains("http://127.0.0.1:61169/mcp"));
+        }
+
+        @Test
+        @DisplayName("logs and shows popup with bracketed IPv6 for ::1")
+        void logsCorrectUrlForIpv6() throws Exception {
+            // Arrange: Mock config to return ::1:61169
+            when(configManager.getMcpHost()).thenReturn("::1");
+            when(configManager.getMcpPort()).thenReturn(61169);
+            when(extensionDefinition.getVersion()).thenReturn("0.4.0");
+
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doNothing().when(spyServer).start();
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act: Start server with servlet + endpoint path
+            ServletHolder mockServlet = mock(ServletHolder.class);
+            testableManager.startServer(mockServlet, "/mcp");
+
+            // Assert: IPv6 address is bracketed in URL
+            verify(logger).info(contains("http://[::1]:61169/mcp"));
+            verify(host).showPopupNotification(contains("http://[::1]:61169/mcp"));
+        }
+
+        @Test
+        @DisplayName("logs and shows popup with custom port")
+        void logsCorrectUrlForCustomPort() throws Exception {
+            // Arrange: Mock config to return localhost:8080
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(8080);
+            when(extensionDefinition.getVersion()).thenReturn("0.4.0");
+
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doNothing().when(spyServer).start();
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act: Start server with servlet + endpoint path
+            ServletHolder mockServlet = mock(ServletHolder.class);
+            testableManager.startServer(mockServlet, "/mcp");
+
+            // Assert: Custom port is used in URL, with actual bind host (127.0.0.1)
+            verify(logger).info(contains("http://127.0.0.1:8080/mcp"));
+            verify(host).showPopupNotification(contains("http://127.0.0.1:8080/mcp"));
+        }
+
+        @Test
+        @DisplayName("includes version number in startup notification")
+        void includesVersionInNotification() throws Exception {
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+            when(extensionDefinition.getVersion()).thenReturn("0.5.0-beta");
+
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doNothing().when(spyServer).start();
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Start with servlet + endpoint path
+            ServletHolder mockServlet = mock(ServletHolder.class);
+            testableManager.startServer(mockServlet, "/mcp");
+
+            verify(logger).info(contains("v0.5.0-beta"));
+            verify(host).showPopupNotification(contains("v0.5.0-beta"));
         }
     }
 

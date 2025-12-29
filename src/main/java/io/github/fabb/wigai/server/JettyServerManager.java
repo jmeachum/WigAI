@@ -400,7 +400,10 @@ public class JettyServerManager {
      */
     private void notifyServerStarted() {
         String endpointPath = currentEndpointPath != null ? currentEndpointPath : "";
-        String formattedHost = formatHostForUrl(configManager.getMcpHost());
+        // Use actual bind host (not configured host) to ensure advertised URL matches what we bind to.
+        // Prevents IPv6/IPv4 mismatch when localhost resolves differently than our deterministic binding.
+        String actualBindHost = getBindHost(configManager.getMcpHost());
+        String formattedHost = formatHostForUrl(actualBindHost);
         String connectionUrl = String.format("http://%s:%d%s",
             formattedHost, configManager.getMcpPort(), endpointPath);
         String message = String.format("WigAI MCP Server v%s started. Connect AI agents to: %s",
