@@ -587,5 +587,130 @@ class JettyServerManagerTest {
             verify(host).showPopupNotification(contains("61169"));
             verify(host).showPopupNotification(contains("Bitwig Preferences"));
         }
+
+        @Test
+        @DisplayName("startServer calls notifyBindFailure when direct BindException is thrown")
+        void startServerCallsNotifyBindFailureOnDirectBindException() throws Exception {
+            // Arrange: Use a spy on a real Server so ServerConnector can register beans
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doThrow(new BindException("Address already in use")).when(spyServer).start();
+
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act & Assert: startServer should throw BindException and call notifyBindFailure
+            try {
+                testableManager.startServer(null, null);
+                fail("Expected BindException to be thrown");
+            } catch (BindException e) {
+                assertEquals("Address already in use", e.getMessage());
+            }
+
+            // Verify notifyBindFailure was called (evidence: logger.error with port)
+            verify(logger).error(contains("61169"));
+            verify(logger).error(contains("already in use"));
+            verify(host).showPopupNotification(contains("61169"));
+        }
+
+        @Test
+        @DisplayName("startServer calls notifyBindFailure when BindException is wrapped in MultiException")
+        void startServerCallsNotifyBindFailureOnWrappedBindException() throws Exception {
+            // Arrange: Use a spy to simulate Jetty MultiException behavior (BindException in suppressed)
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            Exception multiException = new Exception("Multiple failures");
+            multiException.addSuppressed(new BindException("Port in use"));
+            doThrow(multiException).when(spyServer).start();
+
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(8080);
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act & Assert: startServer should throw and call notifyBindFailure
+            try {
+                testableManager.startServer(null, null);
+                fail("Expected exception to be thrown");
+            } catch (Exception e) {
+                assertEquals("Multiple failures", e.getMessage());
+            }
+
+            // Verify notifyBindFailure was called for wrapped BindException
+            verify(logger).error(contains("8080"));
+            verify(host).showPopupNotification(contains("8080"));
+        }
+
+        @Test
+        @DisplayName("startServer calls cleanupFailedServer on bind failure")
+        void startServerCallsCleanupOnBindFailure() throws Exception {
+            // Arrange: Use a spy on a real Server
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doThrow(new BindException("Address already in use")).when(spyServer).start();
+
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act: startServer should fail
+            try {
+                testableManager.startServer(null, null);
+            } catch (BindException expected) {
+                // Expected
+            }
+
+            // Assert: Cleanup was called - verify server.destroy() was invoked
+            verify(spyServer).destroy();
+        }
+
+        @Test
+        @DisplayName("startServer does NOT call notifyBindFailure for non-bind exceptions")
+        void startServerDoesNotCallNotifyBindFailureForOtherExceptions() throws Exception {
+            // Arrange: Use a spy for non-BindException failure
+            Server realServer = new Server();
+            Server spyServer = spy(realServer);
+            doThrow(new IllegalStateException("Some other error")).when(spyServer).start();
+
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+
+            JettyServerManager testableManager = new JettyServerManager(logger, configManager, extensionDefinition, host) {
+                @Override
+                protected Server createServer() {
+                    return spyServer;
+                }
+            };
+
+            // Act: startServer should fail
+            try {
+                testableManager.startServer(null, null);
+                fail("Expected IllegalStateException to be thrown");
+            } catch (IllegalStateException e) {
+                assertEquals("Some other error", e.getMessage());
+            }
+
+            // Assert: notifyBindFailure was NOT called (no "already in use" message)
+            verify(logger, never()).error(contains("already in use"));
+            verify(host, never()).showPopupNotification(contains("already in use"));
+        }
     }
 }

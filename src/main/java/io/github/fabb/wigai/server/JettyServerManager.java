@@ -76,7 +76,7 @@ public class JettyServerManager {
         }
 
         // Create and configure Jetty server
-        jettyServer = new Server();
+        jettyServer = createServer();
         ServerConnector connector = new ServerConnector(jettyServer);
         String bindHost = getBindHost(configManager.getMcpHost());
         connector.setHost(bindHost);
@@ -317,6 +317,20 @@ public class JettyServerManager {
      */
     public boolean isRunning() {
         return jettyServer != null && jettyServer.isRunning();
+    }
+
+    /**
+     * Factory method for creating a new Jetty Server instance.
+     *
+     * <p><b>Visibility Note:</b> Protected visibility is intentional to allow unit testing
+     * of the bind-failure path through subclassing. Tests can override this method to inject
+     * a mock Server that throws during start(), enabling CI-safe verification of exception
+     * handling without actual port binding.
+     *
+     * @return a new Server instance
+     */
+    protected Server createServer() {
+        return new Server();
     }
 
     /**
