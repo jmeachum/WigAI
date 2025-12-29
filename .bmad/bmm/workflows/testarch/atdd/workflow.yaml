@@ -20,6 +20,8 @@ template: "{installed_path}/atdd-checklist-template.md"
 # Variables and inputs
 variables:
   test_dir: "{project-root}/tests" # Root test directory
+  java_test_dir: "{project-root}/src/test/java" # Java test directory (JUnit)
+  test_framework_preference: "{config_source}:test_framework_preference"
 
 # Output configuration
 default_output_file: "{output_folder}/atdd-checklist-{story_id}.md"

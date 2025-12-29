@@ -9,7 +9,7 @@ Before starting this workflow, verify:
 - [ ] Story approved with clear acceptance criteria (AC must be testable)
 - [ ] Development sandbox/environment ready
 - [ ] Framework scaffolding exists (run `framework` workflow if missing)
-- [ ] Test framework configuration available (playwright.config.ts or cypress.config.ts)
+- [ ] Test framework configuration available (playwright.config.ts, cypress.config.ts, or Java build file with JUnit/Mockito)
 - [ ] Package.json has test dependencies installed (Playwright or Cypress)
 
 **Halt if missing:** Framework scaffolding or story acceptance criteria
@@ -22,16 +22,18 @@ Before starting this workflow, verify:
 - [ ] All acceptance criteria identified and extracted
 - [ ] Affected systems and components identified
 - [ ] Technical constraints documented
-- [ ] Framework configuration loaded (playwright.config.ts or cypress.config.ts)
+- [ ] Framework configuration loaded (playwright.config.ts, cypress.config.ts, or Java build file)
 - [ ] Test directory structure identified from config
 - [ ] Existing fixture patterns reviewed for consistency
 - [ ] Similar test patterns searched and found in `{test_dir}`
 - [ ] Knowledge base fragments loaded:
+  - [ ] `junit-mockito.md` (if Java)
   - [ ] `fixture-architecture.md`
   - [ ] `data-factories.md`
   - [ ] `component-tdd.md`
   - [ ] `network-first.md`
   - [ ] `test-quality.md`
+  - [ ] `test-levels-framework.md` (if Java)
 
 ---
 
@@ -59,6 +61,8 @@ Before starting this workflow, verify:
   - [ ] `tests/api/` for API tests
   - [ ] `tests/component/` for component tests
   - [ ] `tests/support/` for infrastructure (fixtures, factories, helpers)
+  - [ ] `src/test/java/` for JUnit tests (Java)
+  - [ ] `src/test/resources/` for fixtures/data (Java)
 
 ### E2E Tests (If Applicable)
 
@@ -91,6 +95,14 @@ Before starting this workflow, verify:
 - [ ] Props and events tested
 - [ ] Tests fail initially (RED phase verified)
 
+### JUnit Tests (If Applicable - Java)
+
+- [ ] JUnit test files created in `src/test/java/`
+- [ ] Tests follow Given-When-Then format
+- [ ] One assertion per test (atomic test design)
+- [ ] Mockito used for external dependencies (if needed)
+- [ ] Tests fail initially (RED phase verified)
+
 ### Test Quality Validation
 
 - [ ] All tests use Given-When-Then structure with clear comments
@@ -107,7 +119,7 @@ Before starting this workflow, verify:
 ### Data Factories Created
 
 - [ ] Factory files created in `tests/support/factories/`
-- [ ] All factories use `@faker-js/faker` for random data generation (no hardcoded values)
+- [ ] All factories use `@faker-js/faker` (JS/TS) or `net.datafaker` (Java) for random data generation (no hardcoded values)
 - [ ] Factories support overrides for specific test scenarios
 - [ ] Factories generate complete valid objects matching API contracts
 - [ ] Helper functions for bulk creation provided (e.g., `createUsers(count)`)
@@ -115,14 +127,15 @@ Before starting this workflow, verify:
 
 ### Test Fixtures Created
 
-- [ ] Fixture files created in `tests/support/fixtures/`
-- [ ] All fixtures use Playwright's `test.extend()` pattern
+- [ ] Fixture files created in `tests/support/fixtures/` (JS/TS) or `src/test/java/.../fixtures` (Java)
+- [ ] All fixtures use Playwright's `test.extend()` pattern (JS/TS)
 - [ ] Fixtures have setup phase (arrange test preconditions)
 - [ ] Fixtures provide data to tests via `await use(data)`
 - [ ] Fixtures have teardown phase with auto-cleanup (delete created data)
 - [ ] Fixtures are composable (can use other fixtures if needed)
 - [ ] Fixtures are isolated (each test gets fresh data)
 - [ ] Fixtures are type-safe (TypeScript types defined)
+- [ ] Java fixtures use JUnit 5 `@BeforeEach`/`@AfterEach` or extensions
 
 ### Mock Requirements Documented
 
@@ -158,9 +171,9 @@ Before starting this workflow, verify:
 - [ ] GREEN phase tasks listed for DEV team
 - [ ] REFACTOR phase guidance provided
 - [ ] Execution commands provided:
-  - [ ] Run all tests: `npm run test:e2e`
-  - [ ] Run specific test file
-  - [ ] Run in headed mode
+  - [ ] Run all tests: `npm run test:e2e` (JS/TS) or `./gradlew test` / `mvn test` (Java)
+  - [ ] Run specific test file/class
+  - [ ] Run in headed mode (JS/TS)
   - [ ] Debug specific test
 - [ ] Estimated effort included (hours or story points)
 
@@ -231,6 +244,7 @@ Before starting this workflow, verify:
 - [ ] network-first.md patterns applied to E2E tests with network requests
 - [ ] component-tdd.md patterns applied to component tests
 - [ ] test-quality.md principles applied to all test design
+- [ ] junit-mockito.md patterns applied to JUnit tests (if Java)
 
 ### Code Quality
 
@@ -282,6 +296,7 @@ All of the following must be true before marking this workflow as complete:
 - [ ] **Given-When-Then format** used consistently across all tests
 - [ ] **RED phase verified** by local test run (all tests failing as expected)
 - [ ] **Network-first pattern** applied to E2E tests with network requests
+- [ ] **JUnit/Mockito dependencies** present in build file (if Java)
 - [ ] **Data factories created** using faker (no hardcoded test data)
 - [ ] **Fixtures created** with auto-cleanup in teardown
 - [ ] **Mock requirements documented** for external services

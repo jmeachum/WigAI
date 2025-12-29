@@ -20,8 +20,10 @@ validation: "{installed_path}/checklist.md"
 variables:
   test_dir: "{project-root}/tests" # Root test directory
   use_typescript: true # Prefer TypeScript configuration
-  framework_preference: "auto" # auto, playwright, cypress - user can override auto-detection
+  framework_preference: "{config_source}:test_framework_preference" # auto, playwright, cypress, junit - user can override auto-detection
   project_size: "auto" # auto, small, large - influences framework recommendation
+  java_build_tool_preference: "{config_source}:java_build_tool_preference" # auto, gradle, maven - only used when junit selected
+  java_test_dir: "{project-root}/src/test/java" # Java test directory (JUnit)
 
 # Output configuration
 default_output_file: "{test_dir}/README.md" # Main deliverable is test setup README

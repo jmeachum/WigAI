@@ -178,25 +178,27 @@ So that MCP regressions and integration issues are caught early before we build 
 
 As a WigAI user,
 I want the MCP server to bind to `localhost` by default with strong preference/input guardrails,
-So that WigAI isn’t accidentally exposed on the network (no-auth MVP) and connection details stay predictable.
+So that WigAI isn't accidentally exposed on the network (no-auth MVP) and connection details stay predictable.
+
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) and uses deterministic numeric loopback for binding when `localhost` is configured (defense-in-depth, no DNS). The advertised URL always uses the actual bind address to ensure reachability (e.g., `localhost` configured → binds to `127.0.0.1` → advertises `http://127.0.0.1:{port}/mcp`).
 
 **Acceptance Criteria:**
 
 **Given** WigAI is enabled for the first time in Bitwig
 **When** the MCP server starts
-**Then** it binds to `localhost` on the default port `61169` and advertises `http://localhost:61169/mcp` in logs/notification.
+**Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the actual bind address in logs/notification (e.g., `http://127.0.0.1:61169/mcp` or `http://[::1]:61169/mcp`).
 
-**Given** the user edits “MCP Host” in Bitwig preferences
+**Given** the user edits "MCP Host" in Bitwig preferences
 **When** the host value is empty or whitespace
 **Then** it is sanitized to `localhost` and the server remains reachable at a loopback address.
 
-**Given** the user attempts to set “MCP Host” to a non-loopback value (e.g., `0.0.0.0`, `192.168.x.x`, a public hostname)
+**Given** the user attempts to set "MCP Host" to a non-loopback value (e.g., `0.0.0.0`, `192.168.x.x`, a public hostname)
 **When** the setting is applied
 **Then** WigAI refuses for MVP (no-auth) and reverts to `localhost`, logging a clear warning explaining why.
 
-**Given** the user changes “MCP Port” to another valid port (1024–65535)
+**Given** the user changes "MCP Port" to another valid port (1024–65535)
 **When** the setting is applied
-**Then** WigAI performs a graceful restart and the MCP endpoint is reachable at `http://localhost:{new_port}/mcp`.
+**Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the loopback address and new port (e.g., `http://127.0.0.1:{new_port}/mcp` or `http://[::1]:{new_port}/mcp`).
 
 **Given** the configured port cannot be bound (e.g., already in use)
 **When** WigAI tries to start or restart the server

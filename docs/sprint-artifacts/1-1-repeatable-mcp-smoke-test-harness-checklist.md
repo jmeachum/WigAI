@@ -65,7 +65,7 @@ so that MCP regressions and integration issues are caught early before we build 
 - [x] [AI-Review][High] Align MUTATING_TOOLS and safe-mode guard with actual tool names (`set_selected_device_parameter`, `session_launchSceneByIndex`, `session_launchSceneByName`) [src/test/java/io/github/fabb/wigai/smoke/McpSmokeHarness.java:37]
 - [x] [AI-Review][High] Validate mutation-mode tool responses via envelope parsing (transport + parameter set) instead of assuming OK [src/test/java/io/github/fabb/wigai/smoke/McpSmokeHarness.java:93]
 - [x] [AI-Review][High] Fix File List to reflect current git changes (remove stale entries) [docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md:190]
-- [x] [AI-Review][Critical] Update File List to include files from last 8 commits (docs/atdd-checklist-1-1-repeatable-mcp-smoke-test-harness-checklist.md, docs/sprint-artifacts/validation-report-2025-12-18T15-37-47-07-00.md, docs/test-design-epic-1.md, docs/test-review.md) [docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md:198]
+- [x] [AI-Review][Critical] Update File List to include files from last 8 commits (docs/atdd-checklist-1-1-repeatable-mcp-smoke-test-harness-checklist.md, docs/sprint-artifacts/validation-report-2025-12-18T15-37-47-07-00.md, docs/test-design-epic-1.md, docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md) [docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md:198]
 - [x] [AI-Review][High] Fail safe mode on any typed error other than DEVICE_NOT_SELECTED to keep pass/fail meaningful [src/test/java/io/github/fabb/wigai/smoke/McpSmokeHarness.java:197]
 - [x] [AI-Review][Medium] Wrap JSON-RPC error responses in a {status:"error"} envelope so parseEnvelope reports actionable code/message [src/test/java/io/github/fabb/wigai/smoke/HttpMcpClient.java:102]
 - [x] [AI-Review][Critical] Fix File List to include missing last-10-commit docs (docs/atdd-checklist-1-1-repeatable-mcp-smoke-test-harness-checklist.md, docs/sprint-artifacts/validation-report-2025-12-18T15-37-47-07-00.md, docs/test-design-epic-1.md) [docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md:208]
@@ -84,7 +84,7 @@ so that MCP regressions and integration issues are caught early before we build 
 - [x] [AI-Review][High] Validate safe mode calls all non-mutating tools observed in tools/list (not just baseline) per AC3 [src/test/java/io/github/fabb/wigai/smoke/McpSmokeHarness.java:212]
 - [x] [AI-Review][High] Resolve story File List vs git mismatch (story lists changes, git shows none) [docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md:250]
 - [x] [AI-Review][Medium] Align runbook typed-error guidance with harness behavior (MISSING_REQUIRED_PARAMETER only expected for param-requiring tools) [docs/engineering/mcp-smoke-test-runbook.md:111]
-- [x] [AI-Review][Low] Update doc references to renamed McpSmokeHarnessAtddTest (remove AtddRed) [docs/test-review.md:1]
+- [x] [AI-Review][Low] Update doc references to renamed McpSmokeHarnessAtddTest (remove AtddRed) [docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md:1]
 
 ## Dev Notes
 
@@ -169,20 +169,21 @@ so that MCP regressions and integration issues are caught early before we build 
 
 ## Test Quality Review
 
-**Review Date:** 2025-12-24  
+**Review Date:** 2025-12-29  
 **Score:** 100/100 (A+ - Excellent)  
 **Recommendation:** Approve  
-**Review File:** `docs/test-review-McpSmokeHarnessAtddTest.md`
+**Review File:** `docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md`
+**Traceability Matrix:** `docs/traceability-matrix-1-1-repeatable-mcp-smoke-test-harness-checklist.md`
 
 **Key Findings:**
-- Traceable ATDD IDs + P1/P2 priorities added across all tests
-- Helper extraction reduced duplication and file size (<300 lines)
-- Mode output is explicitly asserted
+- Full AC1-AC5 coverage across 55 JUnit tests (ATDD + unit)
+- Safe-mode and mutation gating validated with explicit guards
+- Full tools/list JSON output and envelope parsing validated
 
 **Strengths:**
-- Deterministic, CI-safe ATDD coverage of all ACs
-- Explicit assertions and typed error validation
-- Full tools/list JSON output verified
+- Deterministic, CI-safe suite with explicit assertions
+- Clear traceability via IDs and P1/P2 markers
+- Typed error handling validated (DEVICE_NOT_SELECTED, MISSING_REQUIRED_PARAMETER)
 
 ## Dev Agent Record
 
@@ -236,7 +237,7 @@ Claude Opus 4.5
 **Code Review Follow-ups Round 4 (2025-12-23):**
 - Safe mode now fails on typed errors for tools other than `get_selected_device_parameters` to keep pass/fail meaningful
 - JSON-RPC error responses now wrapped in `{status:"error"}` envelope for parseEnvelope compatibility
-- Added `docs/test-review.md` to File List
+- Added `docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md` to File List
 - Added 2 new tests: `safeModeFailsOnTypedErrorForNonDeviceTools` and `httpMcpClient_jsonRpcErrorParsableByParseEnvelope`
 - All 40 CI-safe tests pass
 
@@ -274,7 +275,7 @@ Claude Opus 4.5
 - Removed unused READ_ONLY_TOOLS constant
 - Added 2 new ATDD tests for AC3 behavior
 - Updated runbook typed-error guidance to reflect actual harness behavior
-- Updated docs/test-review.md references from AtddRedTest to AtddTest
+- Updated docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md references from AtddRedTest to AtddTest
 - Verified File List accuracy against git history
 - All 54 CI-safe tests pass
 
@@ -291,7 +292,7 @@ Claude Opus 4.5
 - `docs/engineering/mcp-smoke-test-runbook.md` (new)
 - `docs/sprint-artifacts/sprint-status.yaml` (modified)
 - `docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md` (new)
-- `docs/test-review.md` (new)
+- `docs/test-review-1-1-repeatable-mcp-smoke-test-harness-checklist.md` (new)
 - `docs/atdd-checklist-1-1-repeatable-mcp-smoke-test-harness-checklist.md` (new)
 - `docs/sprint-artifacts/validation-report-2025-12-18T15-37-47-07-00.md` (new)
 - `docs/test-design-epic-1.md` (new)

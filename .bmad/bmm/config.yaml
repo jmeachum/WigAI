@@ -8,6 +8,8 @@ user_skill_level: intermediate
 sprint_artifacts: '{project-root}/docs/sprint-artifacts'
 tea_use_mcp_enhancements: false
 tea_use_playwright_utils: false
+test_framework_preference: junit
+java_build_tool_preference: gradle
 
 # Core Configuration Values
 user_name: Josh

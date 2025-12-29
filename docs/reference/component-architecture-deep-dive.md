@@ -71,7 +71,7 @@ WigAIExtension (Main Entry Point)
 
 **Configuration Properties:**
 - `mcpHost` - MCP server host (default: "localhost")
-- `mcpPort` - MCP server port (default: 8765)
+- `mcpPort` - MCP server port (default: 61169)
 
 **Observer Pattern:**
 - Implements `addObserver(ConfigChangeObserver)`

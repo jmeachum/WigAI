@@ -16,8 +16,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * a user-friendly interface for configuring MCP server settings.
  */
 public class PreferencesBackedConfigManager implements ConfigManager {
+    /** Standard localhost hostname. */
+    private static final String LOCALHOST = "localhost";
+    /** IPv4 loopback address. */
+    private static final String LOOPBACK_IPV4 = "127.0.0.1";
+    /** IPv6 loopback address. */
+    private static final String LOOPBACK_IPV6 = "::1";
+
     private final Logger logger;
-    private final ControllerHost host;
     private final List<ConfigChangeObserver> observers = new CopyOnWriteArrayList<>();
 
     private final SettableStringValue hostSetting;
@@ -34,7 +40,6 @@ public class PreferencesBackedConfigManager implements ConfigManager {
      */
     public PreferencesBackedConfigManager(Logger logger, ControllerHost host) {
         this.logger = logger;
-        this.host = host;
 
         logger.info("PreferencesBackedConfigManager: Initializing with Bitwig preferences integration");
 
@@ -46,23 +51,37 @@ public class PreferencesBackedConfigManager implements ConfigManager {
             "MCP Host",
             "Network Settings",
             50,
-            "localhost"
+            LOCALHOST
         );
 
         this.portSetting = preferences.getNumberSetting(
             "MCP Port",
             "Network Settings",
-            1024,
-            65535,
-            1,
+            1024.0,
+            65535.0,
+            1.0,
             "",
-            AppConstants.DEFAULT_MCP_PORT
+            (double) AppConstants.DEFAULT_MCP_PORT
         );
 
-        // Initialize current values from settings
-        this.currentHost = hostSetting.get();
-        this.currentPort = (int) portSetting.getRaw();
+        // Initialize current values from settings with validation
+        String persistedHost = hostSetting.get();
+        int persistedPort = (int) portSetting.getRaw();
 
+        this.currentHost = validateHost(persistedHost);
+        this.currentPort = validatePort(persistedPort);
+
+        // Write back sanitized values if they differ from persisted values.
+        // SAFETY: This writeback occurs BEFORE setupChangeListeners(), so no observers
+        // are registered yet and no restart notifications will be triggered.
+        if (!this.currentHost.equals(persistedHost)) {
+            hostSetting.set(this.currentHost);
+            logger.info("PreferencesBackedConfigManager: Sanitized persisted host '" + persistedHost + "' to '" + this.currentHost + "'");
+        }
+        if (this.currentPort != persistedPort) {
+            portSetting.set(this.currentPort);
+            logger.info("PreferencesBackedConfigManager: Sanitized persisted port " + persistedPort + " to " + this.currentPort);
+        }
 
         // Set up change listeners
         setupChangeListeners();
@@ -75,12 +94,22 @@ public class PreferencesBackedConfigManager implements ConfigManager {
      */
     private void setupChangeListeners() {
         // Host change listener
+        // Note: Null updates are ignored as a defensive pattern. Bitwig string preferences
+        // shouldn't send null values, but if they do, we keep the current valid host.
         hostSetting.addValueObserver(newHost -> {
             if (newHost != null && !newHost.equals(currentHost)) {
                 String oldHost = currentHost;
-                currentHost = validateHost(newHost);
-                notifyHostChanged(oldHost, currentHost);
-                logger.info("PreferencesBackedConfigManager: Host changed from '" + oldHost + "' to '" + currentHost + "'");
+                String validatedHost = validateHost(newHost);
+                currentHost = validatedHost;
+                // Write back corrected value to preferences if validation changed it
+                if (!validatedHost.equals(newHost)) {
+                    hostSetting.set(validatedHost);
+                }
+                // Only notify if there's an actual change after validation (avoid no-op restarts)
+                if (!oldHost.equals(validatedHost)) {
+                    notifyHostChanged(oldHost, currentHost);
+                    logger.info("PreferencesBackedConfigManager: Host changed from '" + oldHost + "' to '" + currentHost + "'");
+                }
             }
         });
 
@@ -89,22 +118,67 @@ public class PreferencesBackedConfigManager implements ConfigManager {
             int newPortInt = (int) newPort;
             if (newPortInt != currentPort) {
                 int oldPort = currentPort;
-                currentPort = validatePort(newPortInt);
-                notifyPortChanged(oldPort, currentPort);
-                logger.info("PreferencesBackedConfigManager: Port changed from " + oldPort + " to " + currentPort);
+                int validatedPort = validatePort(newPortInt);
+                currentPort = validatedPort;
+                // Write back corrected value to preferences if validation changed it
+                if (validatedPort != newPortInt) {
+                    portSetting.set(validatedPort);
+                }
+                // Only notify if there's an actual change after validation (avoid no-op restarts)
+                if (oldPort != validatedPort) {
+                    notifyPortChanged(oldPort, currentPort);
+                    logger.info("PreferencesBackedConfigManager: Port changed from " + oldPort + " to " + currentPort);
+                }
             }
         });
     }
 
     /**
      * Validates and sanitizes host input.
+     * Enforces loopback-only hosts for MVP (no-auth) security.
+     * Canonicalizes accepted hosts to ensure consistent casing and stable URLs.
+     *
+     * @param host the host to validate
+     * @return validated host (always a canonical loopback address)
      */
     private String validateHost(String host) {
         if (host == null || host.trim().isEmpty()) {
-            logger.warn("PreferencesBackedConfigManager: Invalid host '" + host + "', using 'localhost'");
-            return "localhost";
+            logger.warn("PreferencesBackedConfigManager: Invalid host '" + host + "', using '" + LOCALHOST + "'");
+            return LOCALHOST;
         }
-        return host.trim();
+        String trimmedHost = host.trim();
+        String canonicalHost = canonicalizeLoopback(trimmedHost);
+        if (canonicalHost == null) {
+            logger.warn("PreferencesBackedConfigManager: Rejected non-loopback host '" + trimmedHost +
+                "'. WigAI MVP (no-auth) only allows loopback binding for security. Using '" + LOCALHOST + "'.");
+            return LOCALHOST;
+        }
+        return canonicalHost;
+    }
+
+    /**
+     * Canonicalizes a loopback address to its standard form.
+     * Returns null if the host is not a recognized loopback address.
+     *
+     * <p>Accepts "localhost" (case-insensitive), "127.0.0.1", and "::1" as valid loopback
+     * addresses. Normalizes casing for localhost. Binding uses numeric loopback for "localhost"
+     * in JettyServerManager (defense-in-depth), so OS-level localhost misconfiguration affects
+     * client resolution, not server binding.
+     *
+     * @param host the host to canonicalize
+     * @return canonical form ("localhost", "127.0.0.1", or "::1"), or null if not loopback
+     */
+    private String canonicalizeLoopback(String host) {
+        if (LOCALHOST.equalsIgnoreCase(host)) {
+            return LOCALHOST; // Normalize casing (e.g., "LOCALHOST" -> "localhost")
+        }
+        if (LOOPBACK_IPV4.equals(host)) {
+            return LOOPBACK_IPV4;
+        }
+        if (LOOPBACK_IPV6.equals(host)) {
+            return LOOPBACK_IPV6;
+        }
+        return null; // Not a loopback address
     }
 
     /**

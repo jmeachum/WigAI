@@ -16,6 +16,7 @@ probability-impact,Probability and Impact Scale,"Shared definitions for scoring 
 test-quality,Test Quality Definition of Done,"Execution limits, isolation rules, green criteria","quality,definition-of-done,tests",knowledge/test-quality.md
 nfr-criteria,NFR Review Criteria,"Security, performance, reliability, maintainability status definitions","nfr,assessment,quality",knowledge/nfr-criteria.md
 test-levels,Test Levels Framework,"Guidelines for choosing unit, integration, or end-to-end coverage","testing,levels,selection",knowledge/test-levels-framework.md
+junit-mockito,JUnit + Mockito Essentials,"JUnit 5 patterns, Mockito usage, lifecycle, parameterized tests","junit,java,mockito,unit-testing",knowledge/junit-mockito.md
 test-priorities,Test Priorities Matrix,"P0–P3 criteria, coverage targets, execution ordering","testing,prioritization,risk",knowledge/test-priorities-matrix.md
 test-healing-patterns,Test Healing Patterns,"Common failure patterns and automated fixes","healing,debugging,patterns",knowledge/test-healing-patterns.md
 selector-resilience,Selector Resilience,"Robust selector strategies and debugging techniques","selectors,locators,debugging",knowledge/selector-resilience.md
