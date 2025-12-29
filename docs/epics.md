@@ -180,13 +180,13 @@ As a WigAI user,
 I want the MCP server to bind to `localhost` by default with strong preference/input guardrails,
 So that WigAI isn't accidentally exposed on the network (no-auth MVP) and connection details stay predictable.
 
-> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) but preserves the user's choice of loopback address for binding and URL advertisement.
+> **Note:** `localhost`, `127.0.0.1`, and `::1` are treated as equivalent loopback hosts. The implementation normalizes casing (e.g., `LOCALHOST` → `localhost`) and uses deterministic numeric loopback for binding when `localhost` is configured (defense-in-depth, no DNS). The advertised URL always uses the actual bind address to ensure reachability (e.g., `localhost` configured → binds to `127.0.0.1` → advertises `http://127.0.0.1:{port}/mcp`).
 
 **Acceptance Criteria:**
 
 **Given** WigAI is enabled for the first time in Bitwig
 **When** the MCP server starts
-**Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the configured loopback host in logs/notification (e.g., `http://localhost:61169/mcp` or `http://[::1]:61169/mcp`).
+**Then** it binds to a loopback address (`localhost`, `127.0.0.1`, or `::1`) on the default port `61169` and advertises the actual bind address in logs/notification (e.g., `http://127.0.0.1:61169/mcp` or `http://[::1]:61169/mcp`).
 
 **Given** the user edits "MCP Host" in Bitwig preferences
 **When** the host value is empty or whitespace

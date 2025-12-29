@@ -47,22 +47,22 @@ This repo is Java/JUnit-based (not Playwright/Cypress). For this story, acceptan
 **File:** `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` (183 lines)
 
 - ✅ **Test:** `1.2-ATDD-001 defaults_to_localhost_and_default_port_on_first_load`
-  - **Status:** RED - initialization does not sanitize invalid defaults before use
+  - **Status:** GREEN - init-time sanitization validates and writes back defaults
   - **Verifies:** Default host/port are loopback-safe for first enable
 - ✅ **Test:** `1.2-ATDD-002 empty_or_whitespace_host_is_sanitized_and_written_back`
-  - **Status:** RED - preference value is not written back to `localhost`
+  - **Status:** GREEN - empty/whitespace hosts are sanitized to `localhost` and persisted
   - **Verifies:** Empty/whitespace host is sanitized and persisted to avoid UI drift
 - ✅ **Test:** `1.2-ATDD-003 non_loopback_host_is_rejected_and_reverted`
-  - **Status:** RED - non-loopback hosts are accepted and not warned
+  - **Status:** GREEN - non-loopback hosts are rejected with warning and reverted
   - **Verifies:** Non-loopback values are refused with warning and reverted to `localhost`
 - ✅ **Test:** `1.2-ATDD-004 valid_port_change_notifies_observers`
-  - **Status:** RED - restart behavior not yet validated end-to-end
+  - **Status:** GREEN - port changes notify observers for graceful restart
   - **Verifies:** Valid port changes notify observers for restart
 - ✅ **Test:** `1.2-ATDD-004b valid_port_change_triggers_restart_with_new_port`
-  - **Status:** RED - AC4 full flow restart trigger not validated
+  - **Status:** GREEN - config→observer→restart chain validated
   - **Verifies:** Valid port changes trigger restart with correct port values (AC4 config→observer→restart chain; actual endpoint reachability requires integration testing with a running server)
 - ✅ **Test:** `1.2-ATDD-005 invalid_port_reverts_to_default_and_is_written_back`
-  - **Status:** RED - invalid port is not written back to default
+  - **Status:** GREEN - invalid ports revert to default and persist
   - **Verifies:** Out-of-range port values fall back to `AppConstants.DEFAULT_MCP_PORT` and persist to preferences
 
 ### E2E Tests (0 tests)
@@ -249,13 +249,19 @@ Not applicable (no UI tests).
 
 ## Test Execution Evidence
 
-### Initial Test Run (RED Phase Verification)
+### GREEN Phase Verification (2025-12-29)
 
 **Command:** `./gradlew test --tests "*AtddTest"`
 
 **Results:**
 
-Not executed in this run. Capture failing output here when running the ATDD red suite.
+```
+> Task :test
+BUILD SUCCESSFUL in 1s
+4 actionable tasks: 1 executed, 3 up-to-date
+```
+
+All 6 ATDD tests pass. Implementation is complete.
 
 ---
 

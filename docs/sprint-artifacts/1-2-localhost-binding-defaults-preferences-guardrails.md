@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -46,10 +46,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
   - [x] Regression test that preference value is corrected when invalid host is entered
 
 ### Review Follow-ups (AI) — code review 2025-12-30
-- [ ] [AI-Review][Medium] Align Epic 1.2 AC wording with story/implementation: advertise actual bind address (not configured host) to avoid IPv4/IPv6 mismatch. [docs/epics.md:183]
-- [ ] [AI-Review][Medium] Update ATDD checklist RED/green status to reflect current passing tests or include real execution evidence. [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:41]
-- [ ] [AI-Review][Medium] Reconcile File List exclusion for validation report within scope `6b2f94b..HEAD` (include it or document explicit scope rationale). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:403]
-- [ ] [AI-Review][Low] Document AC4 reachability as integration-only in the story/record (not just ATDD), since restart is inferred in unit tests. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:133]
+- [x] [AI-Review][Medium] Align Epic 1.2 AC wording with story/implementation: advertise actual bind address (not configured host) to avoid IPv4/IPv6 mismatch. [docs/epics.md:183]
+- [x] [AI-Review][Medium] Update ATDD checklist RED/green status to reflect current passing tests or include real execution evidence. [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:41]
+- [x] [AI-Review][Medium] Reconcile File List exclusion for validation report within scope `6b2f94b..HEAD` (include it or document explicit scope rationale). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:403]
+- [x] [AI-Review][Low] Document AC4 reachability as integration-only in the story/record (not just ATDD), since restart is inferred in unit tests. [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:133]
 
 ### Review Follow-ups (AI)
 - [x] [AI-Review][High] Replace placeholder "stale state cleanup" test with assertion-based coverage (or remove misleading test). [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:231]
@@ -189,6 +189,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Add CI-safe unit tests for host validation and preference correction.
 - Add CI-safe unit tests for port validation fallback behavior.
 - Prefer lightweight tests that do not require a running Bitwig host.
+- **AC4 Reachability Scope:** Unit tests validate the config→observer→restart chain (port change triggers observer notification with correct values). Actual endpoint reachability after restart requires integration testing with a running Bitwig host + Jetty server, which is out of scope for CI-safe unit tests.
 
 ### Bitwig Responsiveness Evaluation (Preference Callback Risk)
 
@@ -382,6 +383,11 @@ Claude Opus 4.5
   - [Medium] Added AC4 reachability scope note: endpoint reachability is explicitly scoped as integration-only (test comment at line 138)
   - [Low] Verified story/sprint status alignment (already `in-progress`)
 - All 6 ATDD tests passing, all 72+ unit tests passing, clean build successful
+- **Code review 2025-12-30 addressed (4/4)**:
+  - [Medium] Aligned Epic 1.2 AC wording: "advertises the configured loopback host" → "advertises the actual bind address" in note and AC1
+  - [Medium] Updated ATDD checklist test status: RED → GREEN with execution evidence
+  - [Medium] Reconciled File List validation report exclusion with explicit scope rationale
+  - [Low] Documented AC4 reachability scope in story Testing Requirements (integration-only)
 
 ### File List
 
@@ -406,9 +412,9 @@ Claude Opus 4.5
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation (commit e7eb44a)
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection (commit 9ef0ac9)
 
-**Excluded from File List (BMAD framework, not story implementation):**
+**Excluded from File List (in `6b2f94b..HEAD` scope but not story implementation):**
 - `.bmad/**` files (19 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
-- `docs/sprint-artifacts/validation-report-*.md` - Validation reports are generated artifacts from the readiness check workflow, not story implementation deliverables.
+- `docs/sprint-artifacts/validation-report-2025-12-25T00-54-14Z.md` - Generated artifact from the `check-implementation-readiness` workflow run prior to story implementation. Validation reports document pre-implementation readiness checks, not story deliverables. Included in git scope but excluded from File List by design.
 
 ## Senior Developer Review (AI)
 
@@ -451,6 +457,11 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-30**: Addressed code review 2025-12-30 follow-ups (4 items) — moved story to `review`
+  - [Medium] Aligned Epic 1.2 AC wording: "advertises the configured loopback host" → "advertises the actual bind address" in note and AC1
+  - [Medium] Updated ATDD checklist test status: RED → GREEN with execution evidence (2025-12-29)
+  - [Medium] Reconciled File List validation report exclusion with explicit scope rationale
+  - [Low] Documented AC4 reachability scope in story Testing Requirements (integration-only)
 - **2025-12-29**: Addressed final docs alignment review follow-ups (4 items) — moved story to `review`
   - [High] Reconciled AC1 wording: "advertises the configured loopback host" → "advertises the actual bind address" in story and ATDD checklist
   - [Medium] Updated ATDD checklist count: 5 → 6 tests (added `1.2-ATDD-004b`)
