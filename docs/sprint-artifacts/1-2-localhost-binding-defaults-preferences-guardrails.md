@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -135,6 +135,12 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Correct Change Log and Dev Agent Record entries that prematurely claimed bind-failure tests were added; reflect that bind-failure coverage remains open. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:420]
 - [x] [AI-Review][Medium] Update ATDD checklist references to `./gradlew atddRedTest` to match current `@Tag(\"atdd\")` usage and Gradle commands. [docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md:233]
 - [x] [AI-Review][Low] Fix Dev Agent Record claim about getBindHost test count (list says 11 but there are 10 in file). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:354]
+
+### Review Follow-ups (AI) — code review (current)
+- [ ] [AI-Review][High] Align advertised MCP URL host with actual bind host when configured `localhost` to avoid IPv6/IPv4 mismatch (advertising `localhost` while binding `127.0.0.1` can make the advertised URL unreachable on IPv6-preferred systems). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
+- [ ] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled “Added (prior commits, not in 5-commit scope)” are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
+- [ ] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
+- [ ] [AI-Review][Low] Strengthen AC1 tests to assert advertised URL/logging in `notifyServerStarted()` rather than only string construction. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:333]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
