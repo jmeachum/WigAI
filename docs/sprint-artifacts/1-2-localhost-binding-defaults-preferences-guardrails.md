@@ -194,7 +194,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Add CI-safe unit tests for port validation fallback behavior.
 - Prefer lightweight tests that do not require a running Bitwig host.
 - **AC4 Reachability Scope:** Unit tests validate the config→observer→restart chain (port change triggers observer notification with correct values). Actual endpoint reachability after restart requires integration testing with a running Bitwig host + Jetty server, which is out of scope for CI-safe unit tests.
-- **WigAIExtension Restart Hook Scope:** The `onHostChanged()` and `onPortChanged()` methods in `WigAIExtension` delegate directly to `restartServer()` which invokes `JettyServerManager.restartServer()`. Unit testing these hooks is impractical without DI refactoring because `JettyServerManager` is instantiated internally in `init()`. The restart behavior itself is already thoroughly tested in `JettyServerManagerTest` (55 tests), and the observer notification is tested in `PreferencesBackedConfigManagerAtddTest`. The wiring between config→observer→extension is integration scope.
+- **WigAIExtension Restart Hook Scope:** The `onHostChanged()` and `onPortChanged()` methods in `WigAIExtension` delegate directly to `restartServer()` which invokes `JettyServerManager.restartServer()`. Unit testing these hooks is impractical without DI refactoring because `JettyServerManager` is instantiated internally in `init()`. The restart behavior itself is already thoroughly tested across `JettyServerManagerBindFailureTest`, `JettyServerManagerUrlFormattingTest`, and `JettyServerManagerLifecycleTest` (55 tests total), and the observer notification is tested in `PreferencesBackedConfigManagerAtddTest`. The wiring between config→observer→extension is integration scope.
 
 ### Bitwig Responsiveness Evaluation (Preference Callback Risk)
 
@@ -299,14 +299,14 @@ Claude Opus 4.5
 - Implemented loopback-only host validation in `PreferencesBackedConfigManager.validateHost()` using `canonicalizeLoopback()` helper
 - Added preference writeback for invalid host/port values to keep UI in sync with actual config
 - Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
-- Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (19 tests)
+- Created comprehensive CI-safe unit tests for config validation in `PreferencesBackedConfigManagerHostValidationTest.java`, `PreferencesBackedConfigManagerPortValidationTest.java`, and `PreferencesBackedConfigManagerInitSanitizationTest.java` (19 tests total)
 - Added `WigAIExtension` restart-hook unit tests and aligned AC4 example URLs to numeric loopback (`127.0.0.1`/`[::1]`)
-- All 6 ATDD tests passing, all unit tests passing, clean build successful
+- All 6 ATDD tests passing; full `./gradlew test` green after test split (2025-12-29)
 - **Review follow-ups addressed (5/5)**:
   - Added init-time validation of persisted host/port with writeback in constructor
   - Fixed no-op restart issue by only notifying when oldValue != validatedValue
   - Added `containsBindException()` helper to handle Jetty MultiException/suppressed exceptions
-  - Created `JettyServerManagerTest.java` with 21 tests for bind failure detection, URL formatting, and server state management
+  - Created JettyServerManager test coverage for bind failure detection, URL formatting, and server state management (now split into bind-failure/url-formatting/lifecycle suites; 55 tests total)
 - **Refresh review follow-ups addressed (4/4)**:
   - Fixed test method typo `returnsFlaseForNull` → `returnsFalseForNull`
   - Documented constructor writeback safety (occurs before observer registration)
@@ -407,8 +407,6 @@ Claude Opus 4.5
 - `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure and cleanupFailedServer package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable), added `getBindHost()` defense-in-depth loopback enforcement, added `isIpv6Literal()` for tighter IPv6 URL formatting, added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants, added `createServer()` protected factory method (seam for testing), fixed advertised URL to use actual bind host (eliminates IPv6/IPv4 mismatch), added whitespace trimming for all loopback values in `getBindHost()`
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd"), added AC4 restart trigger test (6 ATDD tests total)
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (19 tests total)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests, 12 getBindHost tests (including whitespace trimming), 3 tighter IPv6 formatting tests, 5 advertised URL tests updated for bind-host alignment, 4 bind failure behavioral flow tests (cleanupFailedServer, detection, notification), 4 startServer bind-failure path tests via createServer() seam, 4 notifyServerStarted logging tests; made tests CI-safe with getMcpHost() mock throw (55 tests total)
 - `docs/architecture.md` - Updated default binding wording to specify loopback equivalence (`localhost`, `127.0.0.1`, `::1`)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - Updated RED phase instructions and AC for loopback equivalence
@@ -417,14 +415,23 @@ Claude Opus 4.5
 - `docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md` - This story file
 
 **Added:**
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerBindFailureTest.java` - Split bind-failure detection/notification coverage from the prior monolithic test suite (20 tests)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerUrlFormattingTest.java` - Split host normalization + URL/notification coverage from the prior monolithic test suite (30 tests)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerLifecycleTest.java` - Split lifecycle/stale-state coverage from the prior monolithic test suite (5 tests)
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerHostValidationTest.java` - Split host validation tests from the prior monolithic test suite (10 tests)
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerPortValidationTest.java` - Split port validation tests from the prior monolithic test suite (5 tests)
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerInitSanitizationTest.java` - Split init-time sanitization tests from the prior monolithic test suite (4 tests)
 - `src/test/java/io/github/fabb/wigai/WigAIExtensionTest.java` - Added unit tests to verify restart hooks call `restartServer()` on host/port changes
+
+**Removed:**
+- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Split into host/port/init-time suites
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Split into bind-failure/url-formatting/lifecycle suites
 
 **Renamed:**
 - `docs/project_context.md` → `docs/project-context.md` - Fixed BMAD workflow pattern matching
 
-**Added (earlier commits within `6b2f94b..HEAD` scope):**
-- `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - CI-safe unit tests for host/port validation (commit e7eb44a)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection (commit 9ef0ac9)
+**Historical (earlier commits within `6b2f94b..HEAD` scope):**
+- CI-safe test suites were originally introduced in commits `e7eb44a` (config validation) and `9ef0ac9` (bind failure detection) and have since been split into the focused files listed above.
 
 **Excluded from File List (in `6b2f94b..HEAD` scope but not story implementation):**
 - `.bmad/**` files (19 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
@@ -471,6 +478,10 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-29**: Split monolithic unit test files into focused suites and re-ran full test suite
+  - Split `JettyServerManagerTest.java` into bind-failure, URL formatting, and lifecycle suites (55 tests total)
+  - Split `PreferencesBackedConfigManagerTest.java` into host validation, port validation, and init-time sanitization suites (19 tests total)
+  - Verified `./gradlew test` is GREEN after the split
 - **2025-12-29**: Addressed code review (current) follow-ups (3 items)
   - [Medium] Aligned AC4 example URLs in epics/ATDD checklist to numeric loopback (`127.0.0.1`/`[::1]`)
   - [Medium] Added `WigAIExtension` restart-hook unit tests for host/port change restarts

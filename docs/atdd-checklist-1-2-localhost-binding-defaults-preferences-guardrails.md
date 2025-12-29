@@ -263,6 +263,19 @@ BUILD SUCCESSFUL in 1s
 
 All 6 ATDD tests pass. Implementation is complete.
 
+### Full Suite Verification (2025-12-29)
+
+**Command:** `./gradlew test`
+
+**Results:**
+
+```
+BUILD SUCCESSFUL in 3s
+4 actionable tasks: 2 executed, 2 up-to-date
+```
+
+Full unit suite (including ATDD tests) passes after the test split.
+
 ---
 
 ## Notes
