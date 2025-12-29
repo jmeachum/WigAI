@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -109,6 +109,15 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Clarify status transition timing: keep Story/Sprint status at `review` during review, then set to `in-progress` when "Changes Requested" so `*develop-story` resumes the correct story. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:175]
 - [x] [AI-Review][Medium] Update Acceptance Criteria wording to treat `localhost` and `127.0.0.1` as equivalent loopback hosts (and allow `::1`), and to expect logs/notifications to advertise the configured loopback host. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:13]
 - [x] [AI-Review][Medium] Align File List with Review Scope Definition: either include `.bmad/**` workflow/config edits as in-scope changed files or explicitly document why they are excluded. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:254]
+
+### Review Follow-ups (AI) — code review 2025-12-29 (DNS + CI-safety)
+- [ ] [AI-Review][High] Avoid synchronous DNS resolution in loopback validation on Bitwig-sensitive paths; make localhost hardening deterministic and non-blocking (e.g., prefer numeric loopback binding or cache results off-thread). [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:197]
+- [ ] [AI-Review][High] Make unit tests independent of host DNS configuration (avoid executing localhost DNS verification during test construction; inject resolver/seam or default tests to numeric loopback). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java:77]
+- [ ] [AI-Review][Medium] Fix warning text to say loopback-only (not “only allows localhost binding”) since `127.0.0.1` and `::1` are valid. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:147]
+- [ ] [AI-Review][Medium] Tighten safety on `UnknownHostException`: failing to resolve `localhost` should fall back to numeric loopback (and warn) rather than “allow anyway”. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:206]
+- [ ] [AI-Review][Medium] Reconcile architecture doc default binding wording (`localhost` vs numeric loopback) to match the enforced loopback equivalence policy. [docs/architecture.md:344]
+- [ ] [AI-Review][Medium] Keep `JettyServerManagerTest` CI-safe by avoiding `startServer(...)` calls that can progress into real Jetty startup; refactor test to assert cleanup behavior without invoking Jetty start. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:252]
+- [ ] [AI-Review][Low] Consolidate repeated `"localhost"` literals into a single constant to avoid future drift. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:141]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -340,6 +349,10 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 2 High, 4 Medium, 1 Low
 - Action: Added follow-ups under “Review Follow-ups (AI)” and moved story to `in-progress`.
+- Date: 2025-12-29 (follow-up 2)
+- Outcome: Changes Requested
+- Issues found: 2 High, 4 Medium, 1 Low
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (DNS + CI-safety)” and moved story to `in-progress`.
 
 ## Change Log
 
@@ -356,6 +369,7 @@ Claude Opus 4.5
   - [Medium] Updated Acceptance Criteria for loopback host equivalence (`localhost`, `127.0.0.1`, `::1`)
   - [Medium] Documented `.bmad/**` file exclusion in File List (18 framework files in scope, not story implementation)
 - **2025-12-29**: Senior Developer Review (AI) — action items created (3 items), refreshed scope commit count (22), status moved to `in-progress`
+- **2025-12-29**: Senior Developer Review (AI) — follow-up; action items created (7) for DNS + CI-safety; story status moved to `in-progress`
 - **2025-12-28**: Addressed scope + record hygiene review follow-ups (4 items)
   - [Medium] Updated Dev Agent Record test counts to match reality (19 and 21 tests)
   - [Medium] Updated File List test totals to match current test files
