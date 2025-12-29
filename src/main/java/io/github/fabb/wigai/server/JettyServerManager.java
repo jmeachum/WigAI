@@ -17,6 +17,13 @@ import java.net.BindException;
  * Handles starting, stopping, and restarting the Jetty server with proper error handling.
  */
 public class JettyServerManager {
+    /** Standard localhost hostname. */
+    private static final String LOCALHOST = "localhost";
+    /** IPv4 loopback address. */
+    private static final String LOOPBACK_IPV4 = "127.0.0.1";
+    /** IPv6 loopback address. */
+    private static final String LOOPBACK_IPV6 = "::1";
+
     private final Logger logger;
     private final ConfigManager configManager;
     private final WigAIExtensionDefinition extensionDefinition;
@@ -71,7 +78,8 @@ public class JettyServerManager {
         // Create and configure Jetty server
         jettyServer = new Server();
         ServerConnector connector = new ServerConnector(jettyServer);
-        connector.setHost(configManager.getMcpHost());
+        String bindHost = getBindHost(configManager.getMcpHost());
+        connector.setHost(bindHost);
         connector.setPort(configManager.getMcpPort());
         jettyServer.addConnector(connector);
 
@@ -106,6 +114,49 @@ public class JettyServerManager {
 
         notifyServerStarted();
         return true;
+    }
+
+    /**
+     * Defense-in-depth: Returns the actual host to bind to, ensuring loopback-only binding.
+     *
+     * <p>This method provides a safety net independent of config validation. Even if config
+     * validation is somehow bypassed, the server will refuse to bind to non-loopback addresses.
+     *
+     * <p>For {@code localhost}, returns {@code 127.0.0.1} for deterministic binding without
+     * DNS resolution (avoids blocking and misconfigured-hosts-file risks).
+     *
+     * <p><b>Visibility Note:</b> Package-private visibility is intentional to allow unit testing
+     * of loopback enforcement logic.
+     *
+     * @param configuredHost the host from configuration (should already be validated)
+     * @return the actual host to bind to (always a numeric loopback address)
+     * @throws IllegalArgumentException if the host is not a recognized loopback address
+     */
+    String getBindHost(String configuredHost) {
+        if (configuredHost == null) {
+            logger.warn("JettyServerManager: Null host configured, defaulting to " + LOOPBACK_IPV4);
+            return LOOPBACK_IPV4;
+        }
+
+        // Normalize for comparison (case-insensitive localhost check)
+        String normalized = configuredHost.trim().toLowerCase();
+
+        if (LOCALHOST.equals(normalized)) {
+            // Use numeric loopback for deterministic binding (no DNS resolution needed)
+            return LOOPBACK_IPV4;
+        }
+        if (LOOPBACK_IPV4.equals(configuredHost)) {
+            return LOOPBACK_IPV4;
+        }
+        if (LOOPBACK_IPV6.equals(configuredHost)) {
+            return LOOPBACK_IPV6;
+        }
+
+        // Defense-in-depth: refuse non-loopback hosts even if config validation was bypassed
+        String message = "JettyServerManager: Refusing to bind to non-loopback host '" + configuredHost +
+            "'. WigAI MVP (no-auth) only allows loopback binding for security.";
+        logger.error(message);
+        throw new IllegalArgumentException(message);
     }
 
     /**
@@ -277,6 +328,10 @@ public class JettyServerManager {
     /**
      * Formats a host for use in a URL. IPv6 addresses must be wrapped in brackets.
      *
+     * <p>Only brackets actual IPv6 literals (addresses containing colons and consisting of
+     * valid hex digits and colons). Does not bracket arbitrary strings that happen to contain
+     * colons (e.g., "host:with:colons" is not a valid IPv6 address).
+     *
      * <p><b>Visibility Note:</b> Package-private visibility is intentional to allow unit testing
      * of URL formatting logic without starting actual servers.
      *
@@ -285,13 +340,42 @@ public class JettyServerManager {
      */
     String formatHostForUrl(String host) {
         if (host == null) {
-            return "localhost";
+            return LOCALHOST;
         }
-        // IPv6 addresses contain colons and must be wrapped in brackets for URLs
-        if (host.contains(":")) {
+        // Only bracket if it looks like an IPv6 address (contains colons and valid IPv6 chars)
+        if (isIpv6Literal(host)) {
             return "[" + host + "]";
         }
         return host;
+    }
+
+    /**
+     * Checks if the given string is an IPv6 literal address.
+     *
+     * <p>IPv6 addresses contain colons and consist only of hex digits (0-9, a-f, A-F),
+     * colons (:), and optionally a dot (.) for IPv4-mapped addresses like ::ffff:192.168.1.1.
+     *
+     * @param host the host to check
+     * @return true if the host appears to be an IPv6 literal
+     */
+    private boolean isIpv6Literal(String host) {
+        if (host == null || !host.contains(":")) {
+            return false;
+        }
+        // IPv6 addresses contain only hex digits, colons, and optionally dots (for IPv4-mapped)
+        for (char c : host.toCharArray()) {
+            if (!isHexDigit(c) && c != ':' && c != '.') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Checks if a character is a valid hexadecimal digit.
+     */
+    private boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
     }
 
     /**

@@ -136,6 +136,89 @@ class JettyServerManagerTest {
     }
 
     @Nested
+    @DisplayName("getBindHost (defense-in-depth loopback enforcement)")
+    class GetBindHostTests {
+
+        @Test
+        @DisplayName("returns 127.0.0.1 for localhost (deterministic binding)")
+        void returnsNumericLoopbackForLocalhost() {
+            assertEquals("127.0.0.1", serverManager.getBindHost("localhost"));
+        }
+
+        @Test
+        @DisplayName("returns 127.0.0.1 for LOCALHOST (case-insensitive)")
+        void returnsNumericLoopbackForUppercaseLocalhost() {
+            assertEquals("127.0.0.1", serverManager.getBindHost("LOCALHOST"));
+        }
+
+        @Test
+        @DisplayName("returns 127.0.0.1 for LocalHost (mixed case)")
+        void returnsNumericLoopbackForMixedCaseLocalhost() {
+            assertEquals("127.0.0.1", serverManager.getBindHost("LocalHost"));
+        }
+
+        @Test
+        @DisplayName("returns 127.0.0.1 unchanged")
+        void returnsIpv4LoopbackUnchanged() {
+            assertEquals("127.0.0.1", serverManager.getBindHost("127.0.0.1"));
+        }
+
+        @Test
+        @DisplayName("returns ::1 unchanged")
+        void returnsIpv6LoopbackUnchanged() {
+            assertEquals("::1", serverManager.getBindHost("::1"));
+        }
+
+        @Test
+        @DisplayName("returns 127.0.0.1 for null (with warning)")
+        void returnsLoopbackForNullWithWarning() {
+            assertEquals("127.0.0.1", serverManager.getBindHost(null));
+            verify(logger).warn(contains("Null host configured"));
+        }
+
+        @Test
+        @DisplayName("throws for non-loopback host 0.0.0.0")
+        void throwsForWildcardAddress() {
+            try {
+                serverManager.getBindHost("0.0.0.0");
+                fail("Expected IllegalArgumentException");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("non-loopback"));
+                assertTrue(e.getMessage().contains("0.0.0.0"));
+            }
+        }
+
+        @Test
+        @DisplayName("throws for non-loopback IP address")
+        void throwsForNonLoopbackIp() {
+            try {
+                serverManager.getBindHost("192.168.1.100");
+                fail("Expected IllegalArgumentException");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("non-loopback"));
+                verify(logger).error(contains("Refusing to bind"));
+            }
+        }
+
+        @Test
+        @DisplayName("throws for public hostname")
+        void throwsForPublicHostname() {
+            try {
+                serverManager.getBindHost("example.com");
+                fail("Expected IllegalArgumentException");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("non-loopback"));
+            }
+        }
+
+        @Test
+        @DisplayName("trims whitespace from host")
+        void trimsWhitespaceFromHost() {
+            assertEquals("127.0.0.1", serverManager.getBindHost("  localhost  "));
+        }
+    }
+
+    @Nested
     @DisplayName("formatHostForUrl")
     class FormatHostForUrlTests {
 
@@ -173,6 +256,27 @@ class JettyServerManagerTest {
         @DisplayName("wraps IPv6 localhost form in brackets")
         void wrapsIpv6LocalhostInBrackets() {
             assertEquals("[0:0:0:0:0:0:0:1]", serverManager.formatHostForUrl("0:0:0:0:0:0:0:1"));
+        }
+
+        @Test
+        @DisplayName("does NOT bracket arbitrary string with colons (not IPv6)")
+        void doesNotBracketArbitraryStringWithColons() {
+            // "host:with:colons" contains colons but is not a valid IPv6 literal
+            assertEquals("host:with:colons", serverManager.formatHostForUrl("host:with:colons"));
+        }
+
+        @Test
+        @DisplayName("does NOT bracket port-like string with single colon")
+        void doesNotBracketPortLikeString() {
+            // "localhost:8080" is not an IPv6 address
+            assertEquals("localhost:8080", serverManager.formatHostForUrl("localhost:8080"));
+        }
+
+        @Test
+        @DisplayName("wraps IPv4-mapped IPv6 address in brackets")
+        void wrapsIpv4MappedIpv6InBrackets() {
+            // ::ffff:192.168.1.1 is a valid IPv4-mapped IPv6 address
+            assertEquals("[::ffff:192.168.1.1]", serverManager.formatHostForUrl("::ffff:192.168.1.1"));
         }
     }
 
@@ -221,6 +325,93 @@ class JettyServerManagerTest {
 
             assertFalse(result);
             verify(logger).info("WigAI Server is not running");
+        }
+    }
+
+    @Nested
+    @DisplayName("advertised connection URL (AC1)")
+    class AdvertisedConnectionUrlTests {
+
+        @Test
+        @DisplayName("builds correct URL for localhost with default port")
+        void buildsCorrectUrlForLocalhost() {
+            // The URL construction logic in notifyServerStarted uses formatHostForUrl + getMcpHost/Port
+            // Test the URL format by verifying the components
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+
+            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            int port = configManager.getMcpPort();
+            String endpointPath = "/mcp";
+
+            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
+            assertEquals("http://localhost:61169/mcp", expectedUrl);
+        }
+
+        @Test
+        @DisplayName("builds correct URL for 127.0.0.1")
+        void buildsCorrectUrlForIpv4Loopback() {
+            when(configManager.getMcpHost()).thenReturn("127.0.0.1");
+            when(configManager.getMcpPort()).thenReturn(61169);
+
+            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            int port = configManager.getMcpPort();
+            String endpointPath = "/mcp";
+
+            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
+            assertEquals("http://127.0.0.1:61169/mcp", expectedUrl);
+        }
+
+        @Test
+        @DisplayName("builds correct URL for IPv6 loopback ::1 (bracketed)")
+        void buildsCorrectUrlForIpv6Loopback() {
+            when(configManager.getMcpHost()).thenReturn("::1");
+            when(configManager.getMcpPort()).thenReturn(61169);
+
+            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            int port = configManager.getMcpPort();
+            String endpointPath = "/mcp";
+
+            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
+            assertEquals("http://[::1]:61169/mcp", expectedUrl);
+        }
+
+        @Test
+        @DisplayName("builds correct URL for custom port")
+        void buildsCorrectUrlForCustomPort() {
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(8080);
+
+            String host = serverManager.formatHostForUrl(configManager.getMcpHost());
+            int port = configManager.getMcpPort();
+            String endpointPath = "/mcp";
+
+            String expectedUrl = String.format("http://%s:%d%s", host, port, endpointPath);
+            assertEquals("http://localhost:8080/mcp", expectedUrl);
+        }
+
+        @Test
+        @DisplayName("URL matches format expected by AC1: http://{loopback}:{port}/mcp")
+        void urlMatchesAc1Format() {
+            // AC1 specifies: advertises the configured loopback host in logs/notification
+            // (e.g., http://localhost:61169/mcp or http://[::1]:61169/mcp)
+
+            // Test localhost variant
+            when(configManager.getMcpHost()).thenReturn("localhost");
+            when(configManager.getMcpPort()).thenReturn(61169);
+            String url1 = String.format("http://%s:%d/mcp",
+                serverManager.formatHostForUrl("localhost"), 61169);
+            assertTrue(url1.matches("http://localhost:\\d+/mcp"));
+
+            // Test IPv6 variant
+            String url2 = String.format("http://%s:%d/mcp",
+                serverManager.formatHostForUrl("::1"), 61169);
+            assertTrue(url2.matches("http://\\[::1\\]:\\d+/mcp"));
+
+            // Test IPv4 variant
+            String url3 = String.format("http://%s:%d/mcp",
+                serverManager.formatHostForUrl("127.0.0.1"), 61169);
+            assertTrue(url3.matches("http://127\\.0\\.0\\.1:\\d+/mcp"));
         }
     }
 

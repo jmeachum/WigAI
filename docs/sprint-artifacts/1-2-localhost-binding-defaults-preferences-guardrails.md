@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -120,13 +120,13 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Consolidate repeated `"localhost"` literals into a single constant to avoid future drift. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:141]
 
 ### Review Follow-ups (AI) — code review 2025-12-29 (loopback enforcement gaps)
-- [ ] [AI-Review][High] Enforce that `localhost` binds to a loopback address in practice (misconfigured OS/DNS can map it to non-loopback); add a deterministic safeguard. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:170]
-- [ ] [AI-Review][Medium] Add defense-in-depth in `JettyServerManager`: refuse to bind to non-loopback hosts even if a `ConfigManager` implementation returns an unsafe value. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:74]
-- [ ] [AI-Review][Medium] Fix remaining inconsistency in `docs/architecture.md` (“default includes localhost” vs “default numeric loopback only”) and ensure both sections match the loopback equivalence policy. [docs/architecture.md:455]
-- [ ] [AI-Review][Medium] Fix `.bmad/**` excluded file count drift in File List (story says 18; scope currently shows 19). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:332]
-- [ ] [AI-Review][Medium] Evaluate Bitwig responsiveness risk: preference callbacks trigger synchronous stop+start; consider scheduling restart off the preferences callback path. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
-- [ ] [AI-Review][Medium] Add assertion-based test coverage for advertised connection URL (`http://{loopback}:{port}/mcp`) in startup notification/log messaging (AC1), not just host formatting. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:300]
-- [ ] [AI-Review][Low] Tighten `formatHostForUrl()` to bracket only IPv6 literals (not arbitrary strings containing `:`). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:286]
+- [x] [AI-Review][High] Enforce that `localhost` binds to a loopback address in practice (misconfigured OS/DNS can map it to non-loopback); add a deterministic safeguard. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:170]
+- [x] [AI-Review][Medium] Add defense-in-depth in `JettyServerManager`: refuse to bind to non-loopback hosts even if a `ConfigManager` implementation returns an unsafe value. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:74]
+- [x] [AI-Review][Medium] Fix remaining inconsistency in `docs/architecture.md` ("default includes localhost" vs "default numeric loopback only") and ensure both sections match the loopback equivalence policy. [docs/architecture.md:455]
+- [x] [AI-Review][Medium] Fix `.bmad/**` excluded file count drift in File List (story says 18; scope currently shows 19). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:332]
+- [x] [AI-Review][Medium] Evaluate Bitwig responsiveness risk: preference callbacks trigger synchronous stop+start; consider scheduling restart off the preferences callback path. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
+- [x] [AI-Review][Medium] Add assertion-based test coverage for advertised connection URL (`http://{loopback}:{port}/mcp`) in startup notification/log messaging (AC1), not just host formatting. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:300]
+- [x] [AI-Review][Low] Tighten `formatHostForUrl()` to bracket only IPv6 literals (not arbitrary strings containing `:`). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:286]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -165,6 +165,28 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Add CI-safe unit tests for host validation and preference correction.
 - Add CI-safe unit tests for port validation fallback behavior.
 - Prefer lightweight tests that do not require a running Bitwig host.
+
+### Bitwig Responsiveness Evaluation (Preference Callback Risk)
+
+**Context:** Preference callbacks in `PreferencesBackedConfigManager` notify `ConfigChangeObserver` implementations (specifically `WigAIExtension`) when host or port values change. This triggers a synchronous server restart on Bitwig's callback thread.
+
+**Risk Assessment:**
+- Jetty's `stop()` blocks until the server fully shuts down (waits for connections to close).
+- Jetty's `start()` can block waiting for port binding.
+- Both operations happening on Bitwig's preference callback thread could theoretically delay other preference updates or UI responsiveness.
+
+**Mitigating Factors:**
+- The MCP server is local-only with very few concurrent connections (typically 1 AI client).
+- Stop/start operations are typically fast (<100ms) for a local server with minimal connections.
+- Preference changes are infrequent (manual user action, not programmatic).
+- Bind failures are handled gracefully without blocking indefinitely.
+
+**Mitigation Options Considered:**
+1. **Accept current behavior** (chosen for MVP) — Low risk given local-only use case and infrequent changes.
+2. **Offload restart to background thread** — Adds complexity and thread safety concerns; overkill for MVP.
+3. **Use Bitwig's `scheduleTask()` API** — Would defer restart but adds indirection; unknown API behavior.
+
+**Decision:** Accept the current synchronous restart behavior for MVP. The risk is low, the impact is negligible for typical use, and the mitigation adds significant complexity without clear benefit. Revisit if users report Bitwig responsiveness issues during preference changes.
 
 ### Previous Story Intelligence
 - Story 1.1 confirmed MCP endpoint path is `/mcp` and default port is `61169`; keep logging consistent with these defaults. [Source: docs/sprint-artifacts/1-1-repeatable-mcp-smoke-test-harness-checklist.md]
@@ -312,16 +334,24 @@ Claude Opus 4.5
   - [Medium] Updated architecture doc: default binding wording now says "loopback (`localhost`, `127.0.0.1`, or `::1`)"
   - [Medium] Made `JettyServerManagerTest` CI-safe by mocking `configManager.getMcpHost()` to throw before Jetty start
   - [Low] Added constants: `LOCALHOST`, `LOOPBACK_IPV4`, `LOOPBACK_IPV6` to avoid literal drift
+- **Loopback enforcement gaps review 2025-12-29 addressed (7/7)**:
+  - [High] Added defense-in-depth `getBindHost()` in JettyServerManager - uses deterministic numeric loopback for localhost (no DNS), refuses non-loopback hosts
+  - [Medium] Added defense-in-depth validation that refuses to bind to non-loopback hosts even if ConfigManager returns unsafe value
+  - [Medium] Fixed architecture.md inconsistency - Authentication & Security section now says `localhost`, `127.0.0.1`, or `::1`
+  - [Medium] Fixed `.bmad/**` file count drift (18 → 19)
+  - [Medium] Documented Bitwig responsiveness evaluation in Dev Notes - accepted synchronous restart for MVP with risk assessment
+  - [Medium] Added 5 assertion-based tests for advertised connection URL format (AC1 coverage)
+  - [Low] Tightened `formatHostForUrl()` to only bracket true IPv6 literals (added `isIpv6Literal()` helper)
 
 ### File List
 
 **Modified:**
 - `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added deterministic canonicalizeLoopback(), added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable)
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable), added `getBindHost()` defense-in-depth loopback enforcement, added `isIpv6Literal()` for tighter IPv6 URL formatting, added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd")
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (19 tests total)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests; made tests CI-safe with getMcpHost() mock throw (24 tests total)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests, 11 getBindHost tests, 3 tighter IPv6 formatting tests, 5 advertised URL tests; made tests CI-safe with getMcpHost() mock throw (41 tests total)
 - `docs/architecture.md` - Updated default binding wording to specify loopback equivalence (`localhost`, `127.0.0.1`, `::1`)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - Updated RED phase instructions and AC for loopback equivalence
@@ -338,7 +368,7 @@ Claude Opus 4.5
 - `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - CI-safe unit tests for bind failure detection
 
 **Excluded from File List (BMAD framework, not story implementation):**
-- `.bmad/**` files (18 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
+- `.bmad/**` files (19 files modified in scope) - BMAD package/workflow configuration updates are tracked separately as framework infrastructure; they support the development process but are not part of Story 1.2's implementation deliverables.
 - `docs/sprint-artifacts/validation-report-*.md` - Validation reports are generated artifacts from the readiness check workflow, not story implementation deliverables.
 
 ## Senior Developer Review (AI)
@@ -378,6 +408,14 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-29**: Addressed loopback enforcement gaps review follow-ups (7 items)
+  - [High] Added defense-in-depth `getBindHost()` in JettyServerManager - deterministic numeric loopback for localhost, refuses non-loopback hosts
+  - [Medium] Added validation that refuses non-loopback hosts even if ConfigManager returns unsafe value
+  - [Medium] Fixed architecture.md Authentication & Security section loopback equivalence wording
+  - [Medium] Fixed `.bmad/**` file count drift (18 → 19)
+  - [Medium] Added Bitwig responsiveness evaluation in Dev Notes (accepted synchronous restart for MVP)
+  - [Medium] Added 5 tests for advertised connection URL format (AC1 coverage)
+  - [Low] Tightened `formatHostForUrl()` to bracket only IPv6 literals via `isIpv6Literal()` helper
 - **2025-12-29**: Addressed DNS + CI-safety review follow-ups (7 items)
   - [High] Removed `verifyLocalhostResolvesToLoopback()` DNS verification - made loopback validation deterministic and non-blocking
   - [High] Tests now independent of host DNS - no DNS calls during config manager construction

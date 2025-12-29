@@ -452,7 +452,7 @@ Bitwig Studio Extension (Java) with an embedded local MCP server (brownfield con
 ### Authentication & Security
 
 - **MVP authentication:** None (local-first).
-- **Network binding:** Bind to loopback only (`127.0.0.1` / `::1`) by default.
+- **Network binding:** Bind to loopback only (`localhost`, `127.0.0.1`, or `::1`) by default.
 - **Unsafe/non-loopback mode:** Only via explicit configuration; treat as unsafe and clearly documented (deferred unless/until needed).
 - **Authorization/safety gates:** Enforce non-destructive defaults at the tool boundary (e.g., `overwrite=false` by default; destructive actions require explicit opt-in flags).
 - **Future (deferred):** Add shared-secret/token only if introducing non-loopback access or other threat models that require it.
