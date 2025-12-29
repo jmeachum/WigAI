@@ -138,17 +138,19 @@ public class JettyServerManager {
             return LOOPBACK_IPV4;
         }
 
-        // Normalize for comparison (case-insensitive localhost check)
-        String normalized = configuredHost.trim().toLowerCase();
+        // Trim whitespace first to handle whitespace-padded values that may bypass config validation
+        String trimmed = configuredHost.trim();
+        // Normalize for case-insensitive localhost check
+        String normalized = trimmed.toLowerCase();
 
         if (LOCALHOST.equals(normalized)) {
             // Use numeric loopback for deterministic binding (no DNS resolution needed)
             return LOOPBACK_IPV4;
         }
-        if (LOOPBACK_IPV4.equals(configuredHost)) {
+        if (LOOPBACK_IPV4.equals(trimmed)) {
             return LOOPBACK_IPV4;
         }
-        if (LOOPBACK_IPV6.equals(configuredHost)) {
+        if (LOOPBACK_IPV6.equals(trimmed)) {
             return LOOPBACK_IPV6;
         }
 

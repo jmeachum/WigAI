@@ -214,9 +214,21 @@ class JettyServerManagerTest {
         }
 
         @Test
-        @DisplayName("trims whitespace from host")
-        void trimsWhitespaceFromHost() {
+        @DisplayName("trims whitespace from localhost")
+        void trimsWhitespaceFromLocalhost() {
             assertEquals("127.0.0.1", serverManager.getBindHost("  localhost  "));
+        }
+
+        @Test
+        @DisplayName("trims whitespace from IPv4 loopback")
+        void trimsWhitespaceFromIpv4Loopback() {
+            assertEquals("127.0.0.1", serverManager.getBindHost("  127.0.0.1  "));
+        }
+
+        @Test
+        @DisplayName("trims whitespace from IPv6 loopback")
+        void trimsWhitespaceFromIpv6Loopback() {
+            assertEquals("::1", serverManager.getBindHost("  ::1  "));
         }
     }
 

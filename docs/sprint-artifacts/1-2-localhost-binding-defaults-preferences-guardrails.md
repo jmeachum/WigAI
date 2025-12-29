@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -21,7 +21,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
    **Then** WigAI refuses for MVP (no-auth) and reverts to `localhost`, logging a clear warning explaining why.
 4. **Given** the user changes "MCP Port" to another valid port (1024–65535)
    **When** the setting is applied
-   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the configured loopback host and new port (e.g., `http://localhost:{new_port}/mcp` or `http://127.0.0.1:{new_port}/mcp`).
+   **Then** WigAI performs a graceful restart and the MCP endpoint is reachable at the loopback address and new port (e.g., `http://127.0.0.1:{new_port}/mcp` or `http://[::1]:{new_port}/mcp`).
 5. **Given** the configured port cannot be bound (e.g., already in use)
    **When** WigAI tries to start or restart the server
    **Then** it reports a clear, actionable error (suggesting choosing another port) and does not crash Bitwig.
@@ -143,10 +143,10 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Low] Fix Dev Agent Record claim about getBindHost test count (list says 11 but there are 10 in file). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:354]
 
 ### Review Follow-ups (AI) — code review (current)
-- [ ] [AI-Review][Medium] Correct Dev Agent Record claim: update “All 5 ATDD tests passing” to reflect 6 ATDD tests (or update counts/evidence). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:298]
-- [ ] [AI-Review][Medium] Align AC4 example URL with actual bind-address behavior (avoid `localhost` example if we always advertise the numeric bind host). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:24]
-- [ ] [AI-Review][Medium] Add unit test for `WigAIExtension` restart hook (onHostChanged/onPortChanged → restartServer) or document why it remains integration-only. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
-- [ ] [AI-Review][Low] Trim `configuredHost` before loopback checks in `getBindHost()` to avoid throwing on whitespace-padded loopback values if config bypasses validation. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:141]
+- [x] [AI-Review][Medium] Correct Dev Agent Record claim: update "All 5 ATDD tests passing" to reflect 6 ATDD tests (or update counts/evidence). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:298]
+- [x] [AI-Review][Medium] Align AC4 example URL with actual bind-address behavior (avoid `localhost` example if we always advertise the numeric bind host). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:24]
+- [x] [AI-Review][Medium] Add unit test for `WigAIExtension` restart hook (onHostChanged/onPortChanged → restartServer) or document why it remains integration-only. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
+- [x] [AI-Review][Low] Trim `configuredHost` before loopback checks in `getBindHost()` to avoid throwing on whitespace-padded loopback values if config bypasses validation. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:141]
 - [x] [AI-Review][High] Align advertised MCP URL host with actual bind host when configured `localhost` to avoid IPv6/IPv4 mismatch (advertising `localhost` while binding `127.0.0.1` can make the advertised URL unreachable on IPv6-preferred systems). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:79]
 - [x] [AI-Review][Medium] Update Dev Agent Record File List scope note: items labeled "Added (prior commits, not in 5-commit scope)" are in scope for `6b2f94b..HEAD`; reconcile or reword. [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:378]
 - [x] [AI-Review][Medium] Add AC4 coverage to verify restart behavior or reachable endpoint after port change (current ATDD only checks observer notification). [src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java:119]
@@ -194,6 +194,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - Add CI-safe unit tests for port validation fallback behavior.
 - Prefer lightweight tests that do not require a running Bitwig host.
 - **AC4 Reachability Scope:** Unit tests validate the config→observer→restart chain (port change triggers observer notification with correct values). Actual endpoint reachability after restart requires integration testing with a running Bitwig host + Jetty server, which is out of scope for CI-safe unit tests.
+- **WigAIExtension Restart Hook Scope:** The `onHostChanged()` and `onPortChanged()` methods in `WigAIExtension` delegate directly to `restartServer()` which invokes `JettyServerManager.restartServer()`. Unit testing these hooks is impractical without DI refactoring because `JettyServerManager` is instantiated internally in `init()`. The restart behavior itself is already thoroughly tested in `JettyServerManagerTest` (55 tests), and the observer notification is tested in `PreferencesBackedConfigManagerAtddTest`. The wiring between config→observer→extension is integration scope.
 
 ### Bitwig Responsiveness Evaluation (Preference Callback Risk)
 
@@ -266,7 +267,7 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - **Approved:** Story status = `done`, Sprint status = `done`
 
 ### Story Completion Status
-- Update `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = in-progress` in `docs/sprint-artifacts/sprint-status.yaml`.
+- Updated `development_status[1-2-localhost-binding-defaults-preferences-guardrails] = review` in `docs/sprint-artifacts/sprint-status.yaml`.
 
 ### References
 - Epic + acceptance criteria: `docs/epics.md` (Story 1.2)
@@ -299,7 +300,7 @@ Claude Opus 4.5
 - Added preference writeback for invalid host/port values to keep UI in sync with actual config
 - Added bind failure handling in `JettyServerManager.startServer()` with user-friendly popup notification
 - Created comprehensive CI-safe unit tests in `PreferencesBackedConfigManagerTest.java` (19 tests)
-- All 5 ATDD tests passing, all unit tests passing, clean build successful
+- All 6 ATDD tests passing, all unit tests passing, clean build successful
 - **Review follow-ups addressed (5/5)**:
   - Added init-time validation of persisted host/port with writeback in constructor
   - Fixed no-op restart issue by only notifying when oldValue != validatedValue
@@ -386,7 +387,12 @@ Claude Opus 4.5
   - [Medium] Updated ATDD checklist count: 5 → 6 tests (added `1.2-ATDD-004b`)
   - [Medium] Added AC4 reachability scope note: endpoint reachability is explicitly scoped as integration-only (test comment at line 138)
   - [Low] Verified story/sprint status alignment (already `in-progress`)
-- All 6 ATDD tests passing, all 72+ unit tests passing, clean build successful
+- All 6 ATDD tests passing, all 74+ unit tests passing, clean build successful
+- **Code review (current) follow-ups addressed (4/4)**:
+  - [Medium] Corrected Dev Agent Record claim: "All 5 ATDD tests" → "All 6 ATDD tests"
+  - [Medium] Aligned AC4 example URL with bind-address behavior: shows numeric loopback URLs (`127.0.0.1`, `[::1]`) not `localhost`
+  - [Medium] Documented WigAIExtension restart hook as integration-only scope in Testing Requirements
+  - [Low] Added whitespace trimming for IPv4/IPv6 loopback in `getBindHost()` (localhost trimming already existed); added 2 new tests
 - **Code review 2025-12-30 addressed (4/4)**:
   - [Medium] Aligned Epic 1.2 AC wording: "advertises the configured loopback host" → "advertises the actual bind address" in note and AC1
   - [Medium] Updated ATDD checklist test status: RED → GREEN with execution evidence
@@ -397,11 +403,11 @@ Claude Opus 4.5
 
 **Modified:**
 - `src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java` - Added loopback validation, preference writeback, init-time sanitization, no-op notification fix, removed unused host field, added deterministic canonicalizeLoopback(), added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants
-- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure and cleanupFailedServer package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable), added `getBindHost()` defense-in-depth loopback enforcement, added `isIpv6Literal()` for tighter IPv6 URL formatting, added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants, added `createServer()` protected factory method (seam for testing), fixed advertised URL to use actual bind host (eliminates IPv6/IPv4 mismatch)
+- `src/main/java/io/github/fabb/wigai/server/JettyServerManager.java` - Added bind failure handling with MultiException/suppressed support, made notifyBindFailure and cleanupFailedServer package-private for testing, removed Thread.sleep(500), added cleanupFailedServer(), added defensive state clearing, updated stopServer() to use logger.error(String, Throwable), added `getBindHost()` defense-in-depth loopback enforcement, added `isIpv6Literal()` for tighter IPv6 URL formatting, added LOCALHOST/LOOPBACK_IPV4/LOOPBACK_IPV6 constants, added `createServer()` protected factory method (seam for testing), fixed advertised URL to use actual bind host (eliminates IPv6/IPv4 mismatch), added whitespace trimming for all loopback values in `getBindHost()`
 - `src/main/java/io/github/fabb/wigai/WigAIExtension.java` - Fixed formatting (added missing blank lines between methods)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerAtddTest.java` - Fixed mock setup for double parameters, updated @Tag("atdd_red") → @Tag("atdd"), added AC4 restart trigger test (6 ATDD tests total)
 - `src/test/java/io/github/fabb/wigai/config/PreferencesBackedConfigManagerTest.java` - Added 4 init-time sanitization tests, fixed anyDouble() matcher, added null host update test (19 tests total)
-- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests, 10 getBindHost tests, 3 tighter IPv6 formatting tests, 5 advertised URL tests updated for bind-host alignment, 4 bind failure behavioral flow tests (cleanupFailedServer, detection, notification), 4 startServer bind-failure path tests via createServer() seam, 4 notifyServerStarted logging tests; made tests CI-safe with getMcpHost() mock throw (53 tests total)
+- `src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java` - Added tests for bind failure detection, URL formatting, server state management, 3 stale state cleanup tests, 12 getBindHost tests (including whitespace trimming), 3 tighter IPv6 formatting tests, 5 advertised URL tests updated for bind-host alignment, 4 bind failure behavioral flow tests (cleanupFailedServer, detection, notification), 4 startServer bind-failure path tests via createServer() seam, 4 notifyServerStarted logging tests; made tests CI-safe with getMcpHost() mock throw (55 tests total)
 - `docs/architecture.md` - Updated default binding wording to specify loopback equivalence (`localhost`, `127.0.0.1`, `::1`)
 - `docs/reference/component-architecture-deep-dive.md` - Fixed default port from 8765 to 61169
 - `docs/atdd-checklist-1-2-localhost-binding-defaults-preferences-guardrails.md` - Updated RED phase instructions and AC for loopback equivalence
@@ -461,6 +467,12 @@ Claude Opus 4.5
 
 ## Change Log
 
+- **2025-12-29**: Addressed code review (current) follow-ups (4 items) — moved story to `review`
+  - [Medium] Corrected Dev Agent Record claim: "All 5 ATDD tests" → "All 6 ATDD tests"
+  - [Medium] Aligned AC4 example URL with bind-address behavior (numeric loopback instead of `localhost`)
+  - [Medium] Documented WigAIExtension restart hook as integration-only scope in Testing Requirements
+  - [Low] Added whitespace trimming for IPv4/IPv6 loopback in `getBindHost()`; added 2 tests
+  - JettyServerManagerTest now has 55 tests (up from 53)
 - **2025-12-30**: Addressed code review 2025-12-30 follow-ups (4 items) — moved story to `review`
   - [Medium] Aligned Epic 1.2 AC wording: "advertises the configured loopback host" → "advertises the actual bind address" in note and AC1
   - [Medium] Updated ATDD checklist test status: RED → GREEN with execution evidence (2025-12-29)
