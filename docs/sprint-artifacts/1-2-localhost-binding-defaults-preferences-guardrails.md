@@ -1,6 +1,6 @@
 # Story 1.2: Localhost Binding Defaults + Preferences Guardrails
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -118,6 +118,15 @@ so that WigAI is not accidentally exposed on the network (no-auth MVP) and conne
 - [x] [AI-Review][Medium] Reconcile architecture doc default binding wording (`localhost` vs numeric loopback) to match the enforced loopback equivalence policy. [docs/architecture.md:344]
 - [x] [AI-Review][Medium] Keep `JettyServerManagerTest` CI-safe by avoiding `startServer(...)` calls that can progress into real Jetty startup; refactor test to assert cleanup behavior without invoking Jetty start. [src/test/java/io/github/fabb/wigai/server/JettyServerManagerTest.java:252]
 - [x] [AI-Review][Low] Consolidate repeated `"localhost"` literals into a single constant to avoid future drift. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:141]
+
+### Review Follow-ups (AI) — code review 2025-12-29 (loopback enforcement gaps)
+- [ ] [AI-Review][High] Enforce that `localhost` binds to a loopback address in practice (misconfigured OS/DNS can map it to non-loopback); add a deterministic safeguard. [src/main/java/io/github/fabb/wigai/config/PreferencesBackedConfigManager.java:170]
+- [ ] [AI-Review][Medium] Add defense-in-depth in `JettyServerManager`: refuse to bind to non-loopback hosts even if a `ConfigManager` implementation returns an unsafe value. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:74]
+- [ ] [AI-Review][Medium] Fix remaining inconsistency in `docs/architecture.md` (“default includes localhost” vs “default numeric loopback only”) and ensure both sections match the loopback equivalence policy. [docs/architecture.md:455]
+- [ ] [AI-Review][Medium] Fix `.bmad/**` excluded file count drift in File List (story says 18; scope currently shows 19). [docs/sprint-artifacts/1-2-localhost-binding-defaults-preferences-guardrails.md:332]
+- [ ] [AI-Review][Medium] Evaluate Bitwig responsiveness risk: preference callbacks trigger synchronous stop+start; consider scheduling restart off the preferences callback path. [src/main/java/io/github/fabb/wigai/WigAIExtension.java:112]
+- [ ] [AI-Review][Medium] Add assertion-based test coverage for advertised connection URL (`http://{loopback}:{port}/mcp`) in startup notification/log messaging (AC1), not just host formatting. [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:300]
+- [ ] [AI-Review][Low] Tighten `formatHostForUrl()` to bracket only IPv6 literals (not arbitrary strings containing `:`). [src/main/java/io/github/fabb/wigai/server/JettyServerManager.java:286]
 ## Dev Notes
 
 ### Developer Context (Guardrails)
@@ -362,6 +371,10 @@ Claude Opus 4.5
 - Outcome: Changes Requested
 - Issues found: 2 High, 4 Medium, 1 Low
 - Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (DNS + CI-safety)” and moved story to `in-progress`.
+- Date: 2025-12-29 (follow-up 3)
+- Outcome: Changes Requested
+- Issues found: 1 High, 5 Medium, 1 Low
+- Action: Added follow-ups under “Review Follow-ups (AI) — code review 2025-12-29 (loopback enforcement gaps)” and moved story to `in-progress`.
 
 ## Change Log
 
@@ -386,6 +399,7 @@ Claude Opus 4.5
   - [Medium] Documented `.bmad/**` file exclusion in File List (18 framework files in scope, not story implementation)
 - **2025-12-29**: Senior Developer Review (AI) — action items created (3 items), refreshed scope commit count (22), status moved to `in-progress`
 - **2025-12-29**: Senior Developer Review (AI) — follow-up; action items created (7) for DNS + CI-safety; story status moved to `in-progress`
+- **2025-12-29**: Senior Developer Review (AI) — follow-up; action items created (7) for loopback enforcement gaps; story status moved to `in-progress`
 - **2025-12-28**: Addressed scope + record hygiene review follow-ups (4 items)
   - [Medium] Updated Dev Agent Record test counts to match reality (19 and 21 tests)
   - [Medium] Updated File List test totals to match current test files
