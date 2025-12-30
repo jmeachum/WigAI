@@ -42,6 +42,10 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Ensure `status` reports `partial_failures` when Bitwig API sub-fetches fail; facade currently returns defaults without throwing, so failures are not surfaced. [src/main/java/io/github/fabb/wigai/mcp/tool/StatusTool.java:47]
 - [x] [AI-Review][MEDIUM] Align envelope error codes for clip/scene tools or update docs/tests; current tests assert `OPERATION_FAILED` instead of documented `TRACK_NOT_FOUND`/`CLIP_INDEX_OUT_OF_BOUNDS`/`SCENE_NOT_FOUND`. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:128]
 - [x] [AI-Review][MEDIUM] Update completion notes: `./gradlew atddRedTest` no longer runs after `@Tag("atdd")` promotion. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:139]
+- [ ] [AI-Review][HIGH] Align `launch_clip` error codes in docs/tests with implementation (`INVALID_RANGE`/`BITWIG_API_ERROR` mapping) or adjust implementation to match documented `CLIP_INDEX_OUT_OF_BOUNDS`/`INVALID_ARGUMENT`. [docs/reference/api-reference.md:283]
+- [ ] [AI-Review][HIGH] Fix `get_selected_device_parameters` docs: currently claims “no errors” but implementation throws `DEVICE_NOT_SELECTED` when no device is selected. [docs/reference/api-reference.md:195]
+- [ ] [AI-Review][MEDIUM] Fix `set_selected_device_parameter` docs: range validation returns `INVALID_RANGE`, not `INVALID_PARAMETER`. [docs/reference/api-reference.md:221]
+- [ ] [AI-Review][MEDIUM] Resolve story status inconsistency (`Status: in-progress` header vs “ready-for-dev” note). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:3]
 
 ## Dev Notes
 
