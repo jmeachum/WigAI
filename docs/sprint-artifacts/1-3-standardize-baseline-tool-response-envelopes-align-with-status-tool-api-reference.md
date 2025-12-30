@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -46,6 +46,9 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Fix `get_selected_device_parameters` docs: currently claims "no errors" but implementation throws `DEVICE_NOT_SELECTED` when no device is selected. [docs/reference/api-reference.md:195]
 - [x] [AI-Review][MEDIUM] Fix `set_selected_device_parameter` docs: range validation returns `INVALID_RANGE`, not `INVALID_PARAMETER`. [docs/reference/api-reference.md:221]
 - [x] [AI-Review][MEDIUM] Resolve story status inconsistency (`Status: in-progress` header vs "ready-for-dev" note). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:3]
+- [ ] [AI-Review][MEDIUM] Document `session_launchSceneByIndex` `INVALID_RANGE` error to match validation behavior. [docs/reference/api-reference.md:310]
+- [ ] [AI-Review][MEDIUM] Add tests covering `ErrorCode.fromString` alias mappings (`CLIP_INDEX_OUT_OF_BOUNDS`, `BITWIG_ERROR`). [src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java:77]
+- [ ] [AI-Review][LOW] Guard `session_launchSceneByName` success from returning `launched_scene_index: -1` on rename/delete race. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:61]
 
 ## Dev Notes
 
