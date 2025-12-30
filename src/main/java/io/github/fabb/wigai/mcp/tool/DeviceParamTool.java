@@ -254,7 +254,11 @@ public class DeviceParamTool {
 
         List<Object> parametersArray = (List<Object>) parametersObj;
         if (parametersArray.isEmpty()) {
-            throw new IllegalArgumentException("'parameters' array cannot be empty");
+            throw new BitwigApiException(
+                ErrorCode.EMPTY_PARAMETER,
+                SET_MULTIPLE_PARAMETERS_TOOL,
+                "'parameters' array cannot be empty"
+            );
         }
 
         List<ParameterSetting> parameterSettings = new ArrayList<>();

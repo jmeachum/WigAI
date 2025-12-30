@@ -646,7 +646,8 @@ class BaselineToolEnvelopeAtddTest {
     }
 
     @Test
-    void setSelectedDeviceParametersErrorEnvelope() throws Exception {
+    void setSelectedDeviceParametersEmptyArrayError() throws Exception {
+        // AC2 coverage: empty parameters array returns EMPTY_PARAMETER (not MISSING_REQUIRED_PARAMETER)
         StructuredLogger logger = mockStructuredLogger();
         DeviceController deviceController = mock(DeviceController.class);
 
@@ -656,7 +657,7 @@ class BaselineToolEnvelopeAtddTest {
             buildRequest("set_selected_device_parameters", Map.of("parameters", List.of()))
         );
 
-        assertError(result, "INVALID_PARAMETER", "set_selected_device_parameters");
+        assertError(result, "EMPTY_PARAMETER", "set_selected_device_parameters");
     }
 
     @Test
