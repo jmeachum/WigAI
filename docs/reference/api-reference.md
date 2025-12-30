@@ -308,8 +308,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `SCENE_NOT_FOUND`
-    *   `BITWIG_API_ERROR`
+    *   `MISSING_REQUIRED_PARAMETER`: scene_index not provided
+    *   `INVALID_RANGE`: scene_index is negative
+    *   `SCENE_NOT_FOUND`: No scene exists at the specified index
+    *   `BITWIG_API_ERROR`: Internal error occurred while launching scene
 
 #### `session_launchSceneByName`
 *   **Description**: Launch an entire scene in Bitwig by providing its name.

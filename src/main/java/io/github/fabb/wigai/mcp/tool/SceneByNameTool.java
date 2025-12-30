@@ -61,12 +61,22 @@ public class SceneByNameTool {
                         var result = clipSceneController.launchSceneByName(args.sceneName());
                         if (result.isSuccess()) {
                             int launchedIndex = clipSceneController.getBitwigApiFacade().findSceneByName(args.sceneName());
-                            return Map.of(
-                                "action", "scene_launched",
-                                "scene_name", args.sceneName(),
-                                "launched_scene_index", launchedIndex,
-                                "message", result.getMessage()
-                            );
+                            // Guard against race condition: only include launched_scene_index if non-negative
+                            // Scene could be renamed/deleted between launch and index lookup
+                            if (launchedIndex >= 0) {
+                                return Map.of(
+                                    "action", "scene_launched",
+                                    "scene_name", args.sceneName(),
+                                    "launched_scene_index", launchedIndex,
+                                    "message", result.getMessage()
+                                );
+                            } else {
+                                return Map.of(
+                                    "action", "scene_launched",
+                                    "scene_name", args.sceneName(),
+                                    "message", result.getMessage()
+                                );
+                            }
                         } else {
                             ErrorCode errorCode = ErrorCode.fromString(result.getErrorCode());
                             throw new BitwigApiException(errorCode, TOOL_NAME, result.getMessage());

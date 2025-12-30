@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: in-progress
+Status: Ready for Review
 
 ## Story
 
@@ -46,9 +46,9 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Fix `get_selected_device_parameters` docs: currently claims "no errors" but implementation throws `DEVICE_NOT_SELECTED` when no device is selected. [docs/reference/api-reference.md:195]
 - [x] [AI-Review][MEDIUM] Fix `set_selected_device_parameter` docs: range validation returns `INVALID_RANGE`, not `INVALID_PARAMETER`. [docs/reference/api-reference.md:221]
 - [x] [AI-Review][MEDIUM] Resolve story status inconsistency (`Status: in-progress` header vs "ready-for-dev" note). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:3]
-- [ ] [AI-Review][MEDIUM] Document `session_launchSceneByIndex` `INVALID_RANGE` error to match validation behavior. [docs/reference/api-reference.md:310]
-- [ ] [AI-Review][MEDIUM] Add tests covering `ErrorCode.fromString` alias mappings (`CLIP_INDEX_OUT_OF_BOUNDS`, `BITWIG_ERROR`). [src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java:77]
-- [ ] [AI-Review][LOW] Guard `session_launchSceneByName` success from returning `launched_scene_index: -1` on rename/delete race. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:61]
+- [x] [AI-Review][MEDIUM] Document `session_launchSceneByIndex` `INVALID_RANGE` error to match validation behavior. [docs/reference/api-reference.md:310]
+- [x] [AI-Review][MEDIUM] Add tests covering `ErrorCode.fromString` alias mappings (`CLIP_INDEX_OUT_OF_BOUNDS`, `BITWIG_ERROR`). [src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java:77]
+- [x] [AI-Review][LOW] Guard `session_launchSceneByName` success from returning `launched_scene_index: -1` on rename/delete race. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:61]
 
 ## Dev Notes
 
@@ -193,10 +193,32 @@ N/A - No debug issues encountered during implementation.
 
 10. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-29)
 
+**2025-12-29 Final Review Follow-ups Completion:**
+
+11. **session_launchSceneByIndex Error Documentation** (MEDIUM priority):
+    - Updated `docs/reference/api-reference.md` to document `INVALID_RANGE` error for negative `scene_index`
+    - Also added `MISSING_REQUIRED_PARAMETER` for completeness
+
+12. **ErrorCode.fromString Alias Tests** (MEDIUM priority):
+    - Added 7 new tests in `ErrorCodeTest.java` covering `fromString` method:
+      - Direct enum match tests
+      - Case-insensitive matching
+      - `CLIP_INDEX_OUT_OF_BOUNDS` → `INVALID_RANGE` alias
+      - `BITWIG_ERROR` → `BITWIG_API_ERROR` alias
+      - Null/empty string handling
+      - Unknown code fallback to `OPERATION_FAILED`
+
+13. **session_launchSceneByName Race Condition Guard** (LOW priority):
+    - Modified `SceneByNameTool.java` to only include `launched_scene_index` in response when >= 0
+    - Protects against race condition where scene is renamed/deleted between launch and index lookup
+    - Field is documented as optional in API reference, so omission is valid
+
+14. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-29)
+
 ### File List
 
 **Modified:**
-- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters
+- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters, session_launchSceneByIndex
 - `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
 - `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)
@@ -204,4 +226,5 @@ N/A - No debug issues encountered during implementation.
 - `src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java` - Added `fromString()` method for string-to-enum mapping
 - `src/main/java/io/github/fabb/wigai/mcp/tool/ClipTool.java` - Use actual error code from result instead of OPERATION_FAILED
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java` - Use actual error code from result instead of OPERATION_FAILED
-- `src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java` - Use actual error code from result instead of RuntimeException
+- `src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java` - Use actual error code from result; guard against -1 launched_scene_index race condition
+- `src/test/java/io/github/fabb/wigai/common/error/ErrorCodeTest.java` - Added 7 tests for fromString method including alias mappings
