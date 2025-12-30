@@ -61,6 +61,9 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][MEDIUM] Align `set_selected_device_parameter` docs with implementation error code (`INVALID_RANGE` vs documented `INVALID_PARAMETER_INDEX`) or update validation to match docs. [docs/reference/api-reference.md:221]
 - [x] [AI-Review][MEDIUM] Align `list_devices_on_track` selection semantics docs with implementation (no index match; name match only on selected track). [docs/reference/api-reference.md:532]
 - [x] [AI-Review][MEDIUM] Align `get_selected_device_parameters` docs error codes with `DeviceController` behavior (`INTERNAL_ERROR` vs documented `BITWIG_API_ERROR`). [docs/reference/api-reference.md:195]
+- [ ] [AI-Review][HIGH] Add missing baseline tool error-path envelope tests to guarantee AC1/AC2 coverage across the full tool surface. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:1]
+- [ ] [AI-Review][MEDIUM] Ensure `error.operation` always reflects the invoked MCP tool name (not internal operation names) in error responses. [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:43]
+- [ ] [AI-Review][LOW] Align `get_device_details` docs with implementation when targeting non-selected devices (remote_controls currently empty). [docs/reference/api-reference.md:766]
 
 ## Dev Notes
 
