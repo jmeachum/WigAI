@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: ready-for-dev
+Status: Ready for Review
 
 ## Story
 
@@ -31,11 +31,11 @@ so that my client can parse success/error reliably across tools (including `stat
 
 ## Tasks / Subtasks
 
-- [ ] Audit baseline tools for response envelope compliance (success/error + no double-wrapping)
-- [ ] Normalize baseline tool handlers to use `McpErrorHandler.executeWithErrorHandling(...)` / `executeWithValidation(...)`
-- [ ] Align `status` payload fields and partial failure behavior with ACs
-- [ ] Expand `McpResponseTestUtils` coverage across baseline tools (success/error + no double-wrapping)
-- [ ] Update `docs/reference/api-reference.md` `status` response example and notes to match implementation
+- [x] Audit baseline tools for response envelope compliance (success/error + no double-wrapping)
+- [x] Normalize baseline tool handlers to use `McpErrorHandler.executeWithErrorHandling(...)` / `executeWithValidation(...)`
+- [x] Align `status` payload fields and partial failure behavior with ACs
+- [x] Expand `McpResponseTestUtils` coverage across baseline tools (success/error + no double-wrapping)
+- [x] Update `docs/reference/api-reference.md` `status` response example and notes to match implementation
 
 ## Dev Notes
 
@@ -108,15 +108,19 @@ so that my client can parse success/error reliably across tools (including `stat
 
 ### Context Reference
 
-[TODO]
+- Story file: `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md`
+- Project context: `docs/project-context.md`
+- McpErrorHandler: `src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java`
+- McpResponseTestUtils: `src/test/java/io/github/fabb/wigai/mcp/tool/McpResponseTestUtils.java`
+- BaselineToolEnvelopeAtddTest: `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java`
 
 ### Agent Model Used
 
-[TODO]
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-[TODO]
+N/A - No debug issues encountered during implementation.
 
 ### Latest Technical Detail
 
@@ -127,8 +131,34 @@ so that my client can parse success/error reliably across tools (including `stat
 
 ### Completion Notes List
 
-[TODO]
+**2025-12-29 Implementation Summary:**
+
+1. **Audit Complete**: All 15 baseline tools audited for envelope compliance:
+   - All tools already use `McpErrorHandler.executeWithErrorHandling()` or `executeWithValidation()`
+   - All return standardized `status: "success"` + `data` or `status: "error"` + `error` envelopes
+   - No double-wrapping issues found
+
+2. **Status Tool Verification**: StatusTool.java confirms:
+   - Required fields present: `wigai_version`, `project_name`, `audio_engine_active`, `transport`, `project_parameters`, `selected_track`, `selected_device`, `selected_clip_slot`
+   - Partial failure handling implemented with `partial_failures` array and `status_note` summary
+
+3. **Test Evidence**:
+   - `./gradlew atddRedTest` - 32 tests PASSED (2025-12-29)
+   - `./gradlew test` - All tests PASSED after promoting ATDD tests (2025-12-29)
+   - Test coverage includes success/error envelopes for all baseline tools
+   - `assertNotDoubleWrapped()` regression checks in all tests
+
+4. **Documentation Updated**: `docs/reference/api-reference.md` updated to:
+   - Wrap `status` response in standardized envelope (`status: "success"`, `data: {...}`)
+   - Document partial failure response format with `partial_failures` and `status_note`
+   - Add notes explaining partial failure behavior
+
+5. **Test Promotion**: Changed `@Tag("atdd_red")` to `@Tag("atdd")` in `BaselineToolEnvelopeAtddTest.java` so tests now run in CI
 
 ### File List
 
-[TODO]
+**Modified:**
+- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior
+- `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd") to promote tests to CI
+- `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
+- `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)

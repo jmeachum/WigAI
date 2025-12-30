@@ -16,65 +16,89 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Returns**:
     ```json
     {
-      "wigai_version": "x.y.z",
-      "project_name": "Name of the project",
-      "audio_engine_active": true,
-      "transport": {
-        "playing": false,
-        "recording": false,
-        "loop_active": false,
-        "metronome_active": true,
-        "current_tempo": 120.0,
-        "time_signature": "4/4",
-        "current_beat_str": "1.1.1:0",
-        "current_time_str": "0:00.000"
-      },
-      "project_parameters": [
-        {
-          "index": 0,
-          "exists": true,
-          "name": "Project Parameter Name",
-          "value": 0.5,
-          "display_value": "50%"
-        }
-      ],
-      "selected_track": {
-        "index": 0,
-        "name": "Track Name",
-        "type": "audio",
-        "is_group": false,
-        "muted": false,
-        "soloed": false,
-        "armed": true
-      },
-      "selected_clip_slot": {
-        "track_name": "Drums",
-        "track_index": 0,
-        "slot_index": 0,
-        "scene_index": 0,
-        "scene_name": "Intro",
-        "has_content": true,
-        "clip_name": "Drum Loop 1",
-        "is_playing": false,
-        "is_recording": false,
-        "is_playback_queued": false,
-        "is_recording_queued": false,
-        "is_stop_queued": false
-      },
-      "selected_device": {
-        "track_name": "Track Name",
-        "track_index": 0,
-        "index": 0,
-        "name": "Device Name",
-        "bypassed": false,
-        "parameters": [
+      "status": "success",
+      "data": {
+        "wigai_version": "x.y.z",
+        "project_name": "Name of the project",
+        "audio_engine_active": true,
+        "transport": {
+          "playing": false,
+          "recording": false,
+          "loop_active": false,
+          "metronome_active": true,
+          "current_tempo": 120.0,
+          "time_signature": "4/4",
+          "current_beat_str": "1.1.1:0",
+          "current_time_str": "0:00.000"
+        },
+        "project_parameters": [
           {
             "index": 0,
-            "name": "Parameter Name",
+            "name": "Project Parameter Name",
             "value": 0.5,
             "display_value": "50%"
           }
-        ]
+        ],
+        "selected_track": {
+          "index": 0,
+          "name": "Track Name",
+          "type": "audio",
+          "is_group": false,
+          "muted": false,
+          "soloed": false,
+          "armed": true
+        },
+        "selected_clip_slot": {
+          "track_name": "Drums",
+          "track_index": 0,
+          "slot_index": 0,
+          "scene_index": 0,
+          "scene_name": "Intro",
+          "has_content": true,
+          "clip_name": "Drum Loop 1",
+          "is_playing": false,
+          "is_recording": false,
+          "is_playback_queued": false,
+          "is_recording_queued": false,
+          "is_stop_queued": false
+        },
+        "selected_device": {
+          "track_name": "Track Name",
+          "track_index": 0,
+          "index": 0,
+          "name": "Device Name",
+          "bypassed": false,
+          "parameters": [
+            {
+              "index": 0,
+              "name": "Parameter Name",
+              "value": 0.5,
+              "display_value": "50%"
+            }
+          ]
+        }
+      }
+    }
+    ```
+
+*   **Partial Failure Response** (when one or more sub-fetches fail):
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "wigai_version": "x.y.z",
+        "project_name": "Name of the project",
+        "audio_engine_active": true,
+        "transport": { "error": "Transport status unavailable" },
+        "project_parameters": [],
+        "selected_track": { "name": "Track 1", "index": 0 },
+        "selected_device": null,
+        "selected_clip_slot": null,
+        "partial_failures": [
+          "transport: Transport status unavailable",
+          "selected_device: Device unavailable"
+        ],
+        "status_note": "Status retrieved with 2 partial failures"
       }
     }
     ```
@@ -82,8 +106,12 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Notes**:
     - `current_beat_str`: Bitwig-style beat position format (measures.beats.sixteenths:ticks), e.g., "1.1.1:0"
     - `current_time_str`: Time format with milliseconds (MM:SS.mmm or HH:MM:SS.mmm), e.g., "0:12.345" or "1:23:45.678"
-    - `project_parameters`: Array containing only parameters where `exists` is true (0-7 parameter indexes)
+    - `project_parameters`: Array containing project parameters (0-7 parameter indexes)
     - `selected_track`: Object containing currently selected track details, or `null` if no track is selected
+    - **Partial Failure Behavior**: If one or more sub-fetches fail (e.g., transport, selected_device), the tool still returns `status: "success"` with best-effort defaults and includes:
+      - `partial_failures`: Array of strings describing which fields failed and why
+      - `status_note`: Human-readable summary (e.g., "Status retrieved with 2 partial failures")
+    - Partial failures allow clients to get available data without a full error, while clearly indicating which fields may be incomplete or defaulted
     - `selected_track.type`: Track type (e.g., "audio", "instrument", "group", "hybrid", "effect", "master")
     - `selected_track.index`: 0-based index in the current track bank, or -1 if not found in visible tracks
     - `selected_clip_slot`: Object describing the currently selected clip slot (track context, slot/scene indices, clip status/state), or `null` if no track is selected
