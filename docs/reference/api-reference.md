@@ -530,8 +530,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     - `type`: One of "Instrument", "AudioFX", "NoteFX", or "Unknown".
     - Deterministic enumeration: results are ordered by 0-based device chain index; only top-level devices are included (no recursion into container devices).
     - Selection semantics:
-      - If the target track is not the globally selected track, `is_selected` is `false` for all devices.
-      - If the target track is the globally selected track, compare against the global CursorDevice; prefer same-track index match, otherwise name match on that track (first match if ambiguous).
+      - If the target track is not the globally selected track (determined by track name match), `is_selected` is `false` for all devices.
+      - If the target track is the globally selected track, `is_selected` is `true` for the device whose name matches the currently selected device's name.
 
 *   **Examples**:
 

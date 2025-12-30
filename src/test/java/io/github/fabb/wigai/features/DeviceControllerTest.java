@@ -110,7 +110,7 @@ public class DeviceControllerTest {
             deviceController.getSelectedDeviceParameters();
         });
 
-        assertEquals(ErrorCode.INTERNAL_ERROR, exception.getErrorCode());
+        assertEquals(ErrorCode.BITWIG_API_ERROR, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Parameter error"));
 
         // Verify error logging

@@ -54,7 +54,7 @@ public class DeviceController {
             throw e; // Re-throw BitwigApiException as-is
         } catch (Exception e) {
             logger.error("DeviceController: Unexpected error getting selected device parameters: " + e.getMessage());
-            throw new BitwigApiException(ErrorCode.INTERNAL_ERROR, "getSelectedDeviceParameters", e.getMessage(), e);
+            throw new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "getSelectedDeviceParameters", e.getMessage(), e);
         }
     }
 
@@ -80,7 +80,7 @@ public class DeviceController {
             throw e; // Re-throw BitwigApiException as-is
         } catch (Exception e) {
             logger.error("DeviceController: Unexpected error setting parameter " + parameterIndex + ": " + e.getMessage());
-            throw new BitwigApiException(ErrorCode.INTERNAL_ERROR, "setSelectedDeviceParameter", e.getMessage(), e);
+            throw new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "setSelectedDeviceParameter", e.getMessage(), e);
         }
     }
 
@@ -104,7 +104,7 @@ public class DeviceController {
             throw e; // Re-throw as-is
         } catch (Exception e) {
             logger.error("DeviceController: Unexpected error checking device selection for batch parameter setting");
-            throw new BitwigApiException(ErrorCode.INTERNAL_ERROR, "setMultipleSelectedDeviceParameters", e.getMessage(), e);
+            throw new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "setMultipleSelectedDeviceParameters", e.getMessage(), e);
         }
 
         List<ParameterSettingResult> results = new ArrayList<>();
@@ -147,7 +147,7 @@ public class DeviceController {
                     param.parameter_index(),
                     "error",
                     null,
-                    "INTERNAL_ERROR",
+                    "BITWIG_API_ERROR",
                     "Unexpected error setting parameter: " + e.getMessage()
                 );
                 results.add(result);
@@ -187,7 +187,7 @@ public class DeviceController {
             throw e; // Re-throw BitwigApiException as-is
         } catch (Exception e) {
             logger.error("DeviceController: Unexpected error getting device details: " + e.getMessage());
-            throw new BitwigApiException(ErrorCode.INTERNAL_ERROR, "getDeviceDetails", e.getMessage(), e);
+            throw new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "getDeviceDetails", e.getMessage(), e);
         }
     }
 

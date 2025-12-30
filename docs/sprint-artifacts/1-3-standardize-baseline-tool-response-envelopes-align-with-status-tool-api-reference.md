@@ -58,9 +58,9 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Avoid `session_launchSceneByName` success turning into error when `findSceneByName` fails; treat index lookup as best-effort. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:60]
 - [x] [AI-Review][MEDIUM] Update File List to include in-scope validation report files (12-29/12-30 runs). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:249]
 - [x] [AI-Review][MEDIUM] Remove File List entry claiming changes to `validation-report-2025-12-30T02-08-37Z.md` (not modified in scope). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:263]
-- [ ] [AI-Review][MEDIUM] Align `set_selected_device_parameter` docs with implementation error code (`INVALID_RANGE` vs documented `INVALID_PARAMETER_INDEX`) or update validation to match docs. [docs/reference/api-reference.md:221]
-- [ ] [AI-Review][MEDIUM] Align `list_devices_on_track` selection semantics docs with implementation (no index match; name match only on selected track). [docs/reference/api-reference.md:532]
-- [ ] [AI-Review][MEDIUM] Align `get_selected_device_parameters` docs error codes with `DeviceController` behavior (`INTERNAL_ERROR` vs documented `BITWIG_API_ERROR`). [docs/reference/api-reference.md:195]
+- [x] [AI-Review][MEDIUM] Align `set_selected_device_parameter` docs with implementation error code (`INVALID_RANGE` vs documented `INVALID_PARAMETER_INDEX`) or update validation to match docs. [docs/reference/api-reference.md:221]
+- [x] [AI-Review][MEDIUM] Align `list_devices_on_track` selection semantics docs with implementation (no index match; name match only on selected track). [docs/reference/api-reference.md:532]
+- [x] [AI-Review][MEDIUM] Align `get_selected_device_parameters` docs error codes with `DeviceController` behavior (`INTERNAL_ERROR` vs documented `BITWIG_API_ERROR`). [docs/reference/api-reference.md:195]
 
 ## Dev Notes
 
@@ -270,10 +270,28 @@ N/A - No debug issues encountered during implementation.
 
 24. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-30) - final 4 review follow-up items resolved
 
+**2025-12-30 Correct-Course Review Follow-ups (Session 3):**
+
+25. **parameter_index Validation Added** (MEDIUM priority - upgraded to implementation fix):
+    - Added explicit 0-7 range validation in `DeviceParamTool.java` for both `set_selected_device_parameter` and `set_selected_device_parameters`
+    - Now throws `INVALID_PARAMETER_INDEX` instead of falling through to Bitwig API and returning `INTERNAL_ERROR`
+    - Docs already documented `INVALID_PARAMETER_INDEX` - implementation now matches
+
+26. **DeviceController Error Codes Aligned** (MEDIUM priority):
+    - Changed all `INTERNAL_ERROR` to `BITWIG_API_ERROR` in `DeviceController.java` for Bitwig API failures
+    - Affected methods: `getSelectedDeviceParameters`, `setSelectedDeviceParameter`, `setMultipleSelectedDeviceParameters`, `getDeviceDetails`
+    - Updated test assertion in `DeviceControllerTest.java` to expect `BITWIG_API_ERROR`
+
+27. **list_devices_on_track Selection Semantics Docs Fixed** (MEDIUM priority):
+    - Updated `docs/reference/api-reference.md` to reflect actual implementation behavior
+    - Clarified: track selection determined by name match (not index), device selection uses name match only
+
+28. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-30) - final 3 review follow-up items resolved
+
 ### File List
 
 **Modified:**
-- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters, session_launchSceneByIndex
+- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters, session_launchSceneByIndex; fixed list_devices_on_track selection semantics docs
 - `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
 - `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)
@@ -284,6 +302,9 @@ N/A - No debug issues encountered during implementation.
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java` - Use actual error code from result instead of OPERATION_FAILED
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java` - Use actual error code from result; guard against -1 launched_scene_index race condition; added best-effort try-catch for findSceneByName index lookup
 - `src/test/java/io/github/fabb/wigai/common/error/ErrorCodeTest.java` - Added 7 tests for fromString method including alias mappings
+- `src/main/java/io/github/fabb/wigai/mcp/tool/DeviceParamTool.java` - Added explicit parameter_index 0-7 range validation throwing INVALID_PARAMETER_INDEX
+- `src/main/java/io/github/fabb/wigai/features/DeviceController.java` - Changed INTERNAL_ERROR to BITWIG_API_ERROR for Bitwig API failures
+- `src/test/java/io/github/fabb/wigai/features/DeviceControllerTest.java` - Updated test assertion to expect BITWIG_API_ERROR
 
 **Removed Artifacts (cleanup):**
 - `docs/sprint-artifacts/validation-report-2025-12-29T20-44-48Z.md` - Deleted (superseded validation run).
