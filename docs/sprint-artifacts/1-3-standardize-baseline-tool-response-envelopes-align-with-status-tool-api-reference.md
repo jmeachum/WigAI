@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -49,6 +49,11 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][MEDIUM] Document `session_launchSceneByIndex` `INVALID_RANGE` error to match validation behavior. [docs/reference/api-reference.md:310]
 - [x] [AI-Review][MEDIUM] Add tests covering `ErrorCode.fromString` alias mappings (`CLIP_INDEX_OUT_OF_BOUNDS`, `BITWIG_ERROR`). [src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java:77]
 - [x] [AI-Review][LOW] Guard `session_launchSceneByName` success from returning `launched_scene_index: -1` on rename/delete race. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:61]
+- [ ] [AI-Review][MEDIUM] Add missing validation reports to story File List for auditability. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:218]
+- [ ] [AI-Review][MEDIUM] Align `status` selected track/clip slot index bases (track bank vs project index) to avoid mixed indexing in one payload. [src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java:887]
+- [ ] [AI-Review][MEDIUM] Document `status` returning null `selected_clip_slot` when slot bank is unavailable/empty (or add partial_failures). [docs/reference/api-reference.md:117]
+- [ ] [AI-Review][LOW] Document `session_launchSceneByName` validation errors (`MISSING_REQUIRED_PARAMETER`, `EMPTY_PARAMETER`). [docs/reference/api-reference.md:336]
+- [ ] [AI-Review][LOW] Clarify `selected_device.parameters` can include null names. [docs/reference/api-reference.md:128]
 
 ## Dev Notes
 
