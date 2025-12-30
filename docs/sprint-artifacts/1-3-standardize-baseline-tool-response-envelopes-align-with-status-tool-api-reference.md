@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: in-progress
+Status: Ready for Review
 
 ## Story
 
@@ -42,10 +42,10 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Ensure `status` reports `partial_failures` when Bitwig API sub-fetches fail; facade currently returns defaults without throwing, so failures are not surfaced. [src/main/java/io/github/fabb/wigai/mcp/tool/StatusTool.java:47]
 - [x] [AI-Review][MEDIUM] Align envelope error codes for clip/scene tools or update docs/tests; current tests assert `OPERATION_FAILED` instead of documented `TRACK_NOT_FOUND`/`CLIP_INDEX_OUT_OF_BOUNDS`/`SCENE_NOT_FOUND`. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:128]
 - [x] [AI-Review][MEDIUM] Update completion notes: `./gradlew atddRedTest` no longer runs after `@Tag("atdd")` promotion. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:139]
-- [ ] [AI-Review][HIGH] Align `launch_clip` error codes in docs/tests with implementation (`INVALID_RANGE`/`BITWIG_API_ERROR` mapping) or adjust implementation to match documented `CLIP_INDEX_OUT_OF_BOUNDS`/`INVALID_ARGUMENT`. [docs/reference/api-reference.md:283]
-- [ ] [AI-Review][HIGH] Fix `get_selected_device_parameters` docs: currently claims “no errors” but implementation throws `DEVICE_NOT_SELECTED` when no device is selected. [docs/reference/api-reference.md:195]
-- [ ] [AI-Review][MEDIUM] Fix `set_selected_device_parameter` docs: range validation returns `INVALID_RANGE`, not `INVALID_PARAMETER`. [docs/reference/api-reference.md:221]
-- [ ] [AI-Review][MEDIUM] Resolve story status inconsistency (`Status: in-progress` header vs “ready-for-dev” note). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:3]
+- [x] [AI-Review][HIGH] Align `launch_clip` error codes in docs/tests with implementation (`INVALID_RANGE`/`BITWIG_API_ERROR` mapping) or adjust implementation to match documented `CLIP_INDEX_OUT_OF_BOUNDS`/`INVALID_ARGUMENT`. [docs/reference/api-reference.md:283]
+- [x] [AI-Review][HIGH] Fix `get_selected_device_parameters` docs: currently claims "no errors" but implementation throws `DEVICE_NOT_SELECTED` when no device is selected. [docs/reference/api-reference.md:195]
+- [x] [AI-Review][MEDIUM] Fix `set_selected_device_parameter` docs: range validation returns `INVALID_RANGE`, not `INVALID_PARAMETER`. [docs/reference/api-reference.md:221]
+- [x] [AI-Review][MEDIUM] Resolve story status inconsistency (`Status: in-progress` header vs "ready-for-dev" note). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:3]
 
 ## Dev Notes
 
@@ -100,7 +100,7 @@ so that my client can parse success/error reliably across tools (including `stat
 - Summary: Scope is primarily docs/test refactors; no architecture or dependency changes detected. [Source: git log]
 
 ### Story Completion Status
-- Story status set to `ready-for-dev` in this story file; sprint status will be updated in `docs/sprint-artifacts/sprint-status.yaml` during finalization. [Source: docs/sprint-artifacts/sprint-status.yaml]
+- Story status: `Ready for Review` - all tasks and review follow-up items completed
 
 ### References
 
@@ -179,10 +179,21 @@ N/A - No debug issues encountered during implementation.
 
 8. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-29)
 
+**2025-12-29 Final Review Follow-up Implementation:**
+
+9. **API Reference Documentation Aligned** (4 items resolved):
+   - Updated `launch_clip` error codes: `MISSING_REQUIRED_PARAMETER`, `EMPTY_PARAMETER`, `INVALID_RANGE`, `TRACK_NOT_FOUND`, `BITWIG_API_ERROR` (was incorrectly documenting `INVALID_ARGUMENT`, `CLIP_INDEX_OUT_OF_BOUNDS`)
+   - Fixed `get_selected_device_parameters` errors section: now documents `DEVICE_NOT_SELECTED`, `BITWIG_API_ERROR` (was incorrectly claiming "no errors")
+   - Fixed `set_selected_device_parameter` error codes: changed `INVALID_PARAMETER` to `INVALID_RANGE` for value out of range
+   - Fixed `set_selected_device_parameters` error codes for consistency
+   - Resolved story status inconsistency: updated note from "ready-for-dev" to reflect actual "in-progress" status
+
+10. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-29)
+
 ### File List
 
 **Modified:**
-- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior
+- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters
 - `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
 - `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)

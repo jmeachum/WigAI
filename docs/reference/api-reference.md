@@ -192,7 +192,9 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       }
     }
     ```
-*   **Errors**: None specific, `parameters` will be empty if no device or no parameters.
+*   **Errors**:
+    *   `DEVICE_NOT_SELECTED`: No device is currently selected in Bitwig
+    *   `BITWIG_API_ERROR`: Internal error occurred while retrieving parameters
 
 #### `set_selected_device_parameter`
 *   **Description**: Set a specific value for a single parameter (by its index 0-7) of the user-selected device in Bitwig.
@@ -216,10 +218,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `DEVICE_NOT_SELECTED`
-    *   `INVALID_PARAMETER_INDEX`
-    *   `INVALID_PARAMETER` (for value out of range)
-    *   `BITWIG_API_ERROR`
+    *   `DEVICE_NOT_SELECTED`: No device is currently selected in Bitwig
+    *   `INVALID_PARAMETER_INDEX`: parameter_index outside valid range (0-7)
+    *   `INVALID_RANGE`: value outside valid range (0.0-1.0)
+    *   `BITWIG_API_ERROR`: Internal error occurred while setting parameter
 
 #### `set_selected_device_parameters`
 *   **Description**: Set multiple parameter values (by index 0-7) of the user-selected device in Bitwig simultaneously.
@@ -253,8 +255,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   Top-level: `DEVICE_NOT_SELECTED`, `INVALID_PARAMETER` (for overall payload issues)
-    *   Per-item in `results`: `INVALID_PARAMETER_INDEX`, `INVALID_PARAMETER`, `BITWIG_API_ERROR`
+    *   Top-level: `DEVICE_NOT_SELECTED`, `MISSING_REQUIRED_PARAMETER` (for missing parameters array)
+    *   Per-item in `results`: `INVALID_PARAMETER_INDEX`, `INVALID_RANGE` (for value outside 0.0-1.0), `BITWIG_API_ERROR`
 
 ### Session Control Commands
 
@@ -280,9 +282,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `INVALID_ARGUMENT`: Missing or invalid parameters (e.g., empty track_name, negative clip_index)
+    *   `MISSING_REQUIRED_PARAMETER`: track_name or clip_index not provided
+    *   `EMPTY_PARAMETER`: track_name cannot be empty
+    *   `INVALID_RANGE`: clip_index is negative or outside the valid range for the track
     *   `TRACK_NOT_FOUND`: The specified track name was not found
-    *   `CLIP_INDEX_OUT_OF_BOUNDS`: The clip index is outside the valid range for the track
     *   `BITWIG_API_ERROR`: Internal error occurred while launching clip
 
 #### `session_launchSceneByIndex`
