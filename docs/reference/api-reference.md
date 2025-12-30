@@ -123,7 +123,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     - `selected_device`: Object containing currently selected device details, or `null` if no device is selected
     - `selected_device.track_name`: Name of the track containing the selected device
     - `selected_device.track_index`: 0-based project-absolute index of the track containing the device (consistent with `selected_track.index`)
-    - `selected_device.index`: 0-based index of the device in the track's device chain
+    - `selected_device.index`: 0-based index of the device in the track's device chain (currently always 0; Bitwig API does not expose actual device position)
     - `selected_device.bypassed`: Boolean indicating if the device is bypassed (disabled)
     - `selected_device.parameters`: Array of accessible parameters (0-7 parameter indexes); each parameter has `index`, `name` (can be `null` for unnamed parameters), `value`, and `display_value`
 
