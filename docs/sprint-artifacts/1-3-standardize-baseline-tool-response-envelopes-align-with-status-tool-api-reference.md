@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -58,6 +58,9 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Avoid `session_launchSceneByName` success turning into error when `findSceneByName` fails; treat index lookup as best-effort. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:60]
 - [x] [AI-Review][MEDIUM] Update File List to include in-scope validation report files (12-29/12-30 runs). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:249]
 - [x] [AI-Review][MEDIUM] Remove File List entry claiming changes to `validation-report-2025-12-30T02-08-37Z.md` (not modified in scope). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:263]
+- [ ] [AI-Review][MEDIUM] Align `set_selected_device_parameter` docs with implementation error code (`INVALID_RANGE` vs documented `INVALID_PARAMETER_INDEX`) or update validation to match docs. [docs/reference/api-reference.md:221]
+- [ ] [AI-Review][MEDIUM] Align `list_devices_on_track` selection semantics docs with implementation (no index match; name match only on selected track). [docs/reference/api-reference.md:532]
+- [ ] [AI-Review][MEDIUM] Align `get_selected_device_parameters` docs error codes with `DeviceController` behavior (`INTERNAL_ERROR` vs documented `BITWIG_API_ERROR`). [docs/reference/api-reference.md:195]
 
 ## Dev Notes
 
@@ -281,6 +284,12 @@ N/A - No debug issues encountered during implementation.
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java` - Use actual error code from result instead of OPERATION_FAILED
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java` - Use actual error code from result; guard against -1 launched_scene_index race condition; added best-effort try-catch for findSceneByName index lookup
 - `src/test/java/io/github/fabb/wigai/common/error/ErrorCodeTest.java` - Added 7 tests for fromString method including alias mappings
+
+**Removed Artifacts (cleanup):**
+- `docs/sprint-artifacts/validation-report-2025-12-29T20-44-48Z.md` - Deleted (superseded validation run).
+- `docs/sprint-artifacts/validation-report-2025-12-29T23-45-15Z.md` - Deleted (superseded validation run).
+- `docs/sprint-artifacts/validation-report-2025-12-30T00-06-24Z.md` - Deleted (superseded validation run).
+- `docs/sprint-artifacts/validation-report-2025-12-30T00-11-26Z.md` - Deleted (superseded validation run).
 
 **Generated Artifacts (not source modifications):**
 - `docs/sprint-artifacts/validation-report-2025-12-30T02-08-37Z.md` - Story validation report for auditability (86% pass rate)
