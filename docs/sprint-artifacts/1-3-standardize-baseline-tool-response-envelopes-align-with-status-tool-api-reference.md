@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -36,6 +36,12 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] Align `status` payload fields and partial failure behavior with ACs
 - [x] Expand `McpResponseTestUtils` coverage across baseline tools (success/error + no double-wrapping)
 - [x] Update `docs/reference/api-reference.md` `status` response example and notes to match implementation
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][HIGH] Ensure `status` reports `partial_failures` when Bitwig API sub-fetches fail; facade currently returns defaults without throwing, so failures are not surfaced. [src/main/java/io/github/fabb/wigai/mcp/tool/StatusTool.java:47]
+- [ ] [AI-Review][MEDIUM] Align envelope error codes for clip/scene tools or update docs/tests; current tests assert `OPERATION_FAILED` instead of documented `TRACK_NOT_FOUND`/`CLIP_INDEX_OUT_OF_BOUNDS`/`SCENE_NOT_FOUND`. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:128]
+- [ ] [AI-Review][MEDIUM] Update completion notes: `./gradlew atddRedTest` no longer runs after `@Tag("atdd")` promotion. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:139]
 
 ## Dev Notes
 
