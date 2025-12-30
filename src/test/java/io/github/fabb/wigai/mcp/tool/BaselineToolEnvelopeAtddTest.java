@@ -494,6 +494,107 @@ class BaselineToolEnvelopeAtddTest {
     }
 
     @Test
+    void errorOperationAlwaysReflectsMcpToolName() throws Exception {
+        // AC2 verification: error.operation must equal the invoked MCP tool name,
+        // even when controller throws exception with internal operation name
+        StructuredLogger logger = mockStructuredLogger();
+        DeviceController deviceController = mock(DeviceController.class);
+
+        // Controller throws exception with INTERNAL operation name (not MCP tool name)
+        when(deviceController.getSelectedDeviceParameters()).thenThrow(
+            new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "getSelectedDeviceParameters", "Internal error")
+        );
+
+        McpServerFeatures.SyncToolSpecification spec = DeviceParamTool.getSelectedDeviceParametersSpecification(deviceController, logger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(
+            mock(McpSyncServerExchange.class),
+            buildRequest("get_selected_device_parameters", Map.of())
+        );
+
+        // Verify operation is MCP tool name, not internal name
+        assertError(result, "BITWIG_API_ERROR", "get_selected_device_parameters");
+    }
+
+    @Test
+    void launchClipMissingRequiredParameterError() throws Exception {
+        // AC2 coverage: validation error with MISSING_REQUIRED_PARAMETER code
+        StructuredLogger logger = mockStructuredLogger();
+        ClipSceneController clipSceneController = mock(ClipSceneController.class);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, logger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(
+            mock(McpSyncServerExchange.class),
+            buildRequest("launch_clip", Map.of("track_name", "Test"))  // missing clip_index
+        );
+
+        assertError(result, "MISSING_REQUIRED_PARAMETER", "launch_clip");
+    }
+
+    @Test
+    void launchClipEmptyParameterError() throws Exception {
+        // AC2 coverage: validation error with EMPTY_PARAMETER code
+        StructuredLogger logger = mockStructuredLogger();
+        ClipSceneController clipSceneController = mock(ClipSceneController.class);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, logger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(
+            mock(McpSyncServerExchange.class),
+            buildRequest("launch_clip", Map.of("track_name", "  ", "clip_index", 0))  // whitespace track_name
+        );
+
+        assertError(result, "EMPTY_PARAMETER", "launch_clip");
+    }
+
+    @Test
+    void launchClipInvalidRangeError() throws Exception {
+        // AC2 coverage: validation error with INVALID_RANGE code for clip_index
+        StructuredLogger logger = mockStructuredLogger();
+        ClipSceneController clipSceneController = mock(ClipSceneController.class);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, logger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(
+            mock(McpSyncServerExchange.class),
+            buildRequest("launch_clip", Map.of("track_name", "Track 1", "clip_index", -1))  // negative clip_index
+        );
+
+        assertError(result, "INVALID_RANGE", "launch_clip");
+    }
+
+    @Test
+    void setSelectedDeviceParameterInvalidParameterIndexError() throws Exception {
+        // AC2 coverage: validation error with INVALID_PARAMETER_INDEX code
+        StructuredLogger logger = mockStructuredLogger();
+        DeviceController deviceController = mock(DeviceController.class);
+
+        McpServerFeatures.SyncToolSpecification spec = DeviceParamTool.setSelectedDeviceParameterSpecification(deviceController, logger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(
+            mock(McpSyncServerExchange.class),
+            buildRequest("set_selected_device_parameter", Map.of("parameter_index", 8, "value", 0.5))  // index 8 is out of range (0-7)
+        );
+
+        assertError(result, "INVALID_PARAMETER_INDEX", "set_selected_device_parameter");
+    }
+
+    @Test
+    void getDeviceDetailsDeviceNotFoundError() throws Exception {
+        // AC2 coverage: DEVICE_NOT_FOUND error for non-existent device
+        StructuredLogger logger = mockStructuredLogger();
+        DeviceController deviceController = mock(DeviceController.class);
+
+        when(deviceController.getDeviceDetails(0, null, 0, null, null)).thenThrow(
+            new BitwigApiException(ErrorCode.DEVICE_NOT_FOUND, "getDeviceDetails", "Device not found at index 0")
+        );
+
+        McpServerFeatures.SyncToolSpecification spec = GetDeviceDetailsTool.getDeviceDetailsSpecification(deviceController, logger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(
+            mock(McpSyncServerExchange.class),
+            buildRequest("get_device_details", Map.of("track_index", 0, "device_index", 0))
+        );
+
+        assertError(result, "DEVICE_NOT_FOUND", "get_device_details");
+    }
+
+    @Test
     void setSelectedDeviceParameterSuccessEnvelope() throws Exception {
         StructuredLogger logger = mockStructuredLogger();
         DeviceController deviceController = mock(DeviceController.class);

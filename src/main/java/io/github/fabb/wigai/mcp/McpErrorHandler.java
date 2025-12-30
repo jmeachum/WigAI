@@ -108,7 +108,8 @@ public class McpErrorHandler {
             return createSuccessResponse(result);
         } catch (BitwigApiException e) {
             timedOperation.failure(e.getErrorCode(), e.getMessage());
-            return createErrorResponse(e, logger);
+            // Always use the provided operation name (MCP tool name), not the exception's internal operation
+            return createErrorResponse(e.getErrorCode(), e.getMessage(), operation);
         } catch (Exception e) {
             ErrorCode errorCode = ErrorCode.fromException(e);
             timedOperation.failure(errorCode, e.getMessage());
@@ -147,7 +148,8 @@ public class McpErrorHandler {
             return createSuccessResponse(result);
         } catch (BitwigApiException e) {
             timedOperation.failure(e.getErrorCode(), e.getMessage());
-            return createErrorResponse(e, logger);
+            // Always use the provided operation name (MCP tool name), not the exception's internal operation
+            return createErrorResponse(e.getErrorCode(), e.getMessage(), operation);
         } catch (Exception e) {
             ErrorCode errorCode = ErrorCode.fromException(e);
             timedOperation.failure(errorCode, e.getMessage());

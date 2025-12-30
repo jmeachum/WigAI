@@ -764,6 +764,7 @@ Rules:
 
 - Notes:
   - `remote_controls` reflect the currently selected remote control page for the device (via `device.remoteControls()`).
+  - **API Limitation**: When targeting a non-selected device (by track/device identifiers), `remote_controls` returns an empty array. The Bitwig Controller API does not expose remote controls for non-selected devices without temporarily selecting them, which would disrupt the user experience.
   - `exists` for controls is `true` when the parameter name is non-empty; otherwise `false` (defined heuristic).
   - `value` is normalized (0.0-1.0). `raw_value` is provided only if the Controller API exposes a raw accessor; otherwise `null`.
   - Only existing controls are included in the response array.

@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: in-progress
+Status: Ready for Review
 
 ## Story
 
@@ -61,9 +61,9 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][MEDIUM] Align `set_selected_device_parameter` docs with implementation error code (`INVALID_RANGE` vs documented `INVALID_PARAMETER_INDEX`) or update validation to match docs. [docs/reference/api-reference.md:221]
 - [x] [AI-Review][MEDIUM] Align `list_devices_on_track` selection semantics docs with implementation (no index match; name match only on selected track). [docs/reference/api-reference.md:532]
 - [x] [AI-Review][MEDIUM] Align `get_selected_device_parameters` docs error codes with `DeviceController` behavior (`INTERNAL_ERROR` vs documented `BITWIG_API_ERROR`). [docs/reference/api-reference.md:195]
-- [ ] [AI-Review][HIGH] Add missing baseline tool error-path envelope tests to guarantee AC1/AC2 coverage across the full tool surface. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:1]
-- [ ] [AI-Review][MEDIUM] Ensure `error.operation` always reflects the invoked MCP tool name (not internal operation names) in error responses. [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:43]
-- [ ] [AI-Review][LOW] Align `get_device_details` docs with implementation when targeting non-selected devices (remote_controls currently empty). [docs/reference/api-reference.md:766]
+- [x] [AI-Review][HIGH] Add missing baseline tool error-path envelope tests to guarantee AC1/AC2 coverage across the full tool surface. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:1]
+- [x] [AI-Review][MEDIUM] Ensure `error.operation` always reflects the invoked MCP tool name (not internal operation names) in error responses. [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:43]
+- [x] [AI-Review][LOW] Align `get_device_details` docs with implementation when targeting non-selected devices (remote_controls currently empty). [docs/reference/api-reference.md:766]
 
 ## Dev Notes
 
@@ -118,7 +118,7 @@ so that my client can parse success/error reliably across tools (including `stat
 - Summary: Scope is primarily docs/test refactors; no architecture or dependency changes detected. [Source: git log]
 
 ### Story Completion Status
-- Story status: `Ready for Review` - all tasks and review follow-up items completed
+- Story status: `Ready for Review` - all tasks and review follow-up items completed (final batch 2025-12-30)
 
 ### References
 
@@ -291,11 +291,32 @@ N/A - No debug issues encountered during implementation.
 
 28. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-30) - final 3 review follow-up items resolved
 
+**2025-12-30 Final Review Follow-ups (Session 4):**
+
+29. **error.operation Field Fixed to Use MCP Tool Name** (MEDIUM priority):
+    - Modified `McpErrorHandler.executeWithErrorHandling()` and `executeWithValidation()` to always use the provided operation name (MCP tool name) instead of the exception's internal operation name
+    - This ensures AC2 compliance: `error.operation` always equals the invoked MCP tool name, even when controller-layer exceptions use internal method names like "getSelectedDeviceParameters"
+
+30. **Error-Path Envelope Tests Added** (HIGH priority):
+    - Added `errorOperationAlwaysReflectsMcpToolName` test: validates operation field override when controller throws exception with internal operation name
+    - Added `launchClipMissingRequiredParameterError` test: validates MISSING_REQUIRED_PARAMETER error code
+    - Added `launchClipEmptyParameterError` test: validates EMPTY_PARAMETER error code
+    - Added `launchClipInvalidRangeError` test: validates INVALID_RANGE error code for negative clip_index
+    - Added `setSelectedDeviceParameterInvalidParameterIndexError` test: validates INVALID_PARAMETER_INDEX error code
+    - Added `getDeviceDetailsDeviceNotFoundError` test: validates DEVICE_NOT_FOUND error code with operation override
+
+31. **get_device_details Documentation for Non-Selected Devices** (LOW priority):
+    - Updated `docs/reference/api-reference.md` to document that `remote_controls` returns an empty array when targeting non-selected devices
+    - Added API Limitation note explaining the Bitwig Controller API restriction
+
+32. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-30) - final 3 review follow-up items resolved
+
 ### File List
 
 **Modified:**
-- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters, session_launchSceneByIndex; fixed list_devices_on_track selection semantics docs
-- `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools
+- `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior; aligned error codes for launch_clip, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters, session_launchSceneByIndex; fixed list_devices_on_track selection semantics docs; added API limitation note for get_device_details remote_controls on non-selected devices
+- `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools; added 6 error-path envelope tests for AC1/AC2 coverage
+- `src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java` - Fixed error.operation to always use MCP tool name instead of internal operation names
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
 - `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)
 - `src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java` - Modified facade methods to throw BitwigApiException on API errors (enables partial_failures); aligned track index to use cursorTrack.position() consistently
