@@ -884,9 +884,10 @@ public class BitwigApiFacade {
         Map<String, Object> trackInfo = new LinkedHashMap<>();
 
         try {
-            // Get track index by finding it in the track bank using helper method
+            // Use cursorTrack.position() for project-absolute track index
+            // (consistent with selected_clip_slot.track_index)
             String trackName = cursorTrack.name().get();
-            int trackIndex = getTrackIndexByName(trackName);
+            int trackIndex = cursorTrack.position().get();
 
             trackInfo.put("index", trackIndex);
             trackInfo.put("name", trackName);
@@ -928,8 +929,10 @@ public class BitwigApiFacade {
 
         try {
             // Get track information where the device is located
+            // Use cursorTrack.position() for project-absolute track index
+            // (consistent with selected_track.index and selected_clip_slot.track_index)
             String trackName = cursorTrack.name().get();
-            int trackIndex = getTrackIndexByName(trackName);
+            int trackIndex = cursorTrack.position().get();
 
             deviceInfo.put("track_name", trackName);
             deviceInfo.put("track_index", trackIndex);

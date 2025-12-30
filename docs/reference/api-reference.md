@@ -113,8 +113,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       - `status_note`: Human-readable summary (e.g., "Status retrieved with 2 partial failures")
     - Partial failures allow clients to get available data without a full error, while clearly indicating which fields may be incomplete or defaulted
     - `selected_track.type`: Track type (e.g., "audio", "instrument", "group", "hybrid", "effect", "master")
-    - `selected_track.index`: 0-based index in the current track bank, or -1 if not found in visible tracks
-    - `selected_clip_slot`: Object describing the currently selected clip slot (track context, slot/scene indices, clip status/state), or `null` if no track is selected
+    - `selected_track.index`: 0-based project-absolute track index (consistent with `selected_clip_slot.track_index` and `selected_device.track_index`)
+    - `selected_clip_slot`: Object describing the currently selected clip slot (track context, slot/scene indices, clip status/state), or `null` if: (1) no track is selected, (2) clip launcher slot bank is unavailable, or (3) the selected track has no clip launcher slots
     - `selected_clip_slot.scene_name`: `null` when the scene is unnamed or unavailable
     - **API Limitation**: Bitwig Extension API v19 does not provide a way to detect selected clip slot position. CursorClip exists but does not expose slot position (scene/slot index). No ClipLauncherSlotCursor exists. The slot is detected as follows:
       - If a clip is playing/queued/recording: Returns that slot's information
@@ -122,10 +122,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       - If no track is selected: Returns `null`
     - `selected_device`: Object containing currently selected device details, or `null` if no device is selected
     - `selected_device.track_name`: Name of the track containing the selected device
-    - `selected_device.track_index`: 0-based index of the track containing the device, or -1 if not found in visible tracks
+    - `selected_device.track_index`: 0-based project-absolute index of the track containing the device (consistent with `selected_track.index`)
     - `selected_device.index`: 0-based index of the device in the track's device chain
     - `selected_device.bypassed`: Boolean indicating if the device is bypassed (disabled)
-    - `selected_device.parameters`: Array containing only accessible parameters with names (0-7 parameter indexes)
+    - `selected_device.parameters`: Array of accessible parameters (0-7 parameter indexes); each parameter has `index`, `name` (can be `null` for unnamed parameters), `value`, and `display_value`
 
 #### `transport_start`
 *   **Description**: Start Bitwig's transport playback.
@@ -334,8 +334,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `SCENE_NOT_FOUND`
-    *   `BITWIG_API_ERROR`
+    *   `MISSING_REQUIRED_PARAMETER`: When `scene_name` is not provided
+    *   `EMPTY_PARAMETER`: When `scene_name` is empty or whitespace-only
+    *   `SCENE_NOT_FOUND`: When no scene matches the provided name
+    *   `BITWIG_API_ERROR`: When a Bitwig API error occurs during scene launch
 
 ### Track Information Commands
 

@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: in-progress
+Status: Ready for Review
 
 ## Story
 
@@ -49,11 +49,11 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][MEDIUM] Document `session_launchSceneByIndex` `INVALID_RANGE` error to match validation behavior. [docs/reference/api-reference.md:310]
 - [x] [AI-Review][MEDIUM] Add tests covering `ErrorCode.fromString` alias mappings (`CLIP_INDEX_OUT_OF_BOUNDS`, `BITWIG_ERROR`). [src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java:77]
 - [x] [AI-Review][LOW] Guard `session_launchSceneByName` success from returning `launched_scene_index: -1` on rename/delete race. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:61]
-- [ ] [AI-Review][MEDIUM] Add missing validation reports to story File List for auditability. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:218]
-- [ ] [AI-Review][MEDIUM] Align `status` selected track/clip slot index bases (track bank vs project index) to avoid mixed indexing in one payload. [src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java:887]
-- [ ] [AI-Review][MEDIUM] Document `status` returning null `selected_clip_slot` when slot bank is unavailable/empty (or add partial_failures). [docs/reference/api-reference.md:117]
-- [ ] [AI-Review][LOW] Document `session_launchSceneByName` validation errors (`MISSING_REQUIRED_PARAMETER`, `EMPTY_PARAMETER`). [docs/reference/api-reference.md:336]
-- [ ] [AI-Review][LOW] Clarify `selected_device.parameters` can include null names. [docs/reference/api-reference.md:128]
+- [x] [AI-Review][MEDIUM] Add missing validation reports to story File List for auditability. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:218]
+- [x] [AI-Review][MEDIUM] Align `status` selected track/clip slot index bases (track bank vs project index) to avoid mixed indexing in one payload. [src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java:887]
+- [x] [AI-Review][MEDIUM] Document `status` returning null `selected_clip_slot` when slot bank is unavailable/empty (or add partial_failures). [docs/reference/api-reference.md:117]
+- [x] [AI-Review][LOW] Document `session_launchSceneByName` validation errors (`MISSING_REQUIRED_PARAMETER`, `EMPTY_PARAMETER`). [docs/reference/api-reference.md:336]
+- [x] [AI-Review][LOW] Clarify `selected_device.parameters` can include null names. [docs/reference/api-reference.md:128]
 
 ## Dev Notes
 
@@ -220,6 +220,32 @@ N/A - No debug issues encountered during implementation.
 
 14. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-29)
 
+**2025-12-30 Remaining Review Follow-ups:**
+
+15. **Validation Report Added to File List** (MEDIUM priority):
+    - Added `docs/sprint-artifacts/validation-report-2025-12-30T02-08-37Z.md` to File List for auditability
+
+16. **Index Bases Aligned in Status Payload** (MEDIUM priority):
+    - Changed `getSelectedTrackInfo()` and `getSelectedDeviceInfo()` to use `cursorTrack.position().get()` instead of `getTrackIndexByName()`
+    - This ensures consistent project-absolute indexing across `selected_track.index`, `selected_device.track_index`, and `selected_clip_slot.track_index`
+    - Updated test `testGetSelectedDeviceInfo_WithBypassedDevice` (renamed from `testGetSelectedDeviceInfo_TrackNotFoundInBank`) to reflect new behavior
+    - **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-30)
+
+17. **Null selected_clip_slot Documentation Updated** (MEDIUM priority):
+    - Updated `docs/reference/api-reference.md` to document all 3 conditions where `selected_clip_slot` returns null: (1) no track selected, (2) slot bank unavailable, (3) track has no clip launcher slots
+    - Also updated `selected_track.index` description to reflect project-absolute indexing (removed "or -1 if not found in visible tracks")
+    - Updated `selected_device.track_index` description for consistency
+
+18. **session_launchSceneByName Validation Errors Documented** (LOW priority):
+    - Added `MISSING_REQUIRED_PARAMETER` and `EMPTY_PARAMETER` to the Errors section in `docs/reference/api-reference.md`
+    - Also enhanced existing error descriptions with context
+
+19. **selected_device.parameters Null Names Clarified** (LOW priority):
+    - Updated `docs/reference/api-reference.md` to clarify that parameter `name` can be `null` for unnamed parameters
+    - Expanded the parameter description to document all fields: `index`, `name`, `value`, `display_value`
+
+20. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-30) - all 5 remaining review follow-up items resolved
+
 ### File List
 
 **Modified:**
@@ -227,9 +253,11 @@ N/A - No debug issues encountered during implementation.
 - `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
 - `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)
-- `src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java` - Modified facade methods to throw BitwigApiException on API errors (enables partial_failures)
+- `src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java` - Modified facade methods to throw BitwigApiException on API errors (enables partial_failures); aligned track index to use cursorTrack.position() consistently
+- `src/test/java/io/github/fabb/wigai/bitwig/BitwigApiFacadeTest.java` - Renamed testGetSelectedDeviceInfo_TrackNotFoundInBank to testGetSelectedDeviceInfo_WithBypassedDevice; updated mock to use cursorTrack.position()
 - `src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java` - Added `fromString()` method for string-to-enum mapping
 - `src/main/java/io/github/fabb/wigai/mcp/tool/ClipTool.java` - Use actual error code from result instead of OPERATION_FAILED
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java` - Use actual error code from result instead of OPERATION_FAILED
 - `src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java` - Use actual error code from result; guard against -1 launched_scene_index race condition
 - `src/test/java/io/github/fabb/wigai/common/error/ErrorCodeTest.java` - Added 7 tests for fromString method including alias mappings
+- `docs/sprint-artifacts/validation-report-2025-12-30T02-08-37Z.md` - Story validation report for auditability (86% pass rate, no critical issues)

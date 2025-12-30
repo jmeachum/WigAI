@@ -581,7 +581,7 @@ public class BitwigApiFacadeTest {
     }
 
     @Test
-    void testGetSelectedDeviceInfo_TrackNotFoundInBank() {
+    void testGetSelectedDeviceInfo_WithBypassedDevice() {
         // Arrange
         // Mock device exists
         com.bitwig.extension.controller.api.BooleanValue mockDeviceExists = mock(com.bitwig.extension.controller.api.BooleanValue.class);
@@ -597,20 +597,14 @@ public class BitwigApiFacadeTest {
         when(mockDeviceEnabled.get()).thenReturn(false);  // Device is bypassed
         when(mockCursorDevice.isEnabled()).thenReturn(mockDeviceEnabled);
 
-        // Mock cursor track name
+        // Mock cursor track name and position (uses project-absolute index)
         com.bitwig.extension.controller.api.SettableStringValue mockTrackName = mock(com.bitwig.extension.controller.api.SettableStringValue.class);
-        when(mockTrackName.get()).thenReturn("Unknown Track");
+        when(mockTrackName.get()).thenReturn("Test Track");
         when(mockCursorTrack.name()).thenReturn(mockTrackName);
 
-        // Mock track bank - no matching tracks
-        when(mockTrackBank.getSizeOfBank()).thenReturn(8);
-        com.bitwig.extension.controller.api.BooleanValue mockTrackExists = mock(com.bitwig.extension.controller.api.BooleanValue.class);
-        when(mockTrackExists.get()).thenReturn(true);
-        when(mockTrack.exists()).thenReturn(mockTrackExists);
-
-        com.bitwig.extension.controller.api.SettableStringValue mockBankTrackName = mock(com.bitwig.extension.controller.api.SettableStringValue.class);
-        when(mockBankTrackName.get()).thenReturn("Different Track");  // Different name
-        when(mockTrack.name()).thenReturn(mockBankTrackName);
+        com.bitwig.extension.controller.api.SettableIntegerValue mockTrackPosition = mock(com.bitwig.extension.controller.api.SettableIntegerValue.class);
+        when(mockTrackPosition.get()).thenReturn(5);  // Project-absolute track position
+        when(mockCursorTrack.position()).thenReturn(mockTrackPosition);
 
         // Mock empty device parameters
         for (int i = 0; i < 8; i++) {
@@ -631,8 +625,8 @@ public class BitwigApiFacadeTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals("Unknown Track", result.get("track_name"));
-        assertEquals(-1, result.get("track_index"));  // Not found in bank
+        assertEquals("Test Track", result.get("track_name"));
+        assertEquals(5, result.get("track_index"));  // Project-absolute position
         assertEquals(0, result.get("index"));
         assertEquals("Test Device", result.get("name"));
         assertEquals(true, result.get("bypassed"));  // Device is disabled, so bypassed
