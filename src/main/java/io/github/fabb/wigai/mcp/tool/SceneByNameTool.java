@@ -1,5 +1,7 @@
 package io.github.fabb.wigai.mcp.tool;
 
+import io.github.fabb.wigai.common.error.BitwigApiException;
+import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.common.validation.ParameterValidator;
 import io.github.fabb.wigai.features.ClipSceneController;
@@ -66,7 +68,8 @@ public class SceneByNameTool {
                                 "message", result.getMessage()
                             );
                         } else {
-                            throw new RuntimeException(result.getMessage());
+                            ErrorCode errorCode = ErrorCode.fromString(result.getErrorCode());
+                            throw new BitwigApiException(errorCode, TOOL_NAME, result.getMessage());
                         }
                     }
                 }

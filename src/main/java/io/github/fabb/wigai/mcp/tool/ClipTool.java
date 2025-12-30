@@ -74,7 +74,8 @@ public class ClipTool {
                             "message", result.getMessage()
                         );
                     } else {
-                        throw new BitwigApiException(ErrorCode.OPERATION_FAILED, TOOL_NAME, result.getMessage());
+                        ErrorCode errorCode = ErrorCode.fromString(result.getErrorCode());
+                        throw new BitwigApiException(errorCode, TOOL_NAME, result.getMessage());
                     }
                 }
             );

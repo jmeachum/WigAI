@@ -39,9 +39,9 @@ so that my client can parse success/error reliably across tools (including `stat
 
 ### Review Follow-ups (AI)
 
-- [ ] [AI-Review][HIGH] Ensure `status` reports `partial_failures` when Bitwig API sub-fetches fail; facade currently returns defaults without throwing, so failures are not surfaced. [src/main/java/io/github/fabb/wigai/mcp/tool/StatusTool.java:47]
-- [ ] [AI-Review][MEDIUM] Align envelope error codes for clip/scene tools or update docs/tests; current tests assert `OPERATION_FAILED` instead of documented `TRACK_NOT_FOUND`/`CLIP_INDEX_OUT_OF_BOUNDS`/`SCENE_NOT_FOUND`. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:128]
-- [ ] [AI-Review][MEDIUM] Update completion notes: `./gradlew atddRedTest` no longer runs after `@Tag("atdd")` promotion. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:139]
+- [x] [AI-Review][HIGH] Ensure `status` reports `partial_failures` when Bitwig API sub-fetches fail; facade currently returns defaults without throwing, so failures are not surfaced. [src/main/java/io/github/fabb/wigai/mcp/tool/StatusTool.java:47]
+- [x] [AI-Review][MEDIUM] Align envelope error codes for clip/scene tools or update docs/tests; current tests assert `OPERATION_FAILED` instead of documented `TRACK_NOT_FOUND`/`CLIP_INDEX_OUT_OF_BOUNDS`/`SCENE_NOT_FOUND`. [src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java:128]
+- [x] [AI-Review][MEDIUM] Update completion notes: `./gradlew atddRedTest` no longer runs after `@Tag("atdd")` promotion. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:139]
 
 ## Dev Notes
 
@@ -149,10 +149,10 @@ N/A - No debug issues encountered during implementation.
    - Partial failure handling implemented with `partial_failures` array and `status_note` summary
 
 3. **Test Evidence**:
-   - `./gradlew atddRedTest` - 32 tests PASSED (2025-12-29)
-   - `./gradlew test` - All tests PASSED after promoting ATDD tests (2025-12-29)
+   - `./gradlew test` - All tests PASSED including ATDD envelope tests (2025-12-29)
    - Test coverage includes success/error envelopes for all baseline tools
    - `assertNotDoubleWrapped()` regression checks in all tests
+   - Note: ATDD tests now run as part of standard test suite after `@Tag("atdd")` promotion
 
 4. **Documentation Updated**: `docs/reference/api-reference.md` updated to:
    - Wrap `status` response in standardized envelope (`status: "success"`, `data: {...}`)
@@ -161,10 +161,29 @@ N/A - No debug issues encountered during implementation.
 
 5. **Test Promotion**: Changed `@Tag("atdd_red")` to `@Tag("atdd")` in `BaselineToolEnvelopeAtddTest.java` so tests now run in CI
 
+**2025-12-29 Review Follow-up Implementation:**
+
+6. **Partial Failures Now Surface Correctly** (HIGH priority):
+   - Modified `BitwigApiFacade.java` methods (`getTransportStatus`, `getSelectedTrackInfo`, `getSelectedDeviceInfo`, `getSelectedClipSlotInfo`, `getProjectParameters`) to throw `BitwigApiException` on API errors instead of silently returning defaults
+   - StatusTool's existing try-catch blocks now properly catch failures and populate `partial_failures` array
+   - Distinguished between "nothing selected" (returns null, valid state) vs "API error" (throws exception, partial failure)
+
+7. **Error Codes Aligned for Clip/Scene Tools** (MEDIUM priority):
+   - Added `ErrorCode.fromString()` method to map string error codes to `ErrorCode` enum values
+   - Updated `ClipTool.java`, `SceneTool.java`, `SceneByNameTool.java` to use the actual error code from result (e.g., `TRACK_NOT_FOUND`, `SCENE_NOT_FOUND`) instead of hardcoded `OPERATION_FAILED`
+   - Updated test assertions in `BaselineToolEnvelopeAtddTest.java` to expect the correct error codes
+
+8. **Test Evidence**: `./gradlew test` - All tests PASSED (2025-12-29)
+
 ### File List
 
 **Modified:**
 - `docs/reference/api-reference.md` - Updated status response documentation with envelope wrapper and partial failure behavior
-- `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd") to promote tests to CI
+- `src/test/java/io/github/fabb/wigai/mcp/tool/BaselineToolEnvelopeAtddTest.java` - Changed @Tag("atdd_red") to @Tag("atdd"); updated error code assertions for clip/scene tools
 - `docs/sprint-artifacts/sprint-status.yaml` - Updated story status to in-progress
 - `docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md` - This story file (tasks marked complete, Dev Agent Record updated)
+- `src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java` - Modified facade methods to throw BitwigApiException on API errors (enables partial_failures)
+- `src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java` - Added `fromString()` method for string-to-enum mapping
+- `src/main/java/io/github/fabb/wigai/mcp/tool/ClipTool.java` - Use actual error code from result instead of OPERATION_FAILED
+- `src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java` - Use actual error code from result instead of OPERATION_FAILED
+- `src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java` - Use actual error code from result instead of RuntimeException

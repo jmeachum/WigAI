@@ -216,7 +216,7 @@ class BaselineToolEnvelopeAtddTest {
             buildRequest("launch_clip", Map.of("track_name", "Track 1", "clip_index", 0))
         );
 
-        assertError(result, "OPERATION_FAILED", "launch_clip");
+        assertError(result, "TRACK_NOT_FOUND", "launch_clip");
     }
 
     @Test
@@ -251,7 +251,7 @@ class BaselineToolEnvelopeAtddTest {
             buildRequest("session_launchSceneByIndex", Map.of("scene_index", 1))
         );
 
-        assertError(result, "OPERATION_FAILED", "session_launchSceneByIndex");
+        assertError(result, "SCENE_NOT_FOUND", "session_launchSceneByIndex");
     }
 
     @Test
@@ -289,7 +289,7 @@ class BaselineToolEnvelopeAtddTest {
             buildRequest("session_launchSceneByName", Map.of("scene_name", "Intro"))
         );
 
-        assertError(result, "OPERATION_FAILED", "session_launchSceneByName");
+        assertError(result, "SCENE_NOT_FOUND", "session_launchSceneByName");
     }
 
     @Test
