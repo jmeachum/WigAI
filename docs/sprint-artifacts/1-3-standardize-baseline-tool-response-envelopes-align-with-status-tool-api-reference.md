@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: Ready for Review
+Status: in-progress
 
 ## Story
 
@@ -54,6 +54,10 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][MEDIUM] Document `status` returning null `selected_clip_slot` when slot bank is unavailable/empty (or add partial_failures). [docs/reference/api-reference.md:117]
 - [x] [AI-Review][LOW] Document `session_launchSceneByName` validation errors (`MISSING_REQUIRED_PARAMETER`, `EMPTY_PARAMETER`). [docs/reference/api-reference.md:336]
 - [x] [AI-Review][LOW] Clarify `selected_device.parameters` can include null names. [docs/reference/api-reference.md:128]
+- [ ] [AI-Review][HIGH] Align `selected_device.index` docs with implementation (index currently hardcoded to 0). [docs/reference/api-reference.md:126]
+- [ ] [AI-Review][HIGH] Avoid `session_launchSceneByName` success turning into error when `findSceneByName` fails; treat index lookup as best-effort. [src/main/java/io/github/fabb/wigai/mcp/tool/SceneByNameTool.java:60]
+- [ ] [AI-Review][MEDIUM] Update File List to include in-scope validation report files (12-29/12-30 runs). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:249]
+- [ ] [AI-Review][MEDIUM] Remove File List entry claiming changes to `validation-report-2025-12-30T02-08-37Z.md` (not modified in scope). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:263]
 
 ## Dev Notes
 
