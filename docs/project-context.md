@@ -44,9 +44,18 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Default server binding is loopback-only (`localhost` / `127.0.0.1` / `::1`); treat non-loopback configs as unsafe and explicitly intentional.
 - Do not log full note payloads unless debug is explicitly enabled.
 
-### Error Code Semantics
+### Error Code Semantics (Single Source of Truth)
 
-Use these error codes consistently across all MCP tools:
+**This section is the canonical reference for error code definitions.** All other artifacts must reference this, not redefine:
+
+| Artifact | Relationship | When Conflicts Arise |
+|----------|--------------|---------------------|
+| `ErrorCode.java` | Implements these definitions | Update code to match this doc |
+| `api-reference.md` | References (links here) | Update docs to match this doc |
+| `ErrorContractComplianceTest` | Enforces these definitions | Tests fail = fix implementation |
+| Story error scenarios | Uses codes from this list | Story references this doc |
+
+**Canonical Error Codes:**
 
 - `MISSING_REQUIRED_PARAMETER` — parameter not provided in request
 - `EMPTY_PARAMETER` — parameter provided but empty (empty string, empty array)
@@ -56,6 +65,8 @@ Use these error codes consistently across all MCP tools:
 - `BITWIG_API_ERROR` — Bitwig API call failed (external system error)
 - `INTERNAL_ERROR` — unexpected internal failure (code bug, not API issue)
 - `error.operation` — always equals the MCP tool name, not internal method names
+
+**When Adding New Error Codes:** Update this section FIRST, then propagate to code/docs/tests.
 
 ### Testing Rules
 
