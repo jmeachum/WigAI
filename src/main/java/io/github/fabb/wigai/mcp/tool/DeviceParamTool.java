@@ -249,7 +249,11 @@ public class DeviceParamTool {
         Object parametersObj = ParameterValidator.validateRequired(arguments, "parameters", SET_MULTIPLE_PARAMETERS_TOOL);
 
         if (!(parametersObj instanceof List)) {
-            throw new IllegalArgumentException("'parameters' must be an array");
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER,
+                SET_MULTIPLE_PARAMETERS_TOOL,
+                "'parameters' must be an array"
+            );
         }
 
         List<Object> parametersArray = (List<Object>) parametersObj;
@@ -264,7 +268,11 @@ public class DeviceParamTool {
         List<ParameterSetting> parameterSettings = new ArrayList<>();
         for (Object paramObj : parametersArray) {
             if (!(paramObj instanceof Map)) {
-                throw new IllegalArgumentException("Each parameter entry must be an object");
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER,
+                    SET_MULTIPLE_PARAMETERS_TOOL,
+                    "Each parameter entry must be an object"
+                );
             }
 
             Map<String, Object> paramMap = (Map<String, Object>) paramObj;

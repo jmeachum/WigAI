@@ -44,6 +44,19 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Default server binding is loopback-only (`localhost` / `127.0.0.1` / `::1`); treat non-loopback configs as unsafe and explicitly intentional.
 - Do not log full note payloads unless debug is explicitly enabled.
 
+### Error Code Semantics
+
+Use these error codes consistently across all MCP tools:
+
+- `MISSING_REQUIRED_PARAMETER` — parameter not provided in request
+- `EMPTY_PARAMETER` — parameter provided but empty (empty string, empty array)
+- `INVALID_PARAMETER` — parameter has wrong type or malformed structure (e.g., not an array when array expected)
+- `INVALID_PARAMETER_INDEX` — index outside valid bounds (e.g., parameter_index 0-7)
+- `INVALID_RANGE` — numeric value outside allowed range (e.g., value 0.0-1.0)
+- `BITWIG_API_ERROR` — Bitwig API call failed (external system error)
+- `INTERNAL_ERROR` — unexpected internal failure (code bug, not API issue)
+- `error.operation` — always equals the MCP tool name, not internal method names
+
 ### Testing Rules
 
 - Add/extend tests alongside code:
@@ -93,4 +106,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
 
-Last Updated: 2025-12-18T04:56:02Z
+Last Updated: 2025-12-30

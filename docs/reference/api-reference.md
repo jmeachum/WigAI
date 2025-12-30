@@ -255,7 +255,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   Top-level: `DEVICE_NOT_SELECTED`, `MISSING_REQUIRED_PARAMETER` (for missing parameters array), `EMPTY_PARAMETER` (for empty parameters array)
+    *   Top-level: `DEVICE_NOT_SELECTED`, `MISSING_REQUIRED_PARAMETER` (for missing parameters array), `EMPTY_PARAMETER` (for empty parameters array), `INVALID_PARAMETER` (for malformed parameters: not an array or entries not objects)
     *   Per-item in `results`: `INVALID_PARAMETER_INDEX`, `INVALID_RANGE` (for value outside 0.0-1.0), `BITWIG_API_ERROR`
 
 ### Session Control Commands

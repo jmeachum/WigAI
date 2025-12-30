@@ -485,20 +485,16 @@ public class BitwigApiFacadeTest {
         when(mockDeviceEnabled.get()).thenReturn(true);
         when(mockCursorDevice.isEnabled()).thenReturn(mockDeviceEnabled);
 
-        // Mock cursor track name and exists
+        // Mock cursor track name and position (project-absolute index)
         com.bitwig.extension.controller.api.SettableStringValue mockTrackName = mock(com.bitwig.extension.controller.api.SettableStringValue.class);
         when(mockTrackName.get()).thenReturn("Test Track");
         when(mockCursorTrack.name()).thenReturn(mockTrackName);
 
-        // Mock track bank for finding track index
-        when(mockTrackBank.getSizeOfBank()).thenReturn(8);
-        com.bitwig.extension.controller.api.BooleanValue mockTrackExists = mock(com.bitwig.extension.controller.api.BooleanValue.class);
-        when(mockTrackExists.get()).thenReturn(true);
-        when(mockTrack.exists()).thenReturn(mockTrackExists);
-
-        com.bitwig.extension.controller.api.SettableStringValue mockBankTrackName = mock(com.bitwig.extension.controller.api.SettableStringValue.class);
-        when(mockBankTrackName.get()).thenReturn("Test Track");
-        when(mockTrack.name()).thenReturn(mockBankTrackName);
+        // Mock cursorTrack.position() for project-absolute track index
+        // Use non-zero value to verify we're actually reading from position(), not defaulting
+        com.bitwig.extension.controller.api.IntegerValue mockCursorTrackPosition = mock(com.bitwig.extension.controller.api.IntegerValue.class);
+        when(mockCursorTrackPosition.get()).thenReturn(5);
+        when(mockCursorTrack.position()).thenReturn(mockCursorTrackPosition);
 
         // Mock device parameters
         for (int i = 0; i < 8; i++) {
@@ -539,8 +535,8 @@ public class BitwigApiFacadeTest {
         // Assert
         assertNotNull(result);
         assertEquals("Test Track", result.get("track_name"));
-        assertEquals(0, result.get("track_index"));  // Found at index 0
-        assertEquals(0, result.get("index"));  // Device index in chain
+        assertEquals(5, result.get("track_index"));  // Project-absolute index from cursorTrack.position()
+        assertEquals(0, result.get("index"));  // Device index in chain (always 0 per Bitwig API limitation)
         assertEquals("Test Device", result.get("name"));
         assertEquals(false, result.get("bypassed"));  // Device is enabled, so not bypassed
 
