@@ -66,3 +66,17 @@ so that {{benefit}}.
 ### Completion Notes List
 
 ### File List
+
+<!-- Use these categories to prevent confusion during review -->
+
+**Source Modified:** (implementation changes - subject to review)
+- `src/main/java/...` — implementation files
+- `src/test/java/...` — test files
+- `docs/reference/...` — API documentation
+
+**Generated Artifacts:** (out-of-scope for implementation review)
+- `docs/sprint-artifacts/validation-report-*.md` — validation run outputs
+- Build outputs, logs, IDE-generated files
+
+**Removed:** (files deleted during implementation)
+- List any intentionally removed files
