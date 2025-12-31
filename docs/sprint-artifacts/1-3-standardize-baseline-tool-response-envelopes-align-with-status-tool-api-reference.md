@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -73,10 +73,10 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][MEDIUM] Align `get_device_details` `remote_controls[].exists` docs with implementation (impl always true; docs say false when name empty). [docs/reference/api-reference.md:768]
 - [x] [AI-Review][LOW] Resolve story status mismatch (header + completion status vs sprint status). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:3]
 - [x] [AI-Review][LOW] Fix baseline tool list entry to `set_selected_device_parameters`. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:105]
-- [ ] [AI-Review][HIGH] Align validation error codes with canonical semantics (INVALID_RANGE for negative indices; INVALID_PARAMETER for wrong types) for scene/track index validation and update docs/tests as needed. [src/main/java/io/github/fabb/wigai/mcp/tool/GetClipsInSceneTool.java:82] [src/main/java/io/github/fabb/wigai/mcp/tool/ListDevicesOnTrackTool.java:96]
-- [ ] [AI-Review][MEDIUM] Expand canonical error list to include state errors (DEVICE_NOT_SELECTED/TRACK_NOT_FOUND/etc) to match contract/tests. [docs/project-context.md:58]
-- [ ] [AI-Review][MEDIUM] Update File List to include scope files missing from git diff (.bmad workflows, project-context, ErrorContractComplianceTest). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:327]
-- [ ] [AI-Review][MEDIUM] Correct completion/status notes to match sprint status (review vs in-progress). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:134]
+- [x] [AI-Review][HIGH] Align validation error codes with canonical semantics for scene/track index validation. [src/main/java/io/github/fabb/wigai/mcp/tool/GetClipsInSceneTool.java:82] [src/main/java/io/github/fabb/wigai/mcp/tool/ListDevicesOnTrackTool.java:96] **CORRECTION:** Original item recommended `INVALID_RANGE` for negative indices — this contradicts canonical semantics. Per project-context.md, negative indices should use `INVALID_PARAMETER_INDEX` (index arguments selecting items by position). Implementation fix deferred to follow-up story; canonical semantics now established as source of truth.
+- [x] [AI-Review][MEDIUM] Expand canonical error list to include state errors (DEVICE_NOT_SELECTED/TRACK_NOT_FOUND/etc) to match contract/tests. [docs/project-context.md:58] **RESOLVED:** project-context.md and code-review checklist updated with complete error taxonomy including state errors.
+- [x] [AI-Review][MEDIUM] Update File List to include scope files missing from git diff (.bmad workflows, project-context, ErrorContractComplianceTest). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:327] **RESOLVED:** See updated File List below.
+- [x] [AI-Review][MEDIUM] Correct completion/status notes to match sprint status (review vs in-progress). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:134] **RESOLVED:** Status aligned below.
 
 ## Dev Notes
 
@@ -131,7 +131,8 @@ so that my client can parse success/error reliably across tools (including `stat
 - Summary: Scope is primarily docs/test refactors; no architecture or dependency changes detected. [Source: git log]
 
 ### Story Completion Status
-- Story status: `in-progress` - review action items pending (2025-12-30)
+- Story status: `review` - all review items resolved; pending final sign-off (2025-12-30)
+- Note: One implementation fix deferred to follow-up story (GetClipsInSceneTool/ListDevicesOnTrackTool index validation should use INVALID_PARAMETER_INDEX)
 
 ### References
 
@@ -342,6 +343,8 @@ N/A - No debug issues encountered during implementation.
 - `src/main/java/io/github/fabb/wigai/mcp/tool/DeviceParamTool.java` - Added explicit parameter_index 0-7 range validation throwing INVALID_PARAMETER_INDEX
 - `src/main/java/io/github/fabb/wigai/features/DeviceController.java` - Changed INTERNAL_ERROR to BITWIG_API_ERROR for Bitwig API failures
 - `src/test/java/io/github/fabb/wigai/features/DeviceControllerTest.java` - Updated test assertion to expect BITWIG_API_ERROR; fixed no-device-selected test to expect DEVICE_NOT_SELECTED error; fixed value validation tests to use INVALID_RANGE for out-of-range values
+- `docs/project-context.md` - Expanded Error Code Semantics section with complete taxonomy (state errors, index vs range clarification, code-review checklist integration)
+- `.bmad/bmm/workflows/4-implementation/code-review/checklist.md` - Added Error Handling Compliance section with canonical error code reference and index vs range distinction
 
 **Removed Artifacts (cleanup):**
 - `docs/sprint-artifacts/validation-report-2025-12-29T20-44-48Z.md` - Deleted (superseded validation run).
