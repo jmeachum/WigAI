@@ -1,6 +1,6 @@
 # Story 1.3: Standardize Baseline Tool Response Envelopes (Align With `status` Tool + API Reference)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -76,6 +76,11 @@ so that my client can parse success/error reliably across tools (including `stat
 - [x] [AI-Review][HIGH] Align validation error codes with canonical semantics for scene/track index validation. [src/main/java/io/github/fabb/wigai/mcp/tool/GetClipsInSceneTool.java:82] [src/main/java/io/github/fabb/wigai/mcp/tool/ListDevicesOnTrackTool.java:96] **CORRECTION:** Original item recommended `INVALID_RANGE` for negative indices — this contradicts canonical semantics. Per project-context.md, negative indices should use `INVALID_PARAMETER_INDEX` (index arguments selecting items by position). Implementation fix deferred to follow-up story; canonical semantics now established as source of truth.
 - [x] [AI-Review][MEDIUM] Expand canonical error list to include state errors (DEVICE_NOT_SELECTED/TRACK_NOT_FOUND/etc) to match contract/tests. [docs/project-context.md:58] **RESOLVED:** project-context.md and code-review checklist updated with complete error taxonomy including state errors.
 - [x] [AI-Review][MEDIUM] Update File List to include scope files missing from git diff (.bmad workflows, project-context, ErrorContractComplianceTest). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:327] **RESOLVED:** See updated File List below.
+- [ ] [AI-Review][HIGH] Align index validation error codes with canonical semantics: use INVALID_PARAMETER_INDEX for negative clip_index/scene_index (not INVALID_RANGE) in ParameterValidator and related tests. [src/main/java/io/github/fabb/wigai/common/validation/ParameterValidator.java:218]
+- [ ] [AI-Review][HIGH] Align list_devices_on_track track_index out-of-range error to INVALID_PARAMETER_INDEX (not INVALID_RANGE) and update docs/tests accordingly. [src/main/java/io/github/fabb/wigai/bitwig/BitwigApiFacade.java:1498]
+- [ ] [AI-Review][MEDIUM] Align get_clips_in_scene negative scene_index validation/doc error code with canonical INVALID_PARAMETER_INDEX. [src/main/java/io/github/fabb/wigai/mcp/tool/GetClipsInSceneTool.java:40]
+- [ ] [AI-Review][MEDIUM] Update File List to include in-scope changes: ErrorContractComplianceTest and create-story template. [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:328]
+- [ ] [AI-Review][LOW] Improve ErrorCode.fromException classification to avoid OPERATION_FAILED for known patterns (reduce contract drift risk). [src/main/java/io/github/fabb/wigai/common/error/ErrorCode.java:85]
 - [x] [AI-Review][MEDIUM] Correct completion/status notes to match sprint status (review vs in-progress). [docs/sprint-artifacts/1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md:134] **RESOLVED:** Status aligned below.
 
 ## Dev Notes
