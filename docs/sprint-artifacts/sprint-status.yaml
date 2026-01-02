@@ -45,7 +45,7 @@ development_status:
   epic-1: in-progress
   1-1-repeatable-mcp-smoke-test-harness-checklist: done
   1-2-localhost-binding-defaults-preferences-guardrails: done
-  1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference: review
+  1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference: done
   1-4-logging-request-id-correlation-hardening-mutating-tools-only: backlog
   1-5-non-blocking-execution-bounded-retry-verification-baseline-tools: backlog
   1-6-align-index-validation-error-codes-with-canonical-semantics: drafted
