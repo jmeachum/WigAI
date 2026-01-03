@@ -82,6 +82,23 @@ so that I can reliably debug failures and performance issues without logging sen
   - Include `request_id` in all logs for that invocation when present.
   - On failure, include the same `ErrorCode` that is returned in the MCP error envelope.
   - Never log full large payloads by default; prefer counts/shape and gate verbose output behind explicit debug. [Source: docs/prd.md; docs/project-context.md; docs/architecture.md]
+- Performance + safety requirements (non-negotiable):
+  - `request_id` extraction and parameter shaping MUST be CPU-only and bounded work (O(1) relative to payload size). No I/O, DNS, JSON serialization, or reflection-heavy logging on Bitwig-sensitive paths. [Source: docs/project-context.md]
+  - Do NOT pass raw `req.arguments()` directly to logging. Always pass a sanitized/summarized `parameters` map (safe keys only), and never call `toString()` on raw argument maps. [Source: docs/prd.md; docs/project-context.md]
+
+### Testing Contract (Required)
+- Assertion point (required): For baseline mutating tools, the unified handler MUST call `StructuredLogger.startTimedOperation(operationId, tool_name, parameters)` where `parameters` includes `request_id` when it is present in the tool arguments.
+- Backward compatibility: Tests MUST also cover absence of `request_id` (no crash, no change in behavior/envelope).
+- Payload safety: Tests MUST ensure the logged `parameters` map is sanitized (no raw payloads / large arrays / large strings); use summaries only (e.g., counts/shape).
+
+### Scope Clarification (Mutating Tools Only)
+- This story adds `request_id` to JSON schemas and any explicit argument parsing ONLY for baseline mutating tools (the list in AC 3).
+- Do not add `request_id` to read-only tool schemas as part of this story; if the unified handler can opportunistically include `request_id` when present, that is an implementation detail and must not change tool contracts.
+
+### Previous Story Intelligence (Prevent Regressions)
+- From Story 1.3: Do not change MCP response envelopes while improving logging; keep `status` + `data|error` exactly as-is.
+- Preserve `error.operation == tool_name` (tool name), not internal method identifiers.
+- Avoid logging raw request payloads or argument maps; only log summaries and correlation fields.
 
 ### Completion Checklist
 - All baseline mutating tools accept optional `request_id` without breaking old clients (schema + parsing tolerant of absence). [Source: docs/epics.md; docs/architecture.md]
@@ -107,6 +124,7 @@ GPT-5.2 (Codex CLI)
 ### Completion Notes List
 
 - 2026-01-03: Story drafted as ready-for-dev; no implementation performed.
+- 2026-01-03: Story clarified to remove ambiguity (non-blocking logging, explicit testing assertion point, previous-story regression guardrails).
 
 ### File List
 
