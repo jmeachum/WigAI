@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -49,6 +49,12 @@ so that I can reliably debug failures and performance issues without logging sen
   - [x] Add a failure-path test that asserts `ErrorCode` + `request_id` appear in the logging parameters/context for that invocation
 - [x] Documentation hygiene (optional, only if contract docs expose request args)
   - [x] If `docs/reference/api-reference.md` documents these tools' request schemas, add `request_id` (optional) consistently for mutating tools
+
+### Review Follow-ups (AI)
+- [ ] [AI-Review][HIGH] Include request_id in completion/failure logging so all invocation logs carry correlation data and ErrorCode [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:228]
+- [ ] [AI-Review][HIGH] Fix missing file reference in Dev Agent Record File List (remove or add the referenced sprint artifact) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:148]
+- [ ] [AI-Review][HIGH] Reconcile story File List vs git reality; file list claims changes with clean git state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:146]
+- [ ] [AI-Review][MEDIUM] Sanitize logging parameters in executeWithValidation; avoid logging raw arguments [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:181]
 
 ## Dev Notes
 
