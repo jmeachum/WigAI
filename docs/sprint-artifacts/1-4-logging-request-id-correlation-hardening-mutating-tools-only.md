@@ -100,10 +100,25 @@ so that I can reliably debug failures and performance issues without logging sen
 - Preserve `error.operation == tool_name` (tool name), not internal method identifiers.
 - Avoid logging raw request payloads or argument maps; only log summaries and correlation fields.
 
+### Envelope Invariants (Do Not Regress from Story 1.3)
+- Responses MUST remain a single JSON text payload with top-level `status` + `data|error`; no alternate formatting paths.
+- Do not introduce a second wrapper/envelope while adding logging; keep `McpResponseTestUtils.assertNotDoubleWrapped(...)` passing for all affected tools.
+- Continue enforcing: `error.operation` equals the invoked MCP tool name (protect the existing `McpErrorHandler` behavior).
+- `request_id` is correlation-only in this story: do not echo it back in MCP `data` payloads unless a future story explicitly requires it.
+
+### Out of Scope (Prevent Scope Creep)
+- No new tools, tool renames, or behavior changes beyond accepting optional `request_id` and logging correlation.
+- No dependency upgrades or framework changes.
+- No payload expansions beyond correlation-safe logging metadata.
+- No logging of full payloads or PII-bearing fields; keep note/payload logging gated behind explicit debug only.
+
 ### Completion Checklist
 - All baseline mutating tools accept optional `request_id` without breaking old clients (schema + parsing tolerant of absence). [Source: docs/epics.md; docs/architecture.md]
 - At least one baseline mutating tool test asserts `request_id` is propagated to the structured logging context for that invocation. [Source: docs/epics.md; docs/test-design-epic-1.md]
 - Log output remains payload-safe (no raw note payloads in normal operation). [Source: docs/prd.md; docs/project-context.md; docs/architecture.md]
+- Regression guards for Story 1.3 remain green:
+  - `McpResponseTestUtils.assertNotDoubleWrapped(...)` passes for affected tools (with and without `request_id`).
+  - Error-path tests still assert `error.operation == tool_name` (not internal operation names).
 
 ### Context + Dependencies
 - Epic 1: “Reliable MCP Control Surface” prioritizes correctness + operability; this story enables incident triage and performance debugging without compromising payload safety. [Source: docs/epics.md; docs/test-design-epic-1.md]
