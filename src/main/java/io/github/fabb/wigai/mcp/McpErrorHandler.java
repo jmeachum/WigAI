@@ -99,8 +99,28 @@ public class McpErrorHandler {
      * @return A McpSchema.CallToolResult with success or error response
      */
     public static McpSchema.CallToolResult executeWithErrorHandling(String operation, StructuredLogger logger, ToolOperation task) {
+        return executeWithErrorHandling(operation, null, logger, task);
+    }
+
+    /**
+     * Executes a tool operation with standardized error handling, response formatting, and request_id correlation.
+     * This overload accepts tool arguments to extract request_id for logging correlation.
+     *
+     * @param operation The operation name for error context
+     * @param arguments The tool arguments (may contain request_id for correlation)
+     * @param logger The structured logger
+     * @param task The tool operation to execute
+     * @return A McpSchema.CallToolResult with success or error response
+     */
+    public static McpSchema.CallToolResult executeWithErrorHandling(
+            String operation,
+            Map<String, Object> arguments,
+            StructuredLogger logger,
+            ToolOperation task) {
+
         String operationId = logger.generateOperationId();
-        StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, null);
+        Map<String, Object> loggingParams = extractLoggingParameters(arguments);
+        StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, loggingParams);
 
         try {
             Object result = task.execute();
@@ -115,6 +135,30 @@ public class McpErrorHandler {
             timedOperation.failure(errorCode, e.getMessage());
             return createErrorResponse(e, operation, logger);
         }
+    }
+
+    /**
+     * Extracts logging-safe parameters from tool arguments.
+     * Only includes correlation fields (like request_id) and summaries, never full payloads.
+     *
+     * @param arguments The raw tool arguments
+     * @return A sanitized map safe for logging, or null if no logging parameters
+     */
+    private static Map<String, Object> extractLoggingParameters(Map<String, Object> arguments) {
+        if (arguments == null || arguments.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> loggingParams = new java.util.LinkedHashMap<>();
+
+        // Extract request_id for correlation (AC 2, AC 3)
+        Object requestId = arguments.get("request_id");
+        if (requestId != null) {
+            loggingParams.put("request_id", requestId);
+        }
+
+        // Return null if no logging-relevant parameters found
+        return loggingParams.isEmpty() ? null : loggingParams;
     }
 
     /**

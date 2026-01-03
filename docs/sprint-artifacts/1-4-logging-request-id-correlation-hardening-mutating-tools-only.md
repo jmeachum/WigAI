@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -31,24 +31,24 @@ so that I can reliably debug failures and performance issues without logging sen
 
 ## Tasks / Subtasks
 
-- [ ] Add optional `request_id` to baseline mutating tool schemas (AC 3)
-  - [ ] `transport_start` / `transport_stop` schemas: add optional `request_id` string field
-  - [ ] `launch_clip` schema: add optional `request_id` string field
-  - [ ] `session_launchSceneByIndex` schema: add optional `request_id` string field
-  - [ ] `set_selected_device_parameter` schema: add optional `request_id` string field
-  - [ ] `set_selected_device_parameters` schema: add optional `request_id` string field
-- [ ] Centralize `request_id` extraction + correlation behavior in the unified handler (AC 1-4)
-  - [ ] Update `McpErrorHandler` to accept (or derive) a per-invocation correlation value from `req.arguments().get("request_id")` for mutating tools
-  - [ ] Ensure both start + finish logs include: `tool_name`, outcome, and `request_id` when provided (avoid “only in error” scenarios)
-  - [ ] On failures, ensure logs include the same `ErrorCode` returned in the MCP error envelope (not a reclassified code)
-- [ ] Enforce log hygiene for parameters (AC 5)
-  - [ ] Ensure large inputs are summarized (counts/shape) and never fully logged by default
-  - [ ] Add/extend a small “parameter redaction/summarization” helper for known large fields (future: note payloads) to avoid accidental logging regressions
-- [ ] Tests (AC 6)
-  - [ ] Add a unit test for one baseline mutating tool (recommended: `TransportToolTest` or `ClipToolTest`) that passes `request_id` and asserts it is used in structured logging context (e.g., passed to `StructuredLogger.startTimedOperation(...)` parameters or included in logged metadata)
-  - [ ] Add a failure-path test that asserts `ErrorCode` + `request_id` appear in the logging parameters/context for that invocation
-- [ ] Documentation hygiene (optional, only if contract docs expose request args)
-  - [ ] If `docs/reference/api-reference.md` documents these tools’ request schemas, add `request_id` (optional) consistently for mutating tools
+- [x] Add optional `request_id` to baseline mutating tool schemas (AC 3)
+  - [x] `transport_start` / `transport_stop` schemas: add optional `request_id` string field
+  - [x] `launch_clip` schema: add optional `request_id` string field
+  - [x] `session_launchSceneByIndex` schema: add optional `request_id` string field
+  - [x] `set_selected_device_parameter` schema: add optional `request_id` string field
+  - [x] `set_selected_device_parameters` schema: add optional `request_id` string field
+- [x] Centralize `request_id` extraction + correlation behavior in the unified handler (AC 1-4)
+  - [x] Update `McpErrorHandler` to accept (or derive) a per-invocation correlation value from `req.arguments().get("request_id")` for mutating tools
+  - [x] Ensure both start + finish logs include: `tool_name`, outcome, and `request_id` when provided (avoid "only in error" scenarios)
+  - [x] On failures, ensure logs include the same `ErrorCode` returned in the MCP error envelope (not a reclassified code)
+- [x] Enforce log hygiene for parameters (AC 5)
+  - [x] Ensure large inputs are summarized (counts/shape) and never fully logged by default
+  - [x] Add/extend a small "parameter redaction/summarization" helper for known large fields (future: note payloads) to avoid accidental logging regressions
+- [x] Tests (AC 6)
+  - [x] Add a unit test for one baseline mutating tool (recommended: `TransportToolTest` or `ClipToolTest`) that passes `request_id` and asserts it is used in structured logging context (e.g., passed to `StructuredLogger.startTimedOperation(...)` parameters or included in logged metadata)
+  - [x] Add a failure-path test that asserts `ErrorCode` + `request_id` appear in the logging parameters/context for that invocation
+- [x] Documentation hygiene (optional, only if contract docs expose request args)
+  - [x] If `docs/reference/api-reference.md` documents these tools' request schemas, add `request_id` (optional) consistently for mutating tools
 
 ## Dev Notes
 
@@ -131,17 +131,29 @@ so that I can reliably debug failures and performance issues without logging sen
 
 ### Agent Model Used
 
-GPT-5.2 (Codex CLI)
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-- N/A (story preparation only)
+- N/A
 
 ### Completion Notes List
 
 - 2026-01-03: Story drafted as ready-for-dev; no implementation performed.
 - 2026-01-03: Story clarified to remove ambiguity (non-blocking logging, explicit testing assertion point, previous-story regression guardrails).
+- 2026-01-03: Implementation complete. Added `request_id` support to all 6 baseline mutating tools via new `executeWithErrorHandling` overload in `McpErrorHandler`. Implemented `extractLoggingParameters()` helper for sanitized parameter extraction (only `request_id` included, no raw payloads). Added 4 new tests to `TransportToolTest` covering: request_id propagation to logging context, backward compatibility without request_id, failure-path error code + request_id correlation, and transport_stop request_id handling. All existing tests remain green.
 
 ### File List
 
 - docs/sprint-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md
+- src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java
+- src/main/java/io/github/fabb/wigai/mcp/tool/TransportTool.java
+- src/main/java/io/github/fabb/wigai/mcp/tool/ClipTool.java
+- src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java
+- src/main/java/io/github/fabb/wigai/mcp/tool/DeviceParamTool.java
+- src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java
+- docs/reference/api-reference.md
+
+## Change Log
+
+- 2026-01-03: Story 1.4 implementation complete - Added request_id correlation support to baseline mutating tools

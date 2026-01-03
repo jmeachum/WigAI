@@ -44,6 +44,10 @@ public class ClipTool {
                   "type": "integer",
                   "minimum": 0,
                   "description": "Zero-based index of the clip slot to launch"
+                },
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing and idempotency"
                 }
               },
               "required": ["track_name", "clip_index"]
@@ -58,6 +62,7 @@ public class ClipTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 TOOL_NAME,
+                req.arguments(),
                 logger,
                 () -> {
                     // Parse and validate arguments

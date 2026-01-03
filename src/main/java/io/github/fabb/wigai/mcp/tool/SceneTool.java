@@ -39,6 +39,10 @@ public class SceneTool {
                   "type": "integer",
                   "minimum": 0,
                   "description": "Zero-based index of the scene to launch"
+                },
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing and idempotency"
                 }
               },
               "required": ["scene_index"]
@@ -53,6 +57,7 @@ public class SceneTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 TOOL_NAME,
+                req.arguments(),
                 logger,
                 new McpErrorHandler.ToolOperation() {
                     @Override

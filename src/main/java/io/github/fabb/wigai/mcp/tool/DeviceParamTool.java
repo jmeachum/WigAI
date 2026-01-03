@@ -104,6 +104,10 @@ public class DeviceParamTool {
                   "minimum": 0.0,
                   "maximum": 1.0,
                   "description": "The value to set (0.0-1.0)"
+                },
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing and idempotency"
                 }
               },
               "required": ["parameter_index", "value"]
@@ -117,6 +121,7 @@ public class DeviceParamTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 SET_PARAMETER_TOOL,
+                req.arguments(),
                 logger,
                 new McpErrorHandler.ToolOperation() {
                     @Override
@@ -173,6 +178,10 @@ public class DeviceParamTool {
                     "required": ["parameter_index", "value"]
                   },
                   "description": "List of parameter settings to apply"
+                },
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing and idempotency"
                 }
               },
               "required": ["parameters"]
@@ -186,6 +195,7 @@ public class DeviceParamTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 SET_MULTIPLE_PARAMETERS_TOOL,
+                req.arguments(),
                 logger,
                 new McpErrorHandler.ToolOperation() {
                     @Override

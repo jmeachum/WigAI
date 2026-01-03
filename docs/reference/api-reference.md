@@ -129,7 +129,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 
 #### `transport_start`
 *   **Description**: Start Bitwig's transport playback.
-*   **Parameters**: None
+*   **Parameters**:
+    *   `request_id` (string, optional): Correlation ID for request tracing and idempotency
 *   **Returns**:
     ```json
     {
@@ -143,7 +144,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 
 #### `transport_stop`
 *   **Description**: Stop Bitwig's transport playback.
-*   **Parameters**: None
+*   **Parameters**:
+    *   `request_id` (string, optional): Correlation ID for request tracing and idempotency
 *   **Returns**:
     ```json
     {
@@ -202,7 +204,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     ```json
     {
       "parameter_index": 0, // Integer (0-7)
-      "value": 0.5 // Float/Double (0.0-1.0)
+      "value": 0.5, // Float/Double (0.0-1.0)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
     }
     ```
 *   **Returns**:
@@ -232,7 +235,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
         { "parameter_index": 0, "value": 0.25 },
         { "parameter_index": 1, "value": 0.80 }
         // ... more parameters
-      ]
+      ],
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
     }
     ```
 *   **Returns**:
@@ -266,7 +270,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     ```json
     {
       "track_name": "Drums", // Case-sensitive string
-      "clip_index": 0 // Non-negative integer (0-based)
+      "clip_index": 0, // Non-negative integer (0-based)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
     }
     ```
 *   **Returns**:
@@ -293,7 +298,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Parameters**:
     ```json
     {
-      "scene_index": 1 // Non-negative integer (0-based)
+      "scene_index": 1, // Non-negative integer (0-based)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
     }
     ```
 *   **Returns**:
