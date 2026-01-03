@@ -18,6 +18,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for the BitwigApiFacade class.
  */
+// TODO (TEA Review): Split this test class into smaller focused files (<300 lines). See test-review-1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference.md
 public class BitwigApiFacadeTest {
 
     @Mock
