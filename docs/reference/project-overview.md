@@ -165,7 +165,7 @@ The `.bwextension` file (created in `build/extensions/`) is copied to:
 - [**Semantic Versioning** (semantic-versioning-guide.md)](./semantic-versioning-guide.md) - Version management
 
 ### Workflow Tracking
-- [**Workflow Status** (bmm-workflow-status.yaml)](./bmm-workflow-status.yaml) - BMM methodology progress
+- [**Workflow Status** (bmm-workflow-status.yaml)](../../_bmad-output/planning-artifacts/bmm-workflow-status.yaml) - BMM methodology progress
 
 ## Getting Started
 

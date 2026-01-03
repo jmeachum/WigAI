@@ -6,5 +6,4 @@ Older planning artifacts are kept under:
 Current “canonical” planning docs live in:
 - `docs/project-brief.md`
 - `docs/architecture.md`
-- `docs/bmm-workflow-status.yaml`
-
+- `_bmad-output/planning-artifacts/bmm-workflow-status.yaml`

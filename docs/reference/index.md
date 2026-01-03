@@ -44,7 +44,7 @@
 - [**Implementation Stories**](stories/) - Feature stories and implementation details
 
 ### 📊 **Workflow & Status**
-- [**Workflow Status**](bmm-workflow-status.yaml) - BMM methodology progress tracking
+- [**Workflow Status**](../../_bmad-output/planning-artifacts/bmm-workflow-status.yaml) - BMM methodology progress tracking
 
 ---
 

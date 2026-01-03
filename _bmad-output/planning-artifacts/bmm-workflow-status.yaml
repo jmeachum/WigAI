@@ -51,8 +51,8 @@ workflow_status:
           status: "docs/prd.md"
           note: "Updated PRD (new feature scope) created from archived baseline"
         - id: "create-ux-design"
-          status: "conditional"
-          note: "if_has_ui"
+          status: "skipped"
+          note: "No UI"
     - phase: 2
       name: "Solutioning"
       required: true
