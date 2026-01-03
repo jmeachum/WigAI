@@ -94,6 +94,7 @@ so that I can reliably debug failures and performance issues without logging sen
 ### Scope Clarification (Mutating Tools Only)
 - This story adds `request_id` to JSON schemas and any explicit argument parsing ONLY for baseline mutating tools (the list in AC 3).
 - Do not add `request_id` to read-only tool schemas as part of this story; if the unified handler can opportunistically include `request_id` when present, that is an implementation detail and must not change tool contracts.
+- Do not rename tools in this story; in particular, `session_launchSceneByIndex` is a legacy tool name (non-`snake_case`) and must not be renamed as part of this logging-only change.
 
 ### Previous Story Intelligence (Prevent Regressions)
 - From Story 1.3: Do not change MCP response envelopes while improving logging; keep `status` + `data|error` exactly as-is.
