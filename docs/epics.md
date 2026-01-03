@@ -293,8 +293,38 @@ So that WigAI remains trustworthy (no DAW freezes/crashes) and requests complete
 **Then** logs clearly indicate retry attempts, final outcome (success/failure), and total duration for the invocation.
 
 **Given** the smoke test harness from Story 1.1 is available
-**When** it is run in a “timing stress” mode (manual or scripted)
+**When** it is run in a "timing stress" mode (manual or scripted)
 **Then** it can validate that tools do not hang and that failures are surfaced as bounded, actionable errors rather than Bitwig instability.
+
+### Story 1.6: Align Index Validation Error Codes with Canonical Semantics
+
+As an external AI agent developer,
+I want index validation errors to use semantically correct error codes (`INVALID_PARAMETER_INDEX` for index bounds, not `INVALID_RANGE`),
+So that my client can distinguish between "wrong index position" vs "value outside allowed range" and provide appropriate user feedback.
+
+> **Note:** This story resolves technical debt from Story 1.3 where index validation paths were implemented before the canonical error code semantics were established in `docs/project-context.md`. The canonical rule: use `INVALID_PARAMETER_INDEX` for index arguments (track_index, scene_index, clip_index) and `INVALID_RANGE` for numeric values (parameter value 0.0-1.0).
+
+**Acceptance Criteria:**
+
+**Given** a tool receives a negative `clip_index`, `scene_index`, or `track_index`
+**When** validation fails
+**Then** the error response uses `INVALID_PARAMETER_INDEX` (not `INVALID_RANGE`).
+
+**Given** a tool receives an out-of-bounds index (e.g., `track_index` exceeding track count)
+**When** validation fails
+**Then** the error response uses `INVALID_PARAMETER_INDEX`.
+
+**Given** `docs/reference/api-reference.md` documents error codes for index parameters
+**When** Story 1.6 is complete
+**Then** all index parameter errors reference `INVALID_PARAMETER_INDEX` (not `INVALID_RANGE`).
+
+**Given** unit tests assert error codes for index validation
+**When** they run
+**Then** they expect `INVALID_PARAMETER_INDEX` for index bounds errors.
+
+**Given** `ErrorContractComplianceTest` validates error code usage
+**When** tests run
+**Then** index validation paths are covered and pass.
 
 ## Epic 2: Safe Track Targeting & Discovery
 
@@ -310,7 +340,7 @@ So that I can reliably act on the intended track without custom per-tool rules.
 
 **Given** a tool supports track targeting
 **When** the request includes `track_index`
-**Then** WigAI targets the track by 0-based index and returns `INVALID_RANGE` if the index is out of bounds.
+**Then** WigAI targets the track by 0-based index and returns `INVALID_PARAMETER_INDEX` if the index is out of bounds.
 
 **Given** a tool supports track targeting
 **When** the request includes `track_name`

@@ -16,65 +16,89 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Returns**:
     ```json
     {
-      "wigai_version": "x.y.z",
-      "project_name": "Name of the project",
-      "audio_engine_active": true,
-      "transport": {
-        "playing": false,
-        "recording": false,
-        "loop_active": false,
-        "metronome_active": true,
-        "current_tempo": 120.0,
-        "time_signature": "4/4",
-        "current_beat_str": "1.1.1:0",
-        "current_time_str": "0:00.000"
-      },
-      "project_parameters": [
-        {
-          "index": 0,
-          "exists": true,
-          "name": "Project Parameter Name",
-          "value": 0.5,
-          "display_value": "50%"
-        }
-      ],
-      "selected_track": {
-        "index": 0,
-        "name": "Track Name",
-        "type": "audio",
-        "is_group": false,
-        "muted": false,
-        "soloed": false,
-        "armed": true
-      },
-      "selected_clip_slot": {
-        "track_name": "Drums",
-        "track_index": 0,
-        "slot_index": 0,
-        "scene_index": 0,
-        "scene_name": "Intro",
-        "has_content": true,
-        "clip_name": "Drum Loop 1",
-        "is_playing": false,
-        "is_recording": false,
-        "is_playback_queued": false,
-        "is_recording_queued": false,
-        "is_stop_queued": false
-      },
-      "selected_device": {
-        "track_name": "Track Name",
-        "track_index": 0,
-        "index": 0,
-        "name": "Device Name",
-        "bypassed": false,
-        "parameters": [
+      "status": "success",
+      "data": {
+        "wigai_version": "x.y.z",
+        "project_name": "Name of the project",
+        "audio_engine_active": true,
+        "transport": {
+          "playing": false,
+          "recording": false,
+          "loop_active": false,
+          "metronome_active": true,
+          "current_tempo": 120.0,
+          "time_signature": "4/4",
+          "current_beat_str": "1.1.1:0",
+          "current_time_str": "0:00.000"
+        },
+        "project_parameters": [
           {
             "index": 0,
-            "name": "Parameter Name",
+            "name": "Project Parameter Name",
             "value": 0.5,
             "display_value": "50%"
           }
-        ]
+        ],
+        "selected_track": {
+          "index": 0,
+          "name": "Track Name",
+          "type": "audio",
+          "is_group": false,
+          "muted": false,
+          "soloed": false,
+          "armed": true
+        },
+        "selected_clip_slot": {
+          "track_name": "Drums",
+          "track_index": 0,
+          "slot_index": 0,
+          "scene_index": 0,
+          "scene_name": "Intro",
+          "has_content": true,
+          "clip_name": "Drum Loop 1",
+          "is_playing": false,
+          "is_recording": false,
+          "is_playback_queued": false,
+          "is_recording_queued": false,
+          "is_stop_queued": false
+        },
+        "selected_device": {
+          "track_name": "Track Name",
+          "track_index": 0,
+          "index": 0,
+          "name": "Device Name",
+          "bypassed": false,
+          "parameters": [
+            {
+              "index": 0,
+              "name": "Parameter Name",
+              "value": 0.5,
+              "display_value": "50%"
+            }
+          ]
+        }
+      }
+    }
+    ```
+
+*   **Partial Failure Response** (when one or more sub-fetches fail):
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "wigai_version": "x.y.z",
+        "project_name": "Name of the project",
+        "audio_engine_active": true,
+        "transport": { "error": "Transport status unavailable" },
+        "project_parameters": [],
+        "selected_track": { "name": "Track 1", "index": 0 },
+        "selected_device": null,
+        "selected_clip_slot": null,
+        "partial_failures": [
+          "transport: Transport status unavailable",
+          "selected_device: Device unavailable"
+        ],
+        "status_note": "Status retrieved with 2 partial failures"
       }
     }
     ```
@@ -82,11 +106,15 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Notes**:
     - `current_beat_str`: Bitwig-style beat position format (measures.beats.sixteenths:ticks), e.g., "1.1.1:0"
     - `current_time_str`: Time format with milliseconds (MM:SS.mmm or HH:MM:SS.mmm), e.g., "0:12.345" or "1:23:45.678"
-    - `project_parameters`: Array containing only parameters where `exists` is true (0-7 parameter indexes)
+    - `project_parameters`: Array containing project parameters (0-7 parameter indexes)
     - `selected_track`: Object containing currently selected track details, or `null` if no track is selected
+    - **Partial Failure Behavior**: If one or more sub-fetches fail (e.g., transport, selected_device), the tool still returns `status: "success"` with best-effort defaults and includes:
+      - `partial_failures`: Array of strings describing which fields failed and why
+      - `status_note`: Human-readable summary (e.g., "Status retrieved with 2 partial failures")
+    - Partial failures allow clients to get available data without a full error, while clearly indicating which fields may be incomplete or defaulted
     - `selected_track.type`: Track type (e.g., "audio", "instrument", "group", "hybrid", "effect", "master")
-    - `selected_track.index`: 0-based index in the current track bank, or -1 if not found in visible tracks
-    - `selected_clip_slot`: Object describing the currently selected clip slot (track context, slot/scene indices, clip status/state), or `null` if no track is selected
+    - `selected_track.index`: 0-based project-absolute track index (consistent with `selected_clip_slot.track_index` and `selected_device.track_index`)
+    - `selected_clip_slot`: Object describing the currently selected clip slot (track context, slot/scene indices, clip status/state), or `null` if: (1) no track is selected, (2) clip launcher slot bank is unavailable, or (3) the selected track has no clip launcher slots
     - `selected_clip_slot.scene_name`: `null` when the scene is unnamed or unavailable
     - **API Limitation**: Bitwig Extension API v19 does not provide a way to detect selected clip slot position. CursorClip exists but does not expose slot position (scene/slot index). No ClipLauncherSlotCursor exists. The slot is detected as follows:
       - If a clip is playing/queued/recording: Returns that slot's information
@@ -94,10 +122,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       - If no track is selected: Returns `null`
     - `selected_device`: Object containing currently selected device details, or `null` if no device is selected
     - `selected_device.track_name`: Name of the track containing the selected device
-    - `selected_device.track_index`: 0-based index of the track containing the device, or -1 if not found in visible tracks
-    - `selected_device.index`: 0-based index of the device in the track's device chain
+    - `selected_device.track_index`: 0-based project-absolute index of the track containing the device (consistent with `selected_track.index`)
+    - `selected_device.index`: 0-based index of the device in the track's device chain (currently always 0; Bitwig API does not expose actual device position)
     - `selected_device.bypassed`: Boolean indicating if the device is bypassed (disabled)
-    - `selected_device.parameters`: Array containing only accessible parameters with names (0-7 parameter indexes)
+    - `selected_device.parameters`: Array of accessible parameters (0-7 parameter indexes); each parameter has `index`, `name` (can be `null` for unnamed parameters), `value`, and `display_value`
 
 #### `transport_start`
 *   **Description**: Start Bitwig's transport playback.
@@ -164,7 +192,9 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       }
     }
     ```
-*   **Errors**: None specific, `parameters` will be empty if no device or no parameters.
+*   **Errors**:
+    *   `DEVICE_NOT_SELECTED`: No device is currently selected in Bitwig
+    *   `BITWIG_API_ERROR`: Internal error occurred while retrieving parameters
 
 #### `set_selected_device_parameter`
 *   **Description**: Set a specific value for a single parameter (by its index 0-7) of the user-selected device in Bitwig.
@@ -188,10 +218,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `DEVICE_NOT_SELECTED`
-    *   `INVALID_PARAMETER_INDEX`
-    *   `INVALID_PARAMETER` (for value out of range)
-    *   `BITWIG_API_ERROR`
+    *   `DEVICE_NOT_SELECTED`: No device is currently selected in Bitwig
+    *   `INVALID_PARAMETER_INDEX`: parameter_index outside valid range (0-7)
+    *   `INVALID_RANGE`: value outside valid range (0.0-1.0)
+    *   `BITWIG_API_ERROR`: Internal error occurred while setting parameter
 
 #### `set_selected_device_parameters`
 *   **Description**: Set multiple parameter values (by index 0-7) of the user-selected device in Bitwig simultaneously.
@@ -225,8 +255,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   Top-level: `DEVICE_NOT_SELECTED`, `INVALID_PARAMETER` (for overall payload issues)
-    *   Per-item in `results`: `INVALID_PARAMETER_INDEX`, `INVALID_PARAMETER`, `BITWIG_API_ERROR`
+    *   Top-level: `DEVICE_NOT_SELECTED`, `MISSING_REQUIRED_PARAMETER` (for missing parameters array), `EMPTY_PARAMETER` (for empty parameters array), `INVALID_PARAMETER` (for malformed parameters: not an array or entries not objects)
+    *   Per-item in `results`: `INVALID_PARAMETER_INDEX`, `INVALID_RANGE` (for value outside 0.0-1.0), `BITWIG_API_ERROR`
 
 ### Session Control Commands
 
@@ -252,9 +282,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `INVALID_ARGUMENT`: Missing or invalid parameters (e.g., empty track_name, negative clip_index)
+    *   `MISSING_REQUIRED_PARAMETER`: track_name or clip_index not provided
+    *   `EMPTY_PARAMETER`: track_name cannot be empty
+    *   `INVALID_RANGE`: clip_index is negative or outside the valid range for the track
     *   `TRACK_NOT_FOUND`: The specified track name was not found
-    *   `CLIP_INDEX_OUT_OF_BOUNDS`: The clip index is outside the valid range for the track
     *   `BITWIG_API_ERROR`: Internal error occurred while launching clip
 
 #### `session_launchSceneByIndex`
@@ -277,8 +308,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `SCENE_NOT_FOUND`
-    *   `BITWIG_API_ERROR`
+    *   `MISSING_REQUIRED_PARAMETER`: scene_index not provided
+    *   `INVALID_RANGE`: scene_index is negative
+    *   `SCENE_NOT_FOUND`: No scene exists at the specified index
+    *   `BITWIG_API_ERROR`: Internal error occurred while launching scene
 
 #### `session_launchSceneByName`
 *   **Description**: Launch an entire scene in Bitwig by providing its name.
@@ -301,8 +334,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   `SCENE_NOT_FOUND`
-    *   `BITWIG_API_ERROR`
+    *   `MISSING_REQUIRED_PARAMETER`: When `scene_name` is not provided
+    *   `EMPTY_PARAMETER`: When `scene_name` is empty or whitespace-only
+    *   `SCENE_NOT_FOUND`: When no scene matches the provided name
+    *   `BITWIG_API_ERROR`: When a Bitwig API error occurs during scene launch
 
 ### Track Information Commands
 
@@ -495,8 +530,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     - `type`: One of "Instrument", "AudioFX", "NoteFX", or "Unknown".
     - Deterministic enumeration: results are ordered by 0-based device chain index; only top-level devices are included (no recursion into container devices).
     - Selection semantics:
-      - If the target track is not the globally selected track, `is_selected` is `false` for all devices.
-      - If the target track is the globally selected track, compare against the global CursorDevice; prefer same-track index match, otherwise name match on that track (first match if ambiguous).
+      - If the target track is not the globally selected track (determined by track name match), `is_selected` is `false` for all devices.
+      - If the target track is the globally selected track, `is_selected` is `true` for the device whose name matches the currently selected device's name.
 
 *   **Examples**:
 
@@ -729,7 +764,8 @@ Rules:
 
 - Notes:
   - `remote_controls` reflect the currently selected remote control page for the device (via `device.remoteControls()`).
-  - `exists` for controls is `true` when the parameter name is non-empty; otherwise `false` (defined heuristic).
+  - **API Limitation**: When targeting a non-selected device (by track/device identifiers), `remote_controls` returns an empty array. The Bitwig Controller API does not expose remote controls for non-selected devices without temporarily selecting them, which would disrupt the user experience.
+  - `exists` is always `true` since only existing parameters are included in the response array.
   - `value` is normalized (0.0-1.0). `raw_value` is provided only if the Controller API exposes a raw accessor; otherwise `null`.
   - Only existing controls are included in the response array.
 

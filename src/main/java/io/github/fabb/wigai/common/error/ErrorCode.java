@@ -69,6 +69,34 @@ public enum ErrorCode {
     }
 
     /**
+     * Parses a string error code to the corresponding ErrorCode enum value.
+     * Performs case-insensitive matching and handles common aliases.
+     * @param errorCodeString The string error code to parse
+     * @return The matching ErrorCode, or OPERATION_FAILED if not found
+     */
+    public static ErrorCode fromString(String errorCodeString) {
+        if (errorCodeString == null || errorCodeString.trim().isEmpty()) {
+            return OPERATION_FAILED;
+        }
+
+        String normalized = errorCodeString.trim().toUpperCase();
+
+        // Try direct enum match first
+        for (ErrorCode ec : values()) {
+            if (ec.getCode().equals(normalized) || ec.name().equals(normalized)) {
+                return ec;
+            }
+        }
+
+        // Handle common aliases and variations
+        return switch (normalized) {
+            case "CLIP_INDEX_OUT_OF_BOUNDS" -> INVALID_RANGE;
+            case "BITWIG_ERROR" -> BITWIG_API_ERROR;
+            default -> OPERATION_FAILED;
+        };
+    }
+
+    /**
      * Determines the appropriate error code based on an exception.
      * Uses exception type classification.
      * @param exception The exception to analyze

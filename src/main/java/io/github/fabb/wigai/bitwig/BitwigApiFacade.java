@@ -754,8 +754,10 @@ public class BitwigApiFacade {
      * Gets the current transport status information.
      *
      * @return A map containing transport status data
+     * @throws BitwigApiException if transport status cannot be retrieved due to API error
      */
-    public java.util.Map<String, Object> getTransportStatus() {
+    public java.util.Map<String, Object> getTransportStatus() throws BitwigApiException {
+        final String operation = "getTransportStatus";
         logger.info("BitwigApiFacade: Getting transport status");
         java.util.Map<String, Object> transportMap = new java.util.LinkedHashMap<>();
 
@@ -778,15 +780,11 @@ public class BitwigApiFacade {
             transportMap.put("current_time_str", timeStr);
         } catch (Exception e) {
             logger.warn("BitwigApiFacade: Unable to get complete transport status: " + e.getMessage());
-            // Provide default values if API calls fail
-            transportMap.put("playing", false);
-            transportMap.put("recording", false);
-            transportMap.put("loop_active", false);
-            transportMap.put("metronome_active", false);
-            transportMap.put("current_tempo", 120.0);
-            transportMap.put("time_signature", "4/4");
-            transportMap.put("current_beat_str", Constants.DEFAULT_BEAT_POSITION);
-            transportMap.put("current_time_str", Constants.DEFAULT_TIME_STRING);
+            throw new BitwigApiException(
+                ErrorCode.BITWIG_API_ERROR,
+                operation,
+                "Failed to retrieve transport status: " + e.getMessage()
+            );
         }
 
         return transportMap;
@@ -830,39 +828,52 @@ public class BitwigApiFacade {
      * Only returns parameters where exists() is true.
      *
      * @return A list of ParameterInfo objects representing the existing project parameters
+     * @throws BitwigApiException if project parameters cannot be retrieved due to API error
      */
-    public List<ParameterInfo> getProjectParameters() {
+    public List<ParameterInfo> getProjectParameters() throws BitwigApiException {
+        final String operation = "getProjectParameters";
         logger.info("BitwigApiFacade: Getting project parameters");
         List<ParameterInfo> parameters = new ArrayList<>();
 
-        for (int i = 0; i < projectParameterBank.getParameterCount(); i++) {
-            RemoteControl parameter = projectParameterBank.getParameter(i);
-            boolean exists = parameter.exists().get();
+        try {
+            for (int i = 0; i < projectParameterBank.getParameterCount(); i++) {
+                RemoteControl parameter = projectParameterBank.getParameter(i);
+                boolean exists = parameter.exists().get();
 
-            if (exists) {
-                String name = parameter.name().get();
-                double value = parameter.value().get();
-                String displayValue = parameter.displayedValue().get();
+                if (exists) {
+                    String name = parameter.name().get();
+                    double value = parameter.value().get();
+                    String displayValue = parameter.displayedValue().get();
 
-                // Handle null or empty names
-                if (name != null && name.trim().isEmpty()) {
-                    name = null;
+                    // Handle null or empty names
+                    if (name != null && name.trim().isEmpty()) {
+                        name = null;
+                    }
+
+                    parameters.add(new ParameterInfo(i, name, value, displayValue));
                 }
-
-                parameters.add(new ParameterInfo(i, name, value, displayValue));
             }
-        }
 
-        logger.info("BitwigApiFacade: Retrieved " + parameters.size() + " existing project parameters");
-        return parameters;
+            logger.info("BitwigApiFacade: Retrieved " + parameters.size() + " existing project parameters");
+            return parameters;
+        } catch (Exception e) {
+            logger.warn("BitwigApiFacade: Error getting project parameters: " + e.getMessage());
+            throw new BitwigApiException(
+                ErrorCode.BITWIG_API_ERROR,
+                operation,
+                "Failed to retrieve project parameters: " + e.getMessage()
+            );
+        }
     }
 
     /**
      * Gets information about the currently selected track.
      *
      * @return A map containing selected track information, or null if no track is selected
+     * @throws BitwigApiException if track is selected but info cannot be retrieved due to API error
      */
-    public Map<String, Object> getSelectedTrackInfo() {
+    public Map<String, Object> getSelectedTrackInfo() throws BitwigApiException {
+        final String operation = "getSelectedTrackInfo";
         logger.info("BitwigApiFacade: Getting selected track information");
 
         if (!cursorTrack.exists().get()) {
@@ -873,9 +884,10 @@ public class BitwigApiFacade {
         Map<String, Object> trackInfo = new LinkedHashMap<>();
 
         try {
-            // Get track index by finding it in the track bank using helper method
+            // Use cursorTrack.position() for project-absolute track index
+            // (consistent with selected_clip_slot.track_index)
             String trackName = cursorTrack.name().get();
-            int trackIndex = getTrackIndexByName(trackName);
+            int trackIndex = cursorTrack.position().get();
 
             trackInfo.put("index", trackIndex);
             trackInfo.put("name", trackName);
@@ -888,7 +900,11 @@ public class BitwigApiFacade {
             logger.info("BitwigApiFacade: Retrieved selected track info: " + trackName);
         } catch (Exception e) {
             logger.warn("BitwigApiFacade: Error getting selected track info: " + e.getMessage());
-            return null;
+            throw new BitwigApiException(
+                ErrorCode.BITWIG_API_ERROR,
+                operation,
+                "Failed to retrieve selected track info: " + e.getMessage()
+            );
         }
 
         return trackInfo;
@@ -898,8 +914,10 @@ public class BitwigApiFacade {
      * Gets information about the currently selected device including track context, device info, and parameters.
      *
      * @return A map containing selected device information, or null if no device is selected
+     * @throws BitwigApiException if device is selected but info cannot be retrieved due to API error
      */
-    public Map<String, Object> getSelectedDeviceInfo() {
+    public Map<String, Object> getSelectedDeviceInfo() throws BitwigApiException {
+        final String operation = "getSelectedDeviceInfo";
         logger.info("BitwigApiFacade: Getting selected device information");
 
         if (!cursorDevice.exists().get()) {
@@ -911,8 +929,10 @@ public class BitwigApiFacade {
 
         try {
             // Get track information where the device is located
+            // Use cursorTrack.position() for project-absolute track index
+            // (consistent with selected_track.index and selected_clip_slot.track_index)
             String trackName = cursorTrack.name().get();
-            int trackIndex = getTrackIndexByName(trackName);
+            int trackIndex = cursorTrack.position().get();
 
             deviceInfo.put("track_name", trackName);
             deviceInfo.put("track_index", trackIndex);
@@ -941,7 +961,11 @@ public class BitwigApiFacade {
             logger.info("BitwigApiFacade: Retrieved selected device info: " + cursorDevice.name().get());
         } catch (Exception e) {
             logger.warn("BitwigApiFacade: Error getting selected device info: " + e.getMessage());
-            return null;
+            throw new BitwigApiException(
+                ErrorCode.BITWIG_API_ERROR,
+                operation,
+                "Failed to retrieve selected device info: " + e.getMessage()
+            );
         }
 
         return deviceInfo;
@@ -952,8 +976,10 @@ public class BitwigApiFacade {
      * slot position, content status, and playback state.
      *
      * @return A map containing selected clip slot information, or null if no track is selected
+     * @throws BitwigApiException if track is selected but clip slot info cannot be retrieved due to API error
      */
-    public Map<String, Object> getSelectedClipSlotInfo() {
+    public Map<String, Object> getSelectedClipSlotInfo() throws BitwigApiException {
+        final String operation = "getSelectedClipSlotInfo";
         logger.info("BitwigApiFacade: Getting selected clip slot information");
 
         if (!cursorTrack.exists().get()) {
@@ -1038,7 +1064,11 @@ public class BitwigApiFacade {
             logger.info("BitwigApiFacade: Retrieved selected clip slot info: track=" + trackName + ", slot=" + selectedSlotIndex);
         } catch (Exception e) {
             logger.warn("BitwigApiFacade: Error getting selected clip slot info: " + e.getMessage());
-            return null;
+            throw new BitwigApiException(
+                ErrorCode.BITWIG_API_ERROR,
+                operation,
+                "Failed to retrieve selected clip slot info: " + e.getMessage()
+            );
         }
 
         return clipSlotInfo;

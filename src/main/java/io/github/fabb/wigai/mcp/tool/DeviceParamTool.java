@@ -3,6 +3,8 @@ package io.github.fabb.wigai.mcp.tool;
 import io.github.fabb.wigai.common.data.ParameterInfo;
 import io.github.fabb.wigai.common.data.ParameterSetting;
 import io.github.fabb.wigai.common.data.ParameterSettingResult;
+import io.github.fabb.wigai.common.error.BitwigApiException;
+import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.common.validation.ParameterValidator;
 import io.github.fabb.wigai.features.DeviceController;
@@ -225,6 +227,13 @@ public class DeviceParamTool {
      */
     private static SetParameterArguments parseSetParameterArguments(Map<String, Object> arguments) {
         int parameterIndex = ParameterValidator.validateRequiredInteger(arguments, "parameter_index", SET_PARAMETER_TOOL);
+        if (parameterIndex < 0 || parameterIndex > 7) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                SET_PARAMETER_TOOL,
+                "parameter_index must be between 0 and 7, got: " + parameterIndex
+            );
+        }
 
         double value = ParameterValidator.validateRequiredDouble(arguments, "value", SET_PARAMETER_TOOL);
         value = ParameterValidator.validateParameterValue(value, SET_PARAMETER_TOOL);
@@ -240,23 +249,42 @@ public class DeviceParamTool {
         Object parametersObj = ParameterValidator.validateRequired(arguments, "parameters", SET_MULTIPLE_PARAMETERS_TOOL);
 
         if (!(parametersObj instanceof List)) {
-            throw new IllegalArgumentException("'parameters' must be an array");
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER,
+                SET_MULTIPLE_PARAMETERS_TOOL,
+                "'parameters' must be an array"
+            );
         }
 
         List<Object> parametersArray = (List<Object>) parametersObj;
         if (parametersArray.isEmpty()) {
-            throw new IllegalArgumentException("'parameters' array cannot be empty");
+            throw new BitwigApiException(
+                ErrorCode.EMPTY_PARAMETER,
+                SET_MULTIPLE_PARAMETERS_TOOL,
+                "'parameters' array cannot be empty"
+            );
         }
 
         List<ParameterSetting> parameterSettings = new ArrayList<>();
         for (Object paramObj : parametersArray) {
             if (!(paramObj instanceof Map)) {
-                throw new IllegalArgumentException("Each parameter entry must be an object");
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER,
+                    SET_MULTIPLE_PARAMETERS_TOOL,
+                    "Each parameter entry must be an object"
+                );
             }
 
             Map<String, Object> paramMap = (Map<String, Object>) paramObj;
 
             int parameterIndex = ParameterValidator.validateRequiredInteger(paramMap, "parameter_index", SET_MULTIPLE_PARAMETERS_TOOL);
+            if (parameterIndex < 0 || parameterIndex > 7) {
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER_INDEX,
+                    SET_MULTIPLE_PARAMETERS_TOOL,
+                    "parameter_index must be between 0 and 7, got: " + parameterIndex
+                );
+            }
 
             double value = ParameterValidator.validateRequiredDouble(paramMap, "value", SET_MULTIPLE_PARAMETERS_TOOL);
             value = ParameterValidator.validateParameterValue(value, SET_MULTIPLE_PARAMETERS_TOOL);

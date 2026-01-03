@@ -1,5 +1,7 @@
 package io.github.fabb.wigai.mcp.tool;
 
+import io.github.fabb.wigai.common.error.BitwigApiException;
+import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.common.validation.ParameterValidator;
 import io.github.fabb.wigai.features.ClipSceneController;
@@ -58,15 +60,34 @@ public class SceneByNameTool {
                         LaunchSceneByNameArguments args = parseArguments(req.arguments());
                         var result = clipSceneController.launchSceneByName(args.sceneName());
                         if (result.isSuccess()) {
-                            int launchedIndex = clipSceneController.getBitwigApiFacade().findSceneByName(args.sceneName());
-                            return Map.of(
-                                "action", "scene_launched",
-                                "scene_name", args.sceneName(),
-                                "launched_scene_index", launchedIndex,
-                                "message", result.getMessage()
-                            );
+                            // Best-effort index lookup: wrap in try-catch to prevent successful launch
+                            // from turning into error if findSceneByName fails (race condition or API issue)
+                            int launchedIndex = -1;
+                            try {
+                                launchedIndex = clipSceneController.getBitwigApiFacade().findSceneByName(args.sceneName());
+                            } catch (Exception e) {
+                                // Silently ignore - index is optional in success response
+                                logger.debug("SceneByNameTool: Failed to find scene index after launch (best-effort): " + e.getMessage());
+                            }
+                            // Only include launched_scene_index if non-negative
+                            // Scene could be renamed/deleted between launch and index lookup
+                            if (launchedIndex >= 0) {
+                                return Map.of(
+                                    "action", "scene_launched",
+                                    "scene_name", args.sceneName(),
+                                    "launched_scene_index", launchedIndex,
+                                    "message", result.getMessage()
+                                );
+                            } else {
+                                return Map.of(
+                                    "action", "scene_launched",
+                                    "scene_name", args.sceneName(),
+                                    "message", result.getMessage()
+                                );
+                            }
                         } else {
-                            throw new RuntimeException(result.getMessage());
+                            ErrorCode errorCode = ErrorCode.fromString(result.getErrorCode());
+                            throw new BitwigApiException(errorCode, TOOL_NAME, result.getMessage());
                         }
                     }
                 }

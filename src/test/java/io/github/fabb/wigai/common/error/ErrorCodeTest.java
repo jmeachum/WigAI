@@ -134,4 +134,51 @@ class ErrorCodeTest {
         // Since we can't mock class name easily, this test verifies the logic would work
         assertEquals(ErrorCode.UNKNOWN_ERROR, result);
     }
+
+    // fromString tests
+
+    @Test
+    void testFromStringDirectEnumMatch() {
+        assertEquals(ErrorCode.INVALID_RANGE, ErrorCode.fromString("INVALID_RANGE"));
+        assertEquals(ErrorCode.TRACK_NOT_FOUND, ErrorCode.fromString("TRACK_NOT_FOUND"));
+        assertEquals(ErrorCode.SCENE_NOT_FOUND, ErrorCode.fromString("SCENE_NOT_FOUND"));
+        assertEquals(ErrorCode.BITWIG_API_ERROR, ErrorCode.fromString("BITWIG_API_ERROR"));
+    }
+
+    @Test
+    void testFromStringCaseInsensitive() {
+        assertEquals(ErrorCode.INVALID_RANGE, ErrorCode.fromString("invalid_range"));
+        assertEquals(ErrorCode.TRACK_NOT_FOUND, ErrorCode.fromString("track_not_found"));
+    }
+
+    @Test
+    void testFromStringAliasClipIndexOutOfBounds() {
+        // CLIP_INDEX_OUT_OF_BOUNDS is an alias for INVALID_RANGE
+        assertEquals(ErrorCode.INVALID_RANGE, ErrorCode.fromString("CLIP_INDEX_OUT_OF_BOUNDS"));
+        assertEquals(ErrorCode.INVALID_RANGE, ErrorCode.fromString("clip_index_out_of_bounds"));
+    }
+
+    @Test
+    void testFromStringAliasBitwigError() {
+        // BITWIG_ERROR is an alias for BITWIG_API_ERROR
+        assertEquals(ErrorCode.BITWIG_API_ERROR, ErrorCode.fromString("BITWIG_ERROR"));
+        assertEquals(ErrorCode.BITWIG_API_ERROR, ErrorCode.fromString("bitwig_error"));
+    }
+
+    @Test
+    void testFromStringWithNull() {
+        assertEquals(ErrorCode.OPERATION_FAILED, ErrorCode.fromString(null));
+    }
+
+    @Test
+    void testFromStringWithEmptyString() {
+        assertEquals(ErrorCode.OPERATION_FAILED, ErrorCode.fromString(""));
+        assertEquals(ErrorCode.OPERATION_FAILED, ErrorCode.fromString("   "));
+    }
+
+    @Test
+    void testFromStringWithUnknownCode() {
+        assertEquals(ErrorCode.OPERATION_FAILED, ErrorCode.fromString("UNKNOWN_CODE_XYZ"));
+        assertEquals(ErrorCode.OPERATION_FAILED, ErrorCode.fromString("NOT_A_REAL_ERROR"));
+    }
 }
