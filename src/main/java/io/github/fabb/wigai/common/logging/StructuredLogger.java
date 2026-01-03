@@ -226,10 +226,26 @@ public class StructuredLogger {
      * @param result Optional operation result
      */
     public void logOperationSuccess(String operationId, String operation, long durationMs, Object result) {
+        logOperationSuccess(operationId, operation, durationMs, result, null);
+    }
+
+    /**
+     * Logs the successful completion of an operation with correlation parameters.
+     *
+     * @param operationId The operation correlation ID
+     * @param operation The operation name
+     * @param durationMs The operation duration in milliseconds
+     * @param result Optional operation result
+     * @param parameters Optional correlation parameters (e.g., request_id)
+     */
+    public void logOperationSuccess(String operationId, String operation, long durationMs, Object result, Map<String, Object> parameters) {
         StringBuilder message = new StringBuilder("Operation completed successfully: ").append(operation);
         message.append(" | Duration: ").append(durationMs).append("ms");
         if (result != null) {
             message.append(" | Result: ").append(result.toString());
+        }
+        if (parameters != null && !parameters.isEmpty()) {
+            appendCorrelationParameters(message, parameters);
         }
         info(operationId, operation, message.toString());
     }
@@ -244,10 +260,41 @@ public class StructuredLogger {
      * @param errorMessage The error message
      */
     public void logOperationFailure(String operationId, String operation, long durationMs, ErrorCode errorCode, String errorMessage) {
+        logOperationFailure(operationId, operation, durationMs, errorCode, errorMessage, null);
+    }
+
+    /**
+     * Logs the failure of an operation with correlation parameters.
+     *
+     * @param operationId The operation correlation ID
+     * @param operation The operation name
+     * @param durationMs The operation duration in milliseconds
+     * @param errorCode The error code
+     * @param errorMessage The error message
+     * @param parameters Optional correlation parameters (e.g., request_id)
+     */
+    public void logOperationFailure(String operationId, String operation, long durationMs, ErrorCode errorCode, String errorMessage, Map<String, Object> parameters) {
         StringBuilder message = new StringBuilder("Operation failed: ").append(operation);
         message.append(" | Duration: ").append(durationMs).append("ms");
         message.append(" | Error: ").append(errorMessage);
+        if (parameters != null && !parameters.isEmpty()) {
+            appendCorrelationParameters(message, parameters);
+        }
         errorWithCode(operationId, operation, message.toString(), errorCode, null);
+    }
+
+    /**
+     * Appends correlation parameters (like request_id) to a log message.
+     * Only includes known safe correlation fields.
+     *
+     * @param message The StringBuilder to append to
+     * @param parameters The parameters map
+     */
+    private void appendCorrelationParameters(StringBuilder message, Map<String, Object> parameters) {
+        Object requestId = parameters.get("request_id");
+        if (requestId != null) {
+            message.append(" | request_id=").append(requestId);
+        }
     }
 
     /**
@@ -260,7 +307,7 @@ public class StructuredLogger {
      */
     public TimedOperation startTimedOperation(String operationId, String operation, Map<String, Object> parameters) {
         logOperationStart(operationId, operation, parameters);
-        return new TimedOperation(this, operationId, operation, System.currentTimeMillis());
+        return new TimedOperation(this, operationId, operation, System.currentTimeMillis(), parameters);
     }
 
     /**
@@ -323,12 +370,14 @@ public class StructuredLogger {
         private final String operationId;
         private final String operation;
         private final long startTime;
+        private final Map<String, Object> parameters;
 
-        TimedOperation(StructuredLogger logger, String operationId, String operation, long startTime) {
+        TimedOperation(StructuredLogger logger, String operationId, String operation, long startTime, Map<String, Object> parameters) {
             this.logger = logger;
             this.operationId = operationId;
             this.operation = operation;
             this.startTime = startTime;
+            this.parameters = parameters;
         }
 
         /**
@@ -338,7 +387,7 @@ public class StructuredLogger {
          */
         public void success(Object result) {
             long duration = System.currentTimeMillis() - startTime;
-            logger.logOperationSuccess(operationId, operation, duration, result);
+            logger.logOperationSuccess(operationId, operation, duration, result, parameters);
         }
 
         /**
@@ -356,7 +405,7 @@ public class StructuredLogger {
          */
         public void failure(ErrorCode errorCode, String errorMessage) {
             long duration = System.currentTimeMillis() - startTime;
-            logger.logOperationFailure(operationId, operation, duration, errorCode, errorMessage);
+            logger.logOperationFailure(operationId, operation, duration, errorCode, errorMessage, parameters);
         }
 
         /**

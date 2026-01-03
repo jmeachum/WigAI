@@ -179,7 +179,8 @@ public class McpErrorHandler {
             ToolOperationWithParams<T> task) {
 
         String operationId = logger.generateOperationId();
-        StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, arguments);
+        Map<String, Object> loggingParams = extractLoggingParameters(arguments);
+        StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, loggingParams);
 
         try {
             // Validate parameters

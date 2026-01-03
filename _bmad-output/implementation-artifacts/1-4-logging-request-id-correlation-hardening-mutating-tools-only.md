@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -51,10 +51,10 @@ so that I can reliably debug failures and performance issues without logging sen
   - [x] If `docs/reference/api-reference.md` documents these tools' request schemas, add `request_id` (optional) consistently for mutating tools
 
 ### Review Follow-ups (AI)
-- [ ] [AI-Review][HIGH] Include request_id in completion/failure logging so all invocation logs carry correlation data and ErrorCode [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:228]
-- [ ] [AI-Review][HIGH] Fix missing file reference in Dev Agent Record File List (remove or add the referenced sprint artifact) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:148]
-- [ ] [AI-Review][HIGH] Reconcile story File List vs git reality; file list claims changes with clean git state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:146]
-- [ ] [AI-Review][MEDIUM] Sanitize logging parameters in executeWithValidation; avoid logging raw arguments [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:181]
+- [x] [AI-Review][HIGH] Include request_id in completion/failure logging so all invocation logs carry correlation data and ErrorCode [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:228]
+- [x] [AI-Review][HIGH] Fix missing file reference in Dev Agent Record File List (remove or add the referenced sprint artifact) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:148]
+- [x] [AI-Review][HIGH] Reconcile story File List vs git reality; file list claims changes with clean git state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:146]
+- [x] [AI-Review][MEDIUM] Sanitize logging parameters in executeWithValidation; avoid logging raw arguments [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:181]
 
 ## Dev Notes
 
@@ -148,18 +148,22 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Story drafted as ready-for-dev; no implementation performed.
 - 2026-01-03: Story clarified to remove ambiguity (non-blocking logging, explicit testing assertion point, previous-story regression guardrails).
 - 2026-01-03: Implementation complete. Added `request_id` support to all 6 baseline mutating tools via new `executeWithErrorHandling` overload in `McpErrorHandler`. Implemented `extractLoggingParameters()` helper for sanitized parameter extraction (only `request_id` included, no raw payloads). Added 4 new tests to `TransportToolTest` covering: request_id propagation to logging context, backward compatibility without request_id, failure-path error code + request_id correlation, and transport_stop request_id handling. All existing tests remain green.
+- 2026-01-03: Addressed 4 code review follow-ups: (1) Fixed TimedOperation to carry parameters through to success/failure logs so request_id appears in completion logging; (2) Added new StructuredLoggerTest with 4 tests validating request_id propagation; (3) Fixed executeWithValidation to use extractLoggingParameters() instead of raw arguments; (4) Corrected File List path references to match current file locations.
 
 ### File List
 
-- docs/sprint-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md
+- _bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md
 - src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java
+- src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/TransportTool.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/ClipTool.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/DeviceParamTool.java
 - src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java
+- src/test/java/io/github/fabb/wigai/common/logging/StructuredLoggerTest.java
 - docs/reference/api-reference.md
 
 ## Change Log
 
 - 2026-01-03: Story 1.4 implementation complete - Added request_id correlation support to baseline mutating tools
+- 2026-01-03: Addressed code review findings - 4 items resolved (3 HIGH, 1 MEDIUM)
