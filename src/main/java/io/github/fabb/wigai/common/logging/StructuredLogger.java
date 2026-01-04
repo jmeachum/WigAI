@@ -212,7 +212,7 @@ public class StructuredLogger {
     public void logOperationStart(String operationId, String operation, Map<String, Object> parameters) {
         StringBuilder message = new StringBuilder("Operation started: ").append(operation);
         if (parameters != null && !parameters.isEmpty()) {
-            message.append(" | Parameters: ").append(parameters.toString());
+            appendCorrelationParameters(message, parameters);
         }
         info(operationId, operation, message.toString());
     }
@@ -241,9 +241,7 @@ public class StructuredLogger {
     public void logOperationSuccess(String operationId, String operation, long durationMs, Object result, Map<String, Object> parameters) {
         StringBuilder message = new StringBuilder("Operation completed successfully: ").append(operation);
         message.append(" | Duration: ").append(durationMs).append("ms");
-        if (result != null) {
-            message.append(" | Result: ").append(result.toString());
-        }
+        // Note: Do not log raw result objects to avoid payload leakage; result parameter retained for API compatibility
         if (parameters != null && !parameters.isEmpty()) {
             appendCorrelationParameters(message, parameters);
         }

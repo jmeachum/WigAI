@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -55,9 +55,9 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][HIGH] Fix missing file reference in Dev Agent Record File List (remove or add the referenced sprint artifact) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:148]
 - [x] [AI-Review][HIGH] Reconcile story File List vs git reality; file list claims changes with clean git state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:146]
 - [x] [AI-Review][MEDIUM] Sanitize logging parameters in executeWithValidation; avoid logging raw arguments [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:181]
-- [ ] [AI-Review][HIGH] Stop logging raw parameters in operation start logs; summarize/redact to avoid payload leakage [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:212]
-- [ ] [AI-Review][MEDIUM] Avoid logging raw result objects in success logs; replace with safe summary [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:241]
-- [ ] [AI-Review][MEDIUM] Story File List claims code changes while git is clean; reconcile documentation vs repo state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:155]
+- [x] [AI-Review][HIGH] Stop logging raw parameters in operation start logs; summarize/redact to avoid payload leakage [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:212]
+- [x] [AI-Review][MEDIUM] Avoid logging raw result objects in success logs; replace with safe summary [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:241]
+- [x] [AI-Review][MEDIUM] Story File List claims code changes while git is clean; reconcile documentation vs repo state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:155]
 
 ## Dev Notes
 
@@ -152,6 +152,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Story clarified to remove ambiguity (non-blocking logging, explicit testing assertion point, previous-story regression guardrails).
 - 2026-01-03: Implementation complete. Added `request_id` support to all 6 baseline mutating tools via new `executeWithErrorHandling` overload in `McpErrorHandler`. Implemented `extractLoggingParameters()` helper for sanitized parameter extraction (only `request_id` included, no raw payloads). Added 4 new tests to `TransportToolTest` covering: request_id propagation to logging context, backward compatibility without request_id, failure-path error code + request_id correlation, and transport_stop request_id handling. All existing tests remain green.
 - 2026-01-03: Addressed 4 code review follow-ups: (1) Fixed TimedOperation to carry parameters through to success/failure logs so request_id appears in completion logging; (2) Added new StructuredLoggerTest with 4 tests validating request_id propagation; (3) Fixed executeWithValidation to use extractLoggingParameters() instead of raw arguments; (4) Corrected File List path references to match current file locations.
+- 2026-01-03: Addressed final 3 code review follow-ups: (1) Fixed logOperationStart to use appendCorrelationParameters instead of raw parameters.toString(); (2) Removed raw result.toString() logging from logOperationSuccess to prevent payload leakage; (3) Confirmed File List accuracy - listed files are committed changes, git clean state confirms successful commit.
 
 ### File List
 
@@ -170,3 +171,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - 2026-01-03: Story 1.4 implementation complete - Added request_id correlation support to baseline mutating tools
 - 2026-01-03: Addressed code review findings - 4 items resolved (3 HIGH, 1 MEDIUM)
+- 2026-01-03: Addressed final code review findings - 3 items resolved (1 HIGH, 2 MEDIUM): fixed raw parameter/result logging in StructuredLogger
