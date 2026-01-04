@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -55,6 +55,9 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][HIGH] Fix missing file reference in Dev Agent Record File List (remove or add the referenced sprint artifact) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:148]
 - [x] [AI-Review][HIGH] Reconcile story File List vs git reality; file list claims changes with clean git state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:146]
 - [x] [AI-Review][MEDIUM] Sanitize logging parameters in executeWithValidation; avoid logging raw arguments [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:181]
+- [ ] [AI-Review][HIGH] Stop logging raw parameters in operation start logs; summarize/redact to avoid payload leakage [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:212]
+- [ ] [AI-Review][MEDIUM] Avoid logging raw result objects in success logs; replace with safe summary [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:241]
+- [ ] [AI-Review][MEDIUM] Story File List claims code changes while git is clean; reconcile documentation vs repo state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:155]
 
 ## Dev Notes
 
