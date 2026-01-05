@@ -19,12 +19,16 @@ import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for DeviceParamTool after migration to unified error handling architecture.
@@ -237,5 +241,139 @@ class DeviceParamToolTest {
         JsonNode dataNode = McpResponseTestUtils.validateObjectResponse(result);
         assertEquals("Test Device", dataNode.get("device_name").asText());
         assertTrue(dataNode.get("parameters").isArray());
+    }
+
+    // === Story 1.4: request_id correlation tests ===
+
+    @Test
+    void testSetDeviceParameterWithRequestIdIncludesItInLoggingContext() {
+        // AC 2, AC 3: request_id in tool arguments must be included in logging context
+
+        // Arrange
+        doNothing().when(deviceController).setSelectedDeviceParameter(0, 0.5);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("parameter_index", 0);
+        arguments.put("value", 0.5);
+        arguments.put("request_id", "device-param-correlation-123");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = DeviceParamTool.setSelectedDeviceParameterSpecification(deviceController, structuredLogger);
+
+        // Act
+        spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Verify startTimedOperation was called with parameters containing request_id
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("set_selected_device_parameter"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters map should not be null when request_id is provided");
+        assertEquals("device-param-correlation-123", capturedParams.get("request_id"),
+            "request_id should be included in logging parameters");
+    }
+
+    @Test
+    void testSetDeviceParameterWithoutRequestIdStillWorks() {
+        // AC 3: Backward compatibility - tools work without request_id
+
+        // Arrange
+        doNothing().when(deviceController).setSelectedDeviceParameter(0, 0.5);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("parameter_index", 0);
+        arguments.put("value", 0.5);
+        // No request_id
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = DeviceParamTool.setSelectedDeviceParameterSpecification(deviceController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Operation completes successfully
+        assertNotNull(result);
+        assertFalse(result.isError(), "Operation should succeed without request_id");
+
+        // Verify logging still happened
+        verify(structuredLogger).startTimedOperation(any(), eq("set_selected_device_parameter"), any());
+    }
+
+    @Test
+    void testSetMultipleDeviceParametersWithRequestIdIncludesItInLoggingContext() {
+        // AC 2, AC 3: request_id in tool arguments must be included in logging context
+
+        // Arrange
+        List<ParameterSettingResult> mockResults = List.of(
+            new ParameterSettingResult(0, "success", 0.5, null, "Parameter set successfully")
+        );
+        when(deviceController.setMultipleSelectedDeviceParameters(any())).thenReturn(mockResults);
+
+        List<Map<String, Object>> parametersList = new ArrayList<>();
+        Map<String, Object> param = new HashMap<>();
+        param.put("parameter_index", 0);
+        param.put("value", 0.5);
+        parametersList.add(param);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("parameters", parametersList);
+        arguments.put("request_id", "batch-param-correlation-456");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = DeviceParamTool.setMultipleDeviceParametersSpecification(deviceController, structuredLogger);
+
+        // Act
+        spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Verify startTimedOperation was called with parameters containing request_id
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("set_selected_device_parameters"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters map should not be null when request_id is provided");
+        assertEquals("batch-param-correlation-456", capturedParams.get("request_id"),
+            "request_id should be included in logging parameters");
+    }
+
+    @Test
+    void testSetMultipleDeviceParametersWithoutRequestIdStillWorks() {
+        // AC 3: Backward compatibility - tools work without request_id
+
+        // Arrange
+        List<ParameterSettingResult> mockResults = List.of(
+            new ParameterSettingResult(0, "success", 0.5, null, "Parameter set successfully")
+        );
+        when(deviceController.setMultipleSelectedDeviceParameters(any())).thenReturn(mockResults);
+
+        List<Map<String, Object>> parametersList = new ArrayList<>();
+        Map<String, Object> param = new HashMap<>();
+        param.put("parameter_index", 0);
+        param.put("value", 0.5);
+        parametersList.add(param);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("parameters", parametersList);
+        // No request_id
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = DeviceParamTool.setMultipleDeviceParametersSpecification(deviceController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Operation completes successfully
+        assertNotNull(result);
+        assertFalse(result.isError(), "Operation should succeed without request_id");
+
+        // Verify logging still happened
+        verify(structuredLogger).startTimedOperation(any(), eq("set_selected_device_parameters"), any());
     }
 }

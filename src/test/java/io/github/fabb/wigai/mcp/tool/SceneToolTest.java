@@ -18,9 +18,13 @@ import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for SceneTool focusing on error handling integration.
@@ -159,5 +163,101 @@ class SceneToolTest {
         // Verify it's properly structured as an action response
         JsonNode dataNode = McpResponseTestUtils.validateActionResponse(result, "scene_launched");
         assertEquals(3, dataNode.get("scene_index").asInt());
+    }
+
+    // === Story 1.4: request_id correlation tests ===
+
+    @Test
+    void testLaunchSceneWithRequestIdIncludesItInLoggingContext() {
+        // AC 2, AC 3: request_id in tool arguments must be included in logging context
+
+        // Arrange
+        SceneLaunchResult successResult = SceneLaunchResult.success("Scene 0 launched.");
+        when(clipSceneController.launchSceneByIndex(0)).thenReturn(successResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("scene_index", 0);
+        arguments.put("request_id", "scene-correlation-123");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+
+        // Act
+        spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Verify startTimedOperation was called with parameters containing request_id
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("session_launchSceneByIndex"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters map should not be null when request_id is provided");
+        assertEquals("scene-correlation-123", capturedParams.get("request_id"),
+            "request_id should be included in logging parameters");
+    }
+
+    @Test
+    void testLaunchSceneWithoutRequestIdStillWorks() {
+        // AC 3: Backward compatibility - tools work without request_id
+
+        // Arrange
+        SceneLaunchResult successResult = SceneLaunchResult.success("Scene 0 launched.");
+        when(clipSceneController.launchSceneByIndex(0)).thenReturn(successResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("scene_index", 0);
+        // No request_id
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Operation completes successfully
+        assertNotNull(result);
+        assertFalse(result.isError(), "Operation should succeed without request_id");
+
+        // Verify logging still happened
+        verify(structuredLogger).startTimedOperation(any(), eq("session_launchSceneByIndex"), any());
+    }
+
+    @Test
+    void testLaunchSceneFailureIncludesRequestIdAndErrorCodeInLogs() {
+        // AC 4: On failure, logs include ErrorCode and request_id
+
+        // Arrange
+        SceneLaunchResult errorResult = SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index 99 out of range");
+        when(clipSceneController.launchSceneByIndex(99)).thenReturn(errorResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("scene_index", 99);
+        arguments.put("request_id", "scene-error-456");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Result is an error
+        assertTrue(result.isError(), "Result should be an error");
+
+        // Assert: Verify startTimedOperation was called with request_id in parameters
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("session_launchSceneByIndex"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters should include request_id even on failure path");
+        assertEquals("scene-error-456", capturedParams.get("request_id"),
+            "request_id should be in logging parameters for error correlation");
+
+        // Assert: Verify failure was logged with correct ErrorCode
+        verify(timedOperation).failure(eq(ErrorCode.SCENE_NOT_FOUND), any());
     }
 }

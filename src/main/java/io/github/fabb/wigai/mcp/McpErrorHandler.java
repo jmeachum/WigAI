@@ -138,6 +138,12 @@ public class McpErrorHandler {
     }
 
     /**
+     * Maximum length for request_id to prevent oversized log payloads.
+     * 256 chars is generous (standard UUID is 36 chars).
+     */
+    private static final int MAX_REQUEST_ID_LENGTH = 256;
+
+    /**
      * Extracts logging-safe parameters from tool arguments.
      * Only includes correlation fields (like request_id) and summaries, never full payloads.
      *
@@ -151,14 +157,59 @@ public class McpErrorHandler {
 
         Map<String, Object> loggingParams = new java.util.LinkedHashMap<>();
 
-        // Extract request_id for correlation (AC 2, AC 3)
+        // Extract and sanitize request_id for correlation (AC 2, AC 3)
         Object requestId = arguments.get("request_id");
-        if (requestId != null) {
-            loggingParams.put("request_id", requestId);
+        String sanitizedRequestId = sanitizeRequestId(requestId);
+        if (sanitizedRequestId != null) {
+            loggingParams.put("request_id", sanitizedRequestId);
         }
 
         // Return null if no logging-relevant parameters found
         return loggingParams.isEmpty() ? null : loggingParams;
+    }
+
+    /**
+     * Sanitizes request_id to prevent log injection and oversized payloads.
+     * <ul>
+     *   <li>Must be a String (rejects complex objects)</li>
+     *   <li>Truncated to MAX_REQUEST_ID_LENGTH chars</li>
+     *   <li>Control characters stripped to prevent log injection</li>
+     * </ul>
+     *
+     * @param requestId The raw request_id value from arguments
+     * @return Sanitized request_id string, or null if invalid/absent
+     */
+    static String sanitizeRequestId(Object requestId) {
+        if (requestId == null) {
+            return null;
+        }
+
+        // Type check: only accept String values
+        if (!(requestId instanceof String)) {
+            return null;
+        }
+
+        String rawId = (String) requestId;
+        if (rawId.isEmpty()) {
+            return null;
+        }
+
+        // Length limit to prevent oversized payloads
+        if (rawId.length() > MAX_REQUEST_ID_LENGTH) {
+            rawId = rawId.substring(0, MAX_REQUEST_ID_LENGTH);
+        }
+
+        // Strip control characters (ASCII 0-31, 127) to prevent log injection
+        StringBuilder sanitized = new StringBuilder(rawId.length());
+        for (int i = 0; i < rawId.length(); i++) {
+            char c = rawId.charAt(i);
+            if (c >= 32 && c != 127) {
+                sanitized.append(c);
+            }
+        }
+
+        String result = sanitized.toString();
+        return result.isEmpty() ? null : result;
     }
 
     /**

@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -59,8 +59,8 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][MEDIUM] Avoid logging raw result objects in success logs; replace with safe summary [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:241]
 - [x] [AI-Review][MEDIUM] Story File List claims code changes while git is clean; reconcile documentation vs repo state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:155]
 - [x] [AI-Review][HIGH] Implement request_id dedupe — OUT OF SCOPE for 1.4 (logging only); moved to Story 1.7
-- [ ] [AI-Review][MEDIUM] Validate/sanitize request_id (type/length) before logging to prevent log injection or oversized payloads [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:147]
-- [ ] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
+- [x] [AI-Review][MEDIUM] Validate/sanitize request_id (type/length) before logging to prevent log injection or oversized payloads [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:147]
+- [x] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
 
 ## Dev Notes
 
@@ -156,6 +156,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Implementation complete. Added `request_id` support to all 6 baseline mutating tools via new `executeWithErrorHandling` overload in `McpErrorHandler`. Implemented `extractLoggingParameters()` helper for sanitized parameter extraction (only `request_id` included, no raw payloads). Added 4 new tests to `TransportToolTest` covering: request_id propagation to logging context, backward compatibility without request_id, failure-path error code + request_id correlation, and transport_stop request_id handling. All existing tests remain green.
 - 2026-01-03: Addressed 4 code review follow-ups: (1) Fixed TimedOperation to carry parameters through to success/failure logs so request_id appears in completion logging; (2) Added new StructuredLoggerTest with 4 tests validating request_id propagation; (3) Fixed executeWithValidation to use extractLoggingParameters() instead of raw arguments; (4) Corrected File List path references to match current file locations.
 - 2026-01-03: Addressed final 3 code review follow-ups: (1) Fixed logOperationStart to use appendCorrelationParameters instead of raw parameters.toString(); (2) Removed raw result.toString() logging from logOperationSuccess to prevent payload leakage; (3) Confirmed File List accuracy - listed files are committed changes, git clean state confirms successful commit.
+- 2026-01-05: Addressed final 2 review follow-ups: (1) Added request_id sanitization in McpErrorHandler.sanitizeRequestId() with type check (String only), length limit (256 chars), and control character stripping to prevent log injection; (2) Added comprehensive request_id propagation tests for launch_clip (3 tests), session_launchSceneByIndex (3 tests), and device parameter setters (4 tests). All tests pass.
 
 ### File List
 
@@ -167,6 +168,10 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/DeviceParamTool.java
 - src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java
+- src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java
+- src/test/java/io/github/fabb/wigai/mcp/tool/SceneToolTest.java
+- src/test/java/io/github/fabb/wigai/mcp/tool/DeviceParamToolTest.java
+- src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java
 - src/test/java/io/github/fabb/wigai/common/logging/StructuredLoggerTest.java
 - docs/reference/api-reference.md
 
@@ -175,3 +180,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Story 1.4 implementation complete - Added request_id correlation support to baseline mutating tools
 - 2026-01-03: Addressed code review findings - 4 items resolved (3 HIGH, 1 MEDIUM)
 - 2026-01-03: Addressed final code review findings - 3 items resolved (1 HIGH, 2 MEDIUM): fixed raw parameter/result logging in StructuredLogger
+- 2026-01-05: Addressed final 2 code review findings (2 MEDIUM): request_id sanitization and comprehensive propagation tests for all mutating tools

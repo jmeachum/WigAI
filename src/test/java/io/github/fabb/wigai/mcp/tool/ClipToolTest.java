@@ -20,9 +20,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for ClipTool after migration to unified error handling architecture.
@@ -206,5 +210,104 @@ class ClipToolTest {
         assertEquals("CLIP_NOT_FOUND", errorNode.get("code").asText());
         assertEquals("Clip at index 5 does not exist", errorNode.get("message").asText());
         assertEquals("launch_clip", errorNode.get("operation").asText());
+    }
+
+    // === Story 1.4: request_id correlation tests ===
+
+    @Test
+    void testLaunchClipWithRequestIdIncludesItInLoggingContext() {
+        // AC 2, AC 3: request_id in tool arguments must be included in logging context
+
+        // Arrange
+        ClipLaunchResult successResult = ClipLaunchResult.success("Clip at Drums[0] launched.");
+        when(clipSceneController.launchClip("Drums", 0)).thenReturn(successResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_name", "Drums");
+        arguments.put("clip_index", 0);
+        arguments.put("request_id", "clip-correlation-123");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+
+        // Act
+        spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Verify startTimedOperation was called with parameters containing request_id
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("launch_clip"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters map should not be null when request_id is provided");
+        assertEquals("clip-correlation-123", capturedParams.get("request_id"),
+            "request_id should be included in logging parameters");
+    }
+
+    @Test
+    void testLaunchClipWithoutRequestIdStillWorks() {
+        // AC 3: Backward compatibility - tools work without request_id
+
+        // Arrange
+        ClipLaunchResult successResult = ClipLaunchResult.success("Clip at Drums[0] launched.");
+        when(clipSceneController.launchClip("Drums", 0)).thenReturn(successResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_name", "Drums");
+        arguments.put("clip_index", 0);
+        // No request_id
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Operation completes successfully
+        assertNotNull(result);
+        assertFalse(result.isError(), "Operation should succeed without request_id");
+
+        // Verify logging still happened
+        verify(structuredLogger).startTimedOperation(any(), eq("launch_clip"), any());
+    }
+
+    @Test
+    void testLaunchClipFailureIncludesRequestIdAndErrorCodeInLogs() {
+        // AC 4: On failure, logs include ErrorCode and request_id
+
+        // Arrange
+        ClipLaunchResult errorResult = ClipLaunchResult.error("TRACK_NOT_FOUND", "Track 'Missing' not found");
+        when(clipSceneController.launchClip("Missing", 0)).thenReturn(errorResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_name", "Missing");
+        arguments.put("clip_index", 0);
+        arguments.put("request_id", "clip-error-456");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Result is an error
+        assertTrue(result.isError(), "Result should be an error");
+
+        // Assert: Verify startTimedOperation was called with request_id in parameters
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("launch_clip"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters should include request_id even on failure path");
+        assertEquals("clip-error-456", capturedParams.get("request_id"),
+            "request_id should be in logging parameters for error correlation");
+
+        // Assert: Verify failure was logged with correct ErrorCode
+        verify(timedOperation).failure(eq(ErrorCode.TRACK_NOT_FOUND), any());
     }
 }
