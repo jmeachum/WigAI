@@ -326,6 +326,40 @@ So that my client can distinguish between "wrong index position" vs "value outsi
 **When** tests run
 **Then** index validation paths are covered and pass.
 
+### Story 1.7: Idempotency / Dedupe for Mutating Tools (`request_id` Key)
+
+As a WigAI developer,
+I want mutating tools to dedupe repeated requests using `(tool_name, request_id)`,
+So that retries from clients do not cause double-apply of state-changing operations.
+
+> **Note:** This story implements the idempotency requirement from architecture.md. Story 1.4 added `request_id` acceptance and logging correlation; this story adds the actual dedupe behavior.
+
+**Acceptance Criteria:**
+
+**Given** a mutating tool is invoked with a `request_id`
+**When** the same `(tool_name, request_id)` pair is received again within the TTL window
+**Then** WigAI returns the cached result from the first invocation without re-executing the operation.
+
+**Given** a mutating tool is invoked with a `request_id`
+**When** the TTL expires or the cache reaches max entries
+**Then** the entry is evicted and a subsequent request with the same `request_id` executes normally.
+
+**Given** a mutating tool is invoked without a `request_id`
+**When** it executes
+**Then** no dedupe is applied (backward compatible; idempotency is opt-in via `request_id`).
+
+**Given** the dedupe cache is implemented
+**When** it stores entries
+**Then** it uses bounded in-memory storage with configurable TTL (default: 60s) and max entries (default: 1000) to prevent unbounded memory growth.
+
+**Given** a dedupe cache hit occurs
+**When** WigAI logs the operation
+**Then** logs indicate "dedupe hit" with the `request_id` and original outcome (no re-execution logged).
+
+**Given** unit tests exist for the dedupe mechanism
+**When** they run
+**Then** they verify: cache hit returns cached result, cache miss executes normally, TTL expiry allows re-execution, and max entries eviction works correctly.
+
 ## Epic 2: Safe Track Targeting & Discovery
 
 External AI agents can reliably target the intended track (by index/name/selected) with guardrails (explicit refusal when context is missing; fuzzy matching support; refusal on ambiguity) so actions occur on the correct track without surprises.

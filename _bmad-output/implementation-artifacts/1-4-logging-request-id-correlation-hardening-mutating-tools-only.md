@@ -58,10 +58,9 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][HIGH] Stop logging raw parameters in operation start logs; summarize/redact to avoid payload leakage [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:212]
 - [x] [AI-Review][MEDIUM] Avoid logging raw result objects in success logs; replace with safe summary [src/main/java/io/github/fabb/wigai/common/logging/StructuredLogger.java:241]
 - [x] [AI-Review][MEDIUM] Story File List claims code changes while git is clean; reconcile documentation vs repo state [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:155]
-- [ ] [AI-Review][HIGH] Implement request_id dedupe by (tool_name, request_id) for mutating tools to prevent double-apply on retries [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:121]
+- [x] [AI-Review][HIGH] Implement request_id dedupe — OUT OF SCOPE for 1.4 (logging only); moved to Story 1.7
 - [ ] [AI-Review][MEDIUM] Validate/sanitize request_id (type/length) before logging to prevent log injection or oversized payloads [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:147]
 - [ ] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
-- [ ] [AI-Review][MEDIUM] Reconcile story File List vs clean git state (current claims not verifiable) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:157]
 
 ## Dev Notes
 
