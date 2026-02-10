@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -63,6 +63,10 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
 - [x] [AI-Review][MEDIUM] Add parameter summaries (counts/shape) in logging parameters beyond request_id to satisfy AC 5 [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:153]
 - [x] [AI-Review][MEDIUM] Add test asserting error.operation equals MCP tool name when exception operation differs (executeWithErrorHandling override) [src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java:10]
+- [ ] [AI-Review][MEDIUM] Replace pseudo-tests with handler-execution tests for Clip/Scene/Device tools to verify real argument parsing and controller wiring [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:77]
+- [ ] [AI-Review][MEDIUM] Add AC4 assertion that emitted failure logs include the same ErrorCode present in MCP error envelope [src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java:234]
+- [ ] [AI-Review][MEDIUM] Expand logging parameter shape summaries to capture nested payload structure safely (not only top-level collection counts) [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:182]
+- [ ] [AI-Review][LOW] Reject whitespace-only request_id values in sanitization to avoid low-signal correlation metadata [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:216]
 
 ## Dev Notes
 
