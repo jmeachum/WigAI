@@ -144,13 +144,18 @@ public class McpErrorHandler {
     private static final int MAX_REQUEST_ID_LENGTH = 256;
 
     /**
+     * Known correlation-only keys that are not counted as business arguments.
+     */
+    private static final java.util.Set<String> CORRELATION_KEYS = java.util.Set.of("request_id");
+
+    /**
      * Extracts logging-safe parameters from tool arguments.
-     * Only includes correlation fields (like request_id) and summaries, never full payloads.
+     * Includes correlation fields (request_id), argument count, and collection sizes — never actual values.
      *
      * @param arguments The raw tool arguments
      * @return A sanitized map safe for logging, or null if no logging parameters
      */
-    private static Map<String, Object> extractLoggingParameters(Map<String, Object> arguments) {
+    static Map<String, Object> extractLoggingParameters(Map<String, Object> arguments) {
         if (arguments == null || arguments.isEmpty()) {
             return null;
         }
@@ -162,6 +167,24 @@ public class McpErrorHandler {
         String sanitizedRequestId = sanitizeRequestId(requestId);
         if (sanitizedRequestId != null) {
             loggingParams.put("request_id", sanitizedRequestId);
+        }
+
+        // Parameter summaries: count and shape only, no values (AC 5)
+        int nonCorrelationArgCount = 0;
+        for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+            if (CORRELATION_KEYS.contains(entry.getKey())) {
+                continue;
+            }
+            nonCorrelationArgCount++;
+
+            // For collection arguments, log item count as {key}_count
+            Object value = entry.getValue();
+            if (value instanceof java.util.Collection<?> collection) {
+                loggingParams.put(entry.getKey() + "_count", collection.size());
+            }
+        }
+        if (nonCorrelationArgCount > 0) {
+            loggingParams.put("arg_count", nonCorrelationArgCount);
         }
 
         // Return null if no logging-relevant parameters found

@@ -282,16 +282,15 @@ public class StructuredLogger {
     }
 
     /**
-     * Appends correlation parameters (like request_id) to a log message.
-     * Only includes known safe correlation fields.
+     * Appends all logging parameters (correlation fields and summaries) to a log message.
+     * The parameters map is pre-sanitized by McpErrorHandler.extractLoggingParameters.
      *
      * @param message The StringBuilder to append to
-     * @param parameters The parameters map
+     * @param parameters The parameters map (already sanitized — safe to iterate)
      */
     private void appendCorrelationParameters(StringBuilder message, Map<String, Object> parameters) {
-        Object requestId = parameters.get("request_id");
-        if (requestId != null) {
-            message.append(" | request_id=").append(requestId);
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            message.append(" | ").append(entry.getKey()).append("=").append(entry.getValue());
         }
     }
 

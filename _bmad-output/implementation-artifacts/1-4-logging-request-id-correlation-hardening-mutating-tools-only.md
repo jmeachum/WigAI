@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -61,8 +61,8 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][HIGH] Implement request_id dedupe — OUT OF SCOPE for 1.4 (logging only); moved to Story 1.7
 - [x] [AI-Review][MEDIUM] Validate/sanitize request_id (type/length) before logging to prevent log injection or oversized payloads [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:147]
 - [x] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
-- [ ] [AI-Review][MEDIUM] Add parameter summaries (counts/shape) in logging parameters beyond request_id to satisfy AC 5 [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:153]
-- [ ] [AI-Review][MEDIUM] Add test asserting error.operation equals MCP tool name when exception operation differs (executeWithErrorHandling override) [src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java:10]
+- [x] [AI-Review][MEDIUM] Add parameter summaries (counts/shape) in logging parameters beyond request_id to satisfy AC 5 [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:153]
+- [x] [AI-Review][MEDIUM] Add test asserting error.operation equals MCP tool name when exception operation differs (executeWithErrorHandling override) [src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java:10]
 
 ## Dev Notes
 
@@ -159,6 +159,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Addressed 4 code review follow-ups: (1) Fixed TimedOperation to carry parameters through to success/failure logs so request_id appears in completion logging; (2) Added new StructuredLoggerTest with 4 tests validating request_id propagation; (3) Fixed executeWithValidation to use extractLoggingParameters() instead of raw arguments; (4) Corrected File List path references to match current file locations.
 - 2026-01-03: Addressed final 3 code review follow-ups: (1) Fixed logOperationStart to use appendCorrelationParameters instead of raw parameters.toString(); (2) Removed raw result.toString() logging from logOperationSuccess to prevent payload leakage; (3) Confirmed File List accuracy - listed files are committed changes, git clean state confirms successful commit.
 - 2026-01-05: Addressed final 2 review follow-ups: (1) Added request_id sanitization in McpErrorHandler.sanitizeRequestId() with type check (String only), length limit (256 chars), and control character stripping to prevent log injection; (2) Added comprehensive request_id propagation tests for launch_clip (3 tests), session_launchSceneByIndex (3 tests), and device parameter setters (4 tests). All tests pass.
+- 2026-02-09: ✅ Resolved final 2 review findings [MEDIUM]: (1) Enhanced extractLoggingParameters to include arg_count and collection-size summaries (e.g. parameters_count) beyond request_id, satisfying AC 5 counts/shape requirement. Updated appendCorrelationParameters to output all sanitized logging params generically. Added 5 tests. (2) Added 2 tests asserting error.operation equals MCP tool name when BitwigApiException or generic exception has a different internal operation. All 18 McpErrorHandlerTest tests pass. Full suite green.
 
 ### File List
 
@@ -183,3 +184,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Addressed code review findings - 4 items resolved (3 HIGH, 1 MEDIUM)
 - 2026-01-03: Addressed final code review findings - 3 items resolved (1 HIGH, 2 MEDIUM): fixed raw parameter/result logging in StructuredLogger
 - 2026-01-05: Addressed final 2 code review findings (2 MEDIUM): request_id sanitization and comprehensive propagation tests for all mutating tools
+- 2026-02-09: Addressed final 2 code review findings (2 MEDIUM): parameter summaries (counts/shape) in logging, error.operation override tests
