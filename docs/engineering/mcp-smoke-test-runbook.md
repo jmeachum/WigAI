@@ -2,6 +2,8 @@
 
 This document describes how to run the MCP smoke test harness to validate that WigAI's MCP server is functioning correctly.
 
+For broader outside-CI functional coverage planning (including per-tool host-functional scenarios), see `docs/engineering/mcp-host-functional-test-matrix.md`.
+
 ## Prerequisites
 
 1. **Bitwig Studio** is running

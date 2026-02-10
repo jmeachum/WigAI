@@ -78,10 +78,6 @@ class ErrorHandlingIntegrationTest {
         assertTrue(exception.getMessage().contains("Failed to start transport playback"));
         assertNotNull(exception.getCause());
         assertTrue(exception.getCause().getMessage().contains("Bitwig transport not available"));
-
-        // Verify logging occurred
-        verify(baseLogger).info("TransportController: Starting transport playback");
-        verify(baseLogger).info(contains("Error starting transport playback"));
     }
 
     @Test
@@ -154,10 +150,6 @@ class ErrorHandlingIntegrationTest {
         assertEquals("stopTransport", exception.getOperation());
         assertNotNull(exception.getCause());
         assertEquals("Device communication failed", exception.getCause().getMessage());
-
-        // Verify error logging includes operation context
-        verify(baseLogger).info("TransportController: Stopping transport playback");
-        verify(baseLogger).info(contains("Error stopping transport playback"));
     }
 
     @Test
@@ -210,9 +202,7 @@ class ErrorHandlingIntegrationTest {
             assertNotNull(e.getCause());
         }
 
-        // Verify logging includes correlation context
-        verify(baseLogger).info("TransportController: Starting transport playback");
-        verify(baseLogger).info(contains("Error starting transport playback"));
-        verify(baseLogger).info(contains("Test correlation error"));
+        // Verify error correlation is preserved in exception chain
+        // (Controller-level logging removed; correlation handled by MCP handler's StructuredLogger)
     }
 }

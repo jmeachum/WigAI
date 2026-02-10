@@ -29,7 +29,12 @@ public class TransportTool {
         var schema = """
             {
               "type": "object",
-              "properties": {}
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
+                }
+              }
             }""";
         var tool = McpSchema.Tool.builder()
             .name("transport_start")
@@ -40,6 +45,7 @@ public class TransportTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 "transport_start",
+                req.arguments(),
                 logger,
                 () -> {
                     String resultMessage = transportController.startTransport();
@@ -69,7 +75,12 @@ public class TransportTool {
         var schema = """
             {
               "type": "object",
-              "properties": {}
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
+                }
+              }
             }""";
         var tool = McpSchema.Tool.builder()
             .name("transport_stop")
@@ -80,6 +91,7 @@ public class TransportTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 "transport_stop",
+                req.arguments(),
                 logger,
                 () -> {
                     String resultMessage = transportController.stopTransport();

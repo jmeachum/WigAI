@@ -17,9 +17,13 @@ import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for TransportTool after migration to unified error handling architecture.
@@ -132,5 +136,160 @@ class TransportToolTest {
         // Verify it's properly structured as an action response
         JsonNode dataNode = McpResponseTestUtils.validateActionResponse(result, "transport_started");
         assertEquals("Transport started", dataNode.get("message").asText());
+    }
+
+    // === Story 1.4: request_id correlation tests ===
+
+    @Test
+    void testTransportStartWithRequestIdIncludesItInLoggingContext() {
+        // RED PHASE: This test should FAIL until we implement request_id propagation
+        // AC 2, AC 3: request_id in tool arguments must be included in logging context
+
+        // Arrange
+        when(transportController.startTransport()).thenReturn("Bitwig transport started.");
+
+        // Create arguments with request_id
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("request_id", "test-correlation-123");
+
+        // Create mock request with arguments
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        // Get the specification and extract handler
+        McpServerFeatures.SyncToolSpecification spec = TransportTool.transportStartSpecification(transportController, structuredLogger);
+
+        // Act: Invoke the handler
+        spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Verify startTimedOperation was called with parameters containing request_id
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("transport_start"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters map should not be null when request_id is provided");
+        assertEquals("test-correlation-123", capturedParams.get("request_id"),
+            "request_id should be included in logging parameters");
+    }
+
+    @Test
+    void testTransportStartWithoutRequestIdStillWorks() {
+        // AC 3: Backward compatibility - tools work without request_id
+
+        // Arrange
+        when(transportController.startTransport()).thenReturn("Bitwig transport started.");
+
+        // Create empty arguments (no request_id)
+        Map<String, Object> arguments = new HashMap<>();
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = TransportTool.transportStartSpecification(transportController, structuredLogger);
+
+        // Act: Invoke the handler - should not throw
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Operation completes successfully
+        assertNotNull(result);
+        assertFalse(result.isError(), "Operation should succeed without request_id");
+
+        // Verify logging still happened
+        verify(structuredLogger).startTimedOperation(any(), eq("transport_start"), any());
+    }
+
+    @Test
+    void testTransportStartFailureIncludesRequestIdAndErrorCodeInLogs() {
+        // RED PHASE: AC 4 - On failure, logs include ErrorCode and request_id
+
+        // Arrange: Mock transport to throw an error
+        when(transportController.startTransport()).thenThrow(
+            new BitwigApiException(ErrorCode.TRANSPORT_ERROR, "transport_start", "Transport unavailable")
+        );
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("request_id", "error-correlation-456");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = TransportTool.transportStartSpecification(transportController, structuredLogger);
+
+        // Act: Invoke the handler (will fail)
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Result is an error
+        assertTrue(result.isError(), "Result should be an error");
+
+        // Assert: Verify startTimedOperation was called with request_id in parameters
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("transport_start"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams, "Parameters should include request_id even on failure path");
+        assertEquals("error-correlation-456", capturedParams.get("request_id"),
+            "request_id should be in logging parameters for error correlation");
+
+        // Assert: Verify failure was logged with correct ErrorCode
+        verify(timedOperation).failure(eq(ErrorCode.TRANSPORT_ERROR), any());
+    }
+
+    @Test
+    void testFailureLogErrorCodeMatchesMcpEnvelopeErrorCode() throws Exception {
+        // AC 4: The ErrorCode logged via timedOperation.failure() must be the same
+        // ErrorCode present in the MCP error response envelope
+
+        // Arrange: Mock transport to throw TRANSPORT_ERROR
+        when(transportController.startTransport()).thenThrow(
+            new BitwigApiException(ErrorCode.TRANSPORT_ERROR, "transport_start", "Transport unavailable")
+        );
+
+        Map<String, Object> arguments = new HashMap<>();
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = TransportTool.transportStartSpecification(transportController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Capture the ErrorCode passed to the failure log
+        ArgumentCaptor<ErrorCode> loggedErrorCodeCaptor = ArgumentCaptor.forClass(ErrorCode.class);
+        verify(timedOperation).failure(loggedErrorCodeCaptor.capture(), any());
+        ErrorCode loggedErrorCode = loggedErrorCodeCaptor.getValue();
+
+        // Extract the ErrorCode from the MCP error response envelope
+        JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
+        String envelopeErrorCode = errorNode.get("code").asText();
+
+        // Assert: Both must be the same ErrorCode
+        assertEquals(loggedErrorCode.getCode(), envelopeErrorCode,
+            "ErrorCode in failure log must match ErrorCode in MCP error envelope");
+    }
+
+    @Test
+    void testTransportStopWithRequestIdIncludesItInLoggingContext() {
+        // AC 3: transport_stop also accepts request_id
+
+        when(transportController.stopTransport()).thenReturn("Bitwig transport stopped.");
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("request_id", "stop-correlation-789");
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = TransportTool.transportStopSpecification(transportController, structuredLogger);
+
+        // Act
+        spec.callHandler().apply(null, mockRequest);
+
+        // Assert
+        ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(structuredLogger).startTimedOperation(any(), eq("transport_stop"), paramsCaptor.capture());
+
+        Map<String, Object> capturedParams = paramsCaptor.getValue();
+        assertNotNull(capturedParams);
+        assertEquals("stop-correlation-789", capturedParams.get("request_id"));
     }
 }
