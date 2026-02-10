@@ -18,8 +18,6 @@ import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -75,45 +73,60 @@ class ClipToolTest {
     }
 
     @Test
-    void testHandleLaunchClip_Success() {
-        // This test validates that the ClipTool specification can be created and configured properly.
-        // The actual handler testing is handled by integration tests since the handler is not exposed publicly.
-
-        // Arrange - Test specification creation with mock dependencies
+    void testHandleLaunchClip_Success() throws Exception {
+        // Arrange: Mock successful clip launch via controller
         ClipLaunchResult successResult = ClipLaunchResult.success("Clip at Drums[0] launched.");
         when(clipSceneController.launchClip("Drums", 0)).thenReturn(successResult);
 
-        // Act - Create the specification
-        McpServerFeatures.SyncToolSpecification specification = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_name", "Drums");
+        arguments.put("clip_index", 0);
 
-        // Assert - Verify specification is properly configured
-        assertNotNull(specification);
-        assertNotNull(specification.tool());
-        assertEquals("launch_clip", specification.tool().name());
-        assertTrue(specification.tool().description().contains("clip"));
-        assertNotNull(specification.tool().inputSchema());
-        // Handler is internal to the specification, so we verify it's properly configured
-        // by checking that the specification object is valid
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
 
-        // Verify that the specification was created successfully
-        // Note: StructuredLogger methods are only called during handler execution, not specification creation
-        assertNotNull(specification.tool());
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+
+        // Act: Invoke handler through specification
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Controller was called with parsed arguments
+        verify(clipSceneController).launchClip("Drums", 0);
+
+        // Assert: Response format is correct
+        JsonNode dataNode = McpResponseTestUtils.validateActionResponse(result, "clip_launched");
+        assertEquals("Drums", dataNode.get("track_name").asText());
+        assertEquals(0, dataNode.get("clip_index").asInt());
+        assertEquals("Clip at Drums[0] launched.", dataNode.get("message").asText());
+        McpResponseTestUtils.assertNotDoubleWrapped(result);
     }
 
     @Test
-    void testSpecificationErrorHandlingConfiguration() {
-        // Test that the specification properly configures error handling
-        McpServerFeatures.SyncToolSpecification specification = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+    void testHandleLaunchClip_ControllerReturnsError() throws Exception {
+        // Arrange: Mock controller returning error result
+        ClipLaunchResult errorResult = ClipLaunchResult.error("TRACK_NOT_FOUND", "Track 'Missing' not found");
+        when(clipSceneController.launchClip("Missing", 0)).thenReturn(errorResult);
 
-        // Verify that structured logging is configured for error handling
-        // Handler is internal, so we test the specification configuration
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_name", "Missing");
+        arguments.put("clip_index", 0);
 
-        // Test that mock setup verifies error handling integration
-        ClipLaunchResult errorResult = ClipLaunchResult.error("TRACK_NOT_FOUND", "Track not found");
-        when(clipSceneController.launchClip(anyString(), anyInt())).thenReturn(errorResult);
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
 
-        // Verify that the ClipTool properly integrates with our error handling system
-        assertNotNull(specification.tool().inputSchema());
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+
+        // Act: Invoke handler through specification
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Controller was called with parsed arguments
+        verify(clipSceneController).launchClip("Missing", 0);
+
+        // Assert: Error response format is correct
+        JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("TRACK_NOT_FOUND", errorNode.get("code").asText());
+        assertEquals("Track 'Missing' not found", errorNode.get("message").asText());
+        assertEquals("launch_clip", errorNode.get("operation").asText());
     }
 
     @Test

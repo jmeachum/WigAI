@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -63,10 +63,10 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
 - [x] [AI-Review][MEDIUM] Add parameter summaries (counts/shape) in logging parameters beyond request_id to satisfy AC 5 [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:153]
 - [x] [AI-Review][MEDIUM] Add test asserting error.operation equals MCP tool name when exception operation differs (executeWithErrorHandling override) [src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java:10]
-- [ ] [AI-Review][MEDIUM] Replace pseudo-tests with handler-execution tests for Clip/Scene/Device tools to verify real argument parsing and controller wiring [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:77]
-- [ ] [AI-Review][MEDIUM] Add AC4 assertion that emitted failure logs include the same ErrorCode present in MCP error envelope [src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java:234]
-- [ ] [AI-Review][MEDIUM] Expand logging parameter shape summaries to capture nested payload structure safely (not only top-level collection counts) [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:182]
-- [ ] [AI-Review][LOW] Reject whitespace-only request_id values in sanitization to avoid low-signal correlation metadata [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:216]
+- [x] [AI-Review][MEDIUM] Replace pseudo-tests with handler-execution tests for Clip/Scene/Device tools to verify real argument parsing and controller wiring [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:77]
+- [x] [AI-Review][MEDIUM] Add AC4 assertion that emitted failure logs include the same ErrorCode present in MCP error envelope [src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java:234]
+- [x] [AI-Review][MEDIUM] Expand logging parameter shape summaries to capture nested payload structure safely (not only top-level collection counts) [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:182]
+- [x] [AI-Review][LOW] Reject whitespace-only request_id values in sanitization to avoid low-signal correlation metadata [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:216]
 
 ## Dev Notes
 
@@ -164,6 +164,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Addressed final 3 code review follow-ups: (1) Fixed logOperationStart to use appendCorrelationParameters instead of raw parameters.toString(); (2) Removed raw result.toString() logging from logOperationSuccess to prevent payload leakage; (3) Confirmed File List accuracy - listed files are committed changes, git clean state confirms successful commit.
 - 2026-01-05: Addressed final 2 review follow-ups: (1) Added request_id sanitization in McpErrorHandler.sanitizeRequestId() with type check (String only), length limit (256 chars), and control character stripping to prevent log injection; (2) Added comprehensive request_id propagation tests for launch_clip (3 tests), session_launchSceneByIndex (3 tests), and device parameter setters (4 tests). All tests pass.
 - 2026-02-09: ✅ Resolved final 2 review findings [MEDIUM]: (1) Enhanced extractLoggingParameters to include arg_count and collection-size summaries (e.g. parameters_count) beyond request_id, satisfying AC 5 counts/shape requirement. Updated appendCorrelationParameters to output all sanitized logging params generically. Added 5 tests. (2) Added 2 tests asserting error.operation equals MCP tool name when BitwigApiException or generic exception has a different internal operation. All 18 McpErrorHandlerTest tests pass. Full suite green.
+- 2026-02-09: ✅ Resolved final 4 review findings (3 MEDIUM, 1 LOW): (1) Replaced pseudo-tests with handler-execution tests in ClipToolTest, SceneToolTest, DeviceParamToolTest — all now invoke handlers, verify controller wiring, and validate response format. (2) Added AC4 cross-check test in TransportToolTest asserting failure log ErrorCode matches MCP envelope ErrorCode. (3) Expanded extractLoggingParameters to capture nested shape (item_keys for List<Map>, keys for Map args). (4) Added whitespace-only request_id rejection in sanitizeRequestId. 22 McpErrorHandlerTest, 12 ClipToolTest, 10 SceneToolTest, 13 DeviceParamToolTest, 11 TransportToolTest — all pass. Full suite green (54 test suites, 0 failures).
 
 ### File List
 
@@ -189,3 +190,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-03: Addressed final code review findings - 3 items resolved (1 HIGH, 2 MEDIUM): fixed raw parameter/result logging in StructuredLogger
 - 2026-01-05: Addressed final 2 code review findings (2 MEDIUM): request_id sanitization and comprehensive propagation tests for all mutating tools
 - 2026-02-09: Addressed final 2 code review findings (2 MEDIUM): parameter summaries (counts/shape) in logging, error.operation override tests
+- 2026-02-09: Addressed final 4 code review findings (3 MEDIUM, 1 LOW): handler-execution tests, AC4 ErrorCode cross-check, nested shape summaries, whitespace-only request_id rejection. All review follow-ups resolved. Story ready for review.

@@ -177,10 +177,23 @@ public class McpErrorHandler {
             }
             nonCorrelationArgCount++;
 
-            // For collection arguments, log item count as {key}_count
+            // For collection/map arguments, log count and nested shape — no values (AC 5)
             Object value = entry.getValue();
             if (value instanceof java.util.Collection<?> collection) {
                 loggingParams.put(entry.getKey() + "_count", collection.size());
+                // For collections containing Maps, log first item's keys for shape visibility
+                if (!collection.isEmpty()) {
+                    Object firstItem = collection.iterator().next();
+                    if (firstItem instanceof Map<?, ?> itemMap) {
+                        loggingParams.put(entry.getKey() + "_item_keys",
+                            new java.util.TreeSet<>(itemMap.keySet().stream()
+                                .map(Object::toString).toList()));
+                    }
+                }
+            } else if (value instanceof Map<?, ?> mapValue) {
+                loggingParams.put(entry.getKey() + "_keys",
+                    new java.util.TreeSet<>(mapValue.keySet().stream()
+                        .map(Object::toString).toList()));
             }
         }
         if (nonCorrelationArgCount > 0) {
@@ -213,7 +226,7 @@ public class McpErrorHandler {
         }
 
         String rawId = (String) requestId;
-        if (rawId.isEmpty()) {
+        if (rawId.isEmpty() || rawId.isBlank()) {
             return null;
         }
 

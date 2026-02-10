@@ -62,19 +62,30 @@ class SceneToolTest {
     }
 
     @Test
-    void testSpecificationErrorHandlingConfiguration() {
-        // Test that the specification properly configures error handling with BitwigApiException
-        McpServerFeatures.SyncToolSpecification specification = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+    void testHandleLaunchScene_Success() throws Exception {
+        // Arrange: Mock successful scene launch via controller
+        SceneLaunchResult successResult = SceneLaunchResult.success("Scene 1 launched.");
+        when(clipSceneController.launchSceneByIndex(1)).thenReturn(successResult);
 
-        // Verify that the specification is properly configured for error handling
-        assertNotNull(specification);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("scene_index", 1);
 
-        // Test error result handling setup
-        SceneLaunchResult errorResult = SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene not found");
-        when(clipSceneController.launchSceneByIndex(anyInt())).thenReturn(errorResult);
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
 
-        // Verify that the SceneTool properly integrates with our error handling system
-        assertNotNull(specification.tool().inputSchema());
+        McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+
+        // Act: Invoke handler through specification
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Controller was called with parsed arguments
+        verify(clipSceneController).launchSceneByIndex(1);
+
+        // Assert: Response format is correct
+        JsonNode dataNode = McpResponseTestUtils.validateActionResponse(result, "scene_launched");
+        assertEquals(1, dataNode.get("scene_index").asInt());
+        assertEquals("Scene 1 launched.", dataNode.get("message").asText());
+        McpResponseTestUtils.assertNotDoubleWrapped(result);
     }
 
     @Test
@@ -92,21 +103,30 @@ class SceneToolTest {
     }
 
     @Test
-    void testBitwigApiExceptionHandling() {
-        // Test that the tool properly handles BitwigApiException instead of RuntimeException
-        McpServerFeatures.SyncToolSpecification specification = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+    void testHandleLaunchScene_ControllerReturnsError() throws Exception {
+        // Arrange: Mock controller returning error result
+        SceneLaunchResult errorResult = SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index 99 out of range");
+        when(clipSceneController.launchSceneByIndex(99)).thenReturn(errorResult);
 
-        // Setup error condition
-        SceneLaunchResult failureResult = SceneLaunchResult.error("OPERATION_FAILED", "Scene launch failed");
-        when(clipSceneController.launchSceneByIndex(0)).thenReturn(failureResult);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("scene_index", 99);
 
-        // Verify specification is properly configured to handle BitwigApiException
-        assertNotNull(specification);
-        assertEquals("session_launchSceneByIndex", specification.tool().name());
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
 
-        // Verify that the specification was created successfully
-        // Note: StructuredLogger methods are only called during handler execution, not specification creation
-        assertNotNull(specification.tool());
+        McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger);
+
+        // Act: Invoke handler through specification
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Assert: Controller was called with parsed arguments
+        verify(clipSceneController).launchSceneByIndex(99);
+
+        // Assert: Error response format is correct
+        JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("SCENE_NOT_FOUND", errorNode.get("code").asText());
+        assertEquals("Scene index 99 out of range", errorNode.get("message").asText());
+        assertEquals("session_launchSceneByIndex", errorNode.get("operation").asText());
     }
 
     @Test

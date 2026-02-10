@@ -41,6 +41,13 @@ class McpErrorHandlerTest {
     }
 
     @Test
+    void testSanitizeRequestId_WhitespaceOnly_ReturnsNull() {
+        assertNull(McpErrorHandler.sanitizeRequestId("   "), "Spaces-only should return null");
+        assertNull(McpErrorHandler.sanitizeRequestId("\t\t"), "Tabs-only should return null");
+        assertNull(McpErrorHandler.sanitizeRequestId("  \t  "), "Mixed whitespace should return null");
+    }
+
+    @Test
     void testSanitizeRequestId_NonStringType_ReturnsNull() {
         // Integer
         assertNull(McpErrorHandler.sanitizeRequestId(12345));
@@ -187,6 +194,52 @@ class McpErrorHandlerTest {
         assertNull(result.get("parameter_index"), "Actual argument values must not be in logging params");
         assertNull(result.get("value"), "Actual argument values must not be in logging params");
         assertNull(result.get("secret_data"), "Actual argument values must not be in logging params");
+    }
+
+    @Test
+    void testExtractLoggingParameters_ListOfMaps_IncludesItemKeys() {
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("parameters", List.of(
+            Map.of("parameter_index", 0, "value", 0.5),
+            Map.of("parameter_index", 1, "value", 0.7)
+        ));
+
+        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+
+        assertNotNull(result);
+        assertEquals(2, result.get("parameters_count"));
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> itemKeys = (java.util.Set<String>) result.get("parameters_item_keys");
+        assertNotNull(itemKeys, "Should include item keys for List<Map> arguments");
+        assertTrue(itemKeys.contains("parameter_index"));
+        assertTrue(itemKeys.contains("value"));
+    }
+
+    @Test
+    void testExtractLoggingParameters_MapArgument_IncludesKeys() {
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("config", Map.of("host", "localhost", "port", 8080));
+
+        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+
+        assertNotNull(result);
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> configKeys = (java.util.Set<String>) result.get("config_keys");
+        assertNotNull(configKeys, "Should include keys for Map arguments");
+        assertTrue(configKeys.contains("host"));
+        assertTrue(configKeys.contains("port"));
+    }
+
+    @Test
+    void testExtractLoggingParameters_EmptyCollection_NoItemKeys() {
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("parameters", List.of());
+
+        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+
+        assertNotNull(result);
+        assertEquals(0, result.get("parameters_count"));
+        assertNull(result.get("parameters_item_keys"), "Empty collection should not have item keys");
     }
 
     // === error.operation override test (Story 1.4 AI-Review) ===

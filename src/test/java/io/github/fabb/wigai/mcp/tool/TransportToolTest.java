@@ -235,6 +235,39 @@ class TransportToolTest {
     }
 
     @Test
+    void testFailureLogErrorCodeMatchesMcpEnvelopeErrorCode() throws Exception {
+        // AC 4: The ErrorCode logged via timedOperation.failure() must be the same
+        // ErrorCode present in the MCP error response envelope
+
+        // Arrange: Mock transport to throw TRANSPORT_ERROR
+        when(transportController.startTransport()).thenThrow(
+            new BitwigApiException(ErrorCode.TRANSPORT_ERROR, "transport_start", "Transport unavailable")
+        );
+
+        Map<String, Object> arguments = new HashMap<>();
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = TransportTool.transportStartSpecification(transportController, structuredLogger);
+
+        // Act
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        // Capture the ErrorCode passed to the failure log
+        ArgumentCaptor<ErrorCode> loggedErrorCodeCaptor = ArgumentCaptor.forClass(ErrorCode.class);
+        verify(timedOperation).failure(loggedErrorCodeCaptor.capture(), any());
+        ErrorCode loggedErrorCode = loggedErrorCodeCaptor.getValue();
+
+        // Extract the ErrorCode from the MCP error response envelope
+        JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
+        String envelopeErrorCode = errorNode.get("code").asText();
+
+        // Assert: Both must be the same ErrorCode
+        assertEquals(loggedErrorCode.getCode(), envelopeErrorCode,
+            "ErrorCode in failure log must match ErrorCode in MCP error envelope");
+    }
+
+    @Test
     void testTransportStopWithRequestIdIncludesItInLoggingContext() {
         // AC 3: transport_stop also accepts request_id
 
