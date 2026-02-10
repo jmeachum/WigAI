@@ -257,6 +257,116 @@ class McpSmokeHarnessAtddTest {
         assertEquals(0, run.exitCode);
     }
 
+    @DisplayName("1.1-ATDD-014 [P1] Given mutation mode with empty parameters, when round-trip runs, then skip set")
+    @Test
+    void mutation_mode_skips_device_parameter_set_when_no_parameters_returned() {
+        RecordingMcpClient client = new RecordingMcpClient(
+                baselineToolsWith("transport_start", "transport_stop", "set_selected_device_parameter")) {
+            @Override
+            public String callTool(String toolName, Map<String, Object> arguments) {
+                calledTools.add(toolName);
+                if ("get_selected_device_parameters".equals(toolName)) {
+                    return """
+                        {"status":"success","data":{"device_name":"Test Device","parameters":[]}}
+                        """.trim();
+                }
+                return """
+                    {"status":"success","data":{"tool":"%s"}}
+                    """.formatted(toolName).trim();
+            }
+        };
+
+        HarnessRun run = runMutation(client);
+
+        assertEquals(0, run.exitCode, "Should pass when no parameters are returned");
+        assertTrue(run.stdout.contains("Skipping device parameter round-trip: no parameters returned"));
+        assertFalse(client.calledTools.contains("set_selected_device_parameter"),
+                "Should not call set_selected_device_parameter when no parameters are available");
+    }
+
+    @DisplayName("1.1-ATDD-015 [P1] Given mutation mode with missing parameter value, when round-trip runs, then skip set")
+    @Test
+    void mutation_mode_skips_device_parameter_set_when_parameter_value_missing() {
+        RecordingMcpClient client = new RecordingMcpClient(
+                baselineToolsWith("transport_start", "transport_stop", "set_selected_device_parameter")) {
+            @Override
+            public String callTool(String toolName, Map<String, Object> arguments) {
+                calledTools.add(toolName);
+                if ("get_selected_device_parameters".equals(toolName)) {
+                    return """
+                        {"status":"success","data":{"device_name":"Test Device","parameters":[{"index":0}]}}
+                        """.trim();
+                }
+                return """
+                    {"status":"success","data":{"tool":"%s"}}
+                    """.formatted(toolName).trim();
+            }
+        };
+
+        HarnessRun run = runMutation(client);
+
+        assertEquals(0, run.exitCode, "Should pass when first parameter has no value");
+        assertTrue(run.stdout.contains("Skipping device parameter round-trip: no parameter value available"));
+        assertFalse(client.calledTools.contains("set_selected_device_parameter"),
+                "Should not call set_selected_device_parameter when value is missing");
+    }
+
+    @DisplayName("1.1-ATDD-016 [P1] Given mutation mode set parameter error, when round-trip runs, then fail")
+    @Test
+    void mutation_mode_fails_when_device_parameter_set_returns_typed_error() {
+        RecordingMcpClient client = new RecordingMcpClient(
+                baselineToolsWith("transport_start", "transport_stop", "set_selected_device_parameter")) {
+            @Override
+            public String callTool(String toolName, Map<String, Object> arguments) {
+                calledTools.add(toolName);
+                if ("get_selected_device_parameters".equals(toolName)) {
+                    return """
+                        {"status":"success","data":{"device_name":"Test Device","parameters":[{"index":0,"value":0.5}]}}
+                        """.trim();
+                }
+                if ("set_selected_device_parameter".equals(toolName)) {
+                    return """
+                        {"status":"error","error":{"code":"BITWIG_API_ERROR","message":"Failed to set value","operation":"set_selected_device_parameter"}}
+                        """.trim();
+                }
+                return """
+                    {"status":"success","data":{"tool":"%s"}}
+                    """.formatted(toolName).trim();
+            }
+        };
+
+        HarnessRun run = runMutation(client);
+
+        assertEquals(1, run.exitCode, "Should fail when set_selected_device_parameter returns an error");
+        assertTrue(run.stderr.contains("set_selected_device_parameter returned error"));
+    }
+
+    @DisplayName("1.1-ATDD-017 [P1] Given mutation mode invalid get-params envelope, when round-trip runs, then fail")
+    @Test
+    void mutation_mode_fails_when_get_selected_device_parameters_envelope_invalid() {
+        RecordingMcpClient client = new RecordingMcpClient(
+                baselineToolsWith("transport_start", "transport_stop", "set_selected_device_parameter")) {
+            @Override
+            public String callTool(String toolName, Map<String, Object> arguments) {
+                calledTools.add(toolName);
+                if ("get_selected_device_parameters".equals(toolName)) {
+                    // Invalid success envelope (missing data)
+                    return """
+                        {"status":"success"}
+                        """.trim();
+                }
+                return """
+                    {"status":"success","data":{"tool":"%s"}}
+                    """.formatted(toolName).trim();
+            }
+        };
+
+        HarnessRun run = runMutation(client);
+
+        assertEquals(1, run.exitCode, "Should fail when get_selected_device_parameters envelope is invalid");
+        assertTrue(run.stderr.contains("get_selected_device_parameters returned invalid envelope"));
+    }
+
     private static McpSmokeHarnessArgs safeArgs() {
         return new McpSmokeHarnessArgs("localhost", 61169, "/mcp", false);
     }
