@@ -32,7 +32,7 @@ public class TransportTool {
               "properties": {
                 "request_id": {
                   "type": "string",
-                  "description": "Optional correlation ID for request tracing and idempotency"
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
                 }
               }
             }""";
@@ -78,7 +78,7 @@ public class TransportTool {
               "properties": {
                 "request_id": {
                   "type": "string",
-                  "description": "Optional correlation ID for request tracing and idempotency"
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
                 }
               }
             }""";

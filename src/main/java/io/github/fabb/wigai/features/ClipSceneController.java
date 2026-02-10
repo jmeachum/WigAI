@@ -39,11 +39,8 @@ public class ClipSceneController {
      */
     public SceneLaunchResult launchSceneByIndex(int sceneIndex) {
         try {
-            logger.info("Attempting to launch scene at index: " + sceneIndex);
-
             // Validate scene index
             if (sceneIndex < 0) {
-                logger.warn("Scene index " + sceneIndex + " is negative");
                 return SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index must be non-negative");
             }
 
@@ -62,25 +59,20 @@ public class ClipSceneController {
                     }
                 } catch (BitwigApiException e) {
                     // Track doesn't exist or clip launch failed, continue with next track
-                    logger.warn("Failed to launch clip on track " + trackIdx + ": " + e.getMessage());
                 }
             }
 
             if (!anyTrack) {
-                logger.warn("No tracks found in Bitwig session");
                 return SceneLaunchResult.error("SCENE_NOT_FOUND", "No tracks found in Bitwig session");
             }
 
             if (launchedCount > 0) {
                 String msg = "Scene " + sceneIndex + " launched on " + launchedCount + " track(s).";
-                logger.info(msg);
                 return SceneLaunchResult.success(msg);
             } else {
-                logger.warn("Scene index " + sceneIndex + " out of bounds for all tracks");
                 return SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index " + sceneIndex + " is out of bounds for all tracks");
             }
         } catch (Exception e) {
-            logger.error("Unexpected error launching scene: " + e.getMessage(), e);
             return SceneLaunchResult.error("BITWIG_ERROR", "Internal error occurred while launching scene: " + e.getMessage());
         }
     }
@@ -253,8 +245,6 @@ public class ClipSceneController {
      */
     public ClipLaunchResult launchClip(String trackName, int clipIndex) {
         try {
-            logger.info("Attempting to launch clip - Track: '" + trackName + "', Index: " + clipIndex);
-
             // Find the track by name (case-sensitive) and launch the clip
             try {
                 bitwigApiFacade.findTrackIndexByName(trackName); // This will throw BitwigApiException if track not found
@@ -262,28 +252,23 @@ public class ClipSceneController {
                 // Check if clip index is within bounds
                 int trackClipCount = bitwigApiFacade.getTrackClipCount(trackName);
                 if (clipIndex < 0 || clipIndex >= trackClipCount) {
-                    logger.warn("Clip index " + clipIndex + " out of bounds for track '" + trackName + "' (valid range: 0-" + (trackClipCount - 1) + ")");
                     return ClipLaunchResult.error("CLIP_INDEX_OUT_OF_BOUNDS",
                         "Clip index " + clipIndex + " is out of bounds for track '" + trackName + "'");
                 }
 
                 // Launch the clip
                 bitwigApiFacade.launchClip(trackName, clipIndex);
-                logger.info("Successfully launched clip at " + trackName + "[" + clipIndex + "]");
                 return ClipLaunchResult.success("Clip at " + trackName + "[" + clipIndex + "] launched.");
 
             } catch (BitwigApiException e) {
                 if (e.getErrorCode() == ErrorCode.TRACK_NOT_FOUND) {
-                    logger.warn("Track not found: '" + trackName + "'");
                     return ClipLaunchResult.error("TRACK_NOT_FOUND", "Track '" + trackName + "' not found");
                 } else {
-                    logger.error("Failed to launch clip at " + trackName + "[" + clipIndex + "]: " + e.getMessage());
                     return ClipLaunchResult.error("BITWIG_ERROR", "Failed to launch clip: " + e.getMessage());
                 }
             }
 
         } catch (Exception e) {
-            logger.error("Unexpected error launching clip: " + e.getMessage(), e);
             return ClipLaunchResult.error("BITWIG_ERROR", "Internal error occurred while launching clip: " + e.getMessage());
         }
     }

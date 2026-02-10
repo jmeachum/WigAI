@@ -107,7 +107,7 @@ public class DeviceParamTool {
                 },
                 "request_id": {
                   "type": "string",
-                  "description": "Optional correlation ID for request tracing and idempotency"
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
                 }
               },
               "required": ["parameter_index", "value"]
@@ -181,7 +181,7 @@ public class DeviceParamTool {
                 },
                 "request_id": {
                   "type": "string",
-                  "description": "Optional correlation ID for request tracing and idempotency"
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
                 }
               },
               "required": ["parameters"]

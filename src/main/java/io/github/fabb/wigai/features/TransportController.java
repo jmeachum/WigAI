@@ -31,11 +31,9 @@ public class TransportController {
      */
     public String startTransport() {
         try {
-            logger.info("TransportController: Starting transport playback");
             bitwigApiFacade.startTransport();
             return "Transport playback started.";
         } catch (Exception e) {
-            logger.info("TransportController: Error starting transport playback: " + e.getMessage());
             throw new BitwigApiException(ErrorCode.TRANSPORT_ERROR, "startTransport", "Failed to start transport playback", e);
         }
     }
@@ -47,11 +45,9 @@ public class TransportController {
      */
     public String stopTransport() {
         try {
-            logger.info("TransportController: Stopping transport playback");
             bitwigApiFacade.stopTransport();
             return "Transport playback stopped.";
         } catch (Exception e) {
-            logger.info("TransportController: Error stopping transport playback: " + e.getMessage());
             throw new BitwigApiException(ErrorCode.TRANSPORT_ERROR, "stopTransport", "Failed to stop transport playback", e);
         }
     }

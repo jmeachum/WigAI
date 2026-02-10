@@ -41,9 +41,6 @@ public class TransportControllerTest {
 
         // Verify the bitwigApiFacade was called
         verify(mockBitwigApiFacade).startTransport();
-
-        // Verify logging
-        verify(mockLogger).info("TransportController: Starting transport playback");
     }
 
     @Test
@@ -60,10 +57,6 @@ public class TransportControllerTest {
         assertEquals(ErrorCode.TRANSPORT_ERROR, exception.getErrorCode());
         assertEquals("startTransport", exception.getOperation());
         assertTrue(exception.getMessage().contains("Failed to start transport playback"));
-
-        // Verify logging
-        verify(mockLogger).info("TransportController: Starting transport playback");
-        verify(mockLogger).info(contains("TransportController: Error starting transport playback"));
     }
 
     @Test
@@ -76,9 +69,6 @@ public class TransportControllerTest {
 
         // Verify the bitwigApiFacade was called
         verify(mockBitwigApiFacade).stopTransport();
-
-        // Verify logging
-        verify(mockLogger).info("TransportController: Stopping transport playback");
     }
 
     @Test
@@ -95,9 +85,5 @@ public class TransportControllerTest {
         assertEquals(ErrorCode.TRANSPORT_ERROR, exception.getErrorCode());
         assertEquals("stopTransport", exception.getOperation());
         assertTrue(exception.getMessage().contains("Failed to stop transport playback"));
-
-        // Verify logging
-        verify(mockLogger).info("TransportController: Stopping transport playback");
-        verify(mockLogger).info(contains("TransportController: Error stopping transport playback"));
     }
 }

@@ -130,7 +130,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 #### `transport_start`
 *   **Description**: Start Bitwig's transport playback.
 *   **Parameters**:
-    *   `request_id` (string, optional): Correlation ID for request tracing and idempotency
+    *   `request_id` (string, optional): Correlation ID for request tracing (idempotency deduplication handled separately)
 *   **Returns**:
     ```json
     {
@@ -145,7 +145,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 #### `transport_stop`
 *   **Description**: Stop Bitwig's transport playback.
 *   **Parameters**:
-    *   `request_id` (string, optional): Correlation ID for request tracing and idempotency
+    *   `request_id` (string, optional): Correlation ID for request tracing (idempotency deduplication handled separately)
 *   **Returns**:
     ```json
     {
@@ -205,7 +205,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     {
       "parameter_index": 0, // Integer (0-7)
       "value": 0.5, // Float/Double (0.0-1.0)
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
     }
     ```
 *   **Returns**:
@@ -236,7 +236,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
         { "parameter_index": 1, "value": 0.80 }
         // ... more parameters
       ],
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
     }
     ```
 *   **Returns**:
@@ -271,7 +271,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     {
       "track_name": "Drums", // Case-sensitive string
       "clip_index": 0, // Non-negative integer (0-based)
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
     }
     ```
 *   **Returns**:
@@ -299,7 +299,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     ```json
     {
       "scene_index": 1, // Non-negative integer (0-based)
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
     }
     ```
 *   **Returns**:

@@ -130,8 +130,6 @@ public class DeviceControllerTest {
 
         // Assert
         verify(mockBitwigApiFacade).setSelectedDeviceParameter(parameterIndex, value);
-        verify(mockLogger).info("DeviceController: Setting parameter " + parameterIndex + " to " + value);
-        verify(mockLogger).info("DeviceController: Successfully set parameter " + parameterIndex + " to " + value);
     }
 
     @Test
@@ -150,10 +148,6 @@ public class DeviceControllerTest {
 
         assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Parameter index must be between 0-7, got: 8"));
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting parameter " + parameterIndex + " to " + value);
-        verify(mockLogger).error(contains("DeviceController: Error setting parameter " + parameterIndex));
     }
 
     @Test
@@ -172,10 +166,6 @@ public class DeviceControllerTest {
 
         assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("value must be between 0.0 and 1.0, got: 1.5"));
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting parameter " + parameterIndex + " to " + value);
-        verify(mockLogger).error(contains("DeviceController: Error setting parameter " + parameterIndex));
     }
 
     @Test
@@ -194,10 +184,6 @@ public class DeviceControllerTest {
 
         assertEquals(ErrorCode.DEVICE_NOT_SELECTED, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("No device is currently selected"));
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting parameter " + parameterIndex + " to " + value);
-        verify(mockLogger).error(contains("DeviceController: Error setting parameter " + parameterIndex));
     }
 
     @Test
@@ -216,10 +202,6 @@ public class DeviceControllerTest {
 
         assertEquals(ErrorCode.BITWIG_API_ERROR, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Bitwig API internal error"));
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting parameter " + parameterIndex + " to " + value);
-        verify(mockLogger).error(contains("DeviceController: Error setting parameter " + parameterIndex));
     }
 
     @Test
@@ -234,12 +216,9 @@ public class DeviceControllerTest {
         deviceController.setSelectedDeviceParameter(7, 1.0);
         verify(mockBitwigApiFacade).setSelectedDeviceParameter(7, 1.0);
 
-        // Verify logging calls (reset before to count accurately)
-        reset(mockLogger);
-
+        // Test mid-range values
         deviceController.setSelectedDeviceParameter(3, 0.5);
-        verify(mockLogger).info("DeviceController: Setting parameter 3 to 0.5");
-        verify(mockLogger).info("DeviceController: Successfully set parameter 3 to 0.5");
+        verify(mockBitwigApiFacade).setSelectedDeviceParameter(3, 0.5);
     }
 
     // =========================== BATCH PARAMETER SETTING TESTS ===========================
@@ -276,10 +255,6 @@ public class DeviceControllerTest {
         verify(mockBitwigApiFacade).setSelectedDeviceParameter(0, 0.25);
         verify(mockBitwigApiFacade).setSelectedDeviceParameter(1, 0.75);
         verify(mockBitwigApiFacade).setSelectedDeviceParameter(2, 0.5);
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 3 parameters");
-        verify(mockLogger).info("DeviceController: Batch operation completed - 3 succeeded, 0 failed");
     }
 
     @Test
@@ -301,10 +276,6 @@ public class DeviceControllerTest {
 
         // Verify no parameter setting was attempted
         verify(mockBitwigApiFacade, never()).setSelectedDeviceParameter(anyInt(), anyDouble());
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 1 parameters");
-        verify(mockLogger).error("DeviceController: No device selected for batch parameter setting");
     }
 
     @Test
@@ -367,9 +338,6 @@ public class DeviceControllerTest {
         assertNull(result3.error_code());
         assertNull(result3.message());
 
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 4 parameters");
-        verify(mockLogger).info("DeviceController: Batch operation completed - 2 succeeded, 2 failed");
     }
 
     @Test
@@ -401,9 +369,6 @@ public class DeviceControllerTest {
             assertNotNull(result.message());
         }
 
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 2 parameters");
-        verify(mockLogger).info("DeviceController: Batch operation completed - 0 succeeded, 2 failed");
     }
 
     @Test
@@ -440,10 +405,6 @@ public class DeviceControllerTest {
         assertNull(result1.new_value());
         assertEquals("BITWIG_API_ERROR", result1.error_code());
         assertTrue(result1.message().contains("Bitwig internal error"));
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 2 parameters");
-        verify(mockLogger).info("DeviceController: Batch operation completed - 1 succeeded, 1 failed");
     }
 
     @Test
@@ -461,10 +422,6 @@ public class DeviceControllerTest {
 
         // Verify no parameter setting was attempted
         verify(mockBitwigApiFacade, never()).setSelectedDeviceParameter(anyInt(), anyDouble());
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 0 parameters");
-        verify(mockLogger).info("DeviceController: Batch operation completed - 0 succeeded, 0 failed");
     }
 
     @Test
@@ -489,10 +446,6 @@ public class DeviceControllerTest {
 
         // Verify parameter was set
         verify(mockBitwigApiFacade).setSelectedDeviceParameter(4, 0.8);
-
-        // Verify logging
-        verify(mockLogger).info("DeviceController: Setting 1 parameters");
-        verify(mockLogger).info("DeviceController: Batch operation completed - 1 succeeded, 0 failed");
     }
 
     @Test

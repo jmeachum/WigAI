@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -67,6 +67,13 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][MEDIUM] Add AC4 assertion that emitted failure logs include the same ErrorCode present in MCP error envelope [src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java:234]
 - [x] [AI-Review][MEDIUM] Expand logging parameter shape summaries to capture nested payload structure safely (not only top-level collection counts) [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:182]
 - [x] [AI-Review][LOW] Reject whitespace-only request_id values in sanitization to avoid low-signal correlation metadata [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:216]
+- [x] [AI-Review][HIGH] Ensure all invocation logs (including controller-level logs) carry request_id correlation for mutating tool calls [src/main/java/io/github/fabb/wigai/features/TransportController.java:34]
+- [x] [AI-Review][HIGH] Remove per-item parameter value logging in batch device operations and enforce bounded payload logging (summary-only) [src/main/java/io/github/fabb/wigai/features/DeviceController.java:114]
+- [x] [AI-Review][HIGH] Reconcile story File List claims with current git reality (clean workspace vs listed changed files) [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:169]
+- [x] [AI-Review][MEDIUM] Clarify API reference request_id semantics (correlation-only in Story 1.4; dedupe handled in Story 1.7) [docs/reference/api-reference.md:133]
+- [x] [AI-Review][HIGH] Remove uncorrelated controller-level logs in clip mutation flow or propagate request_id so AC2 truly applies to all invocation logs [src/main/java/io/github/fabb/wigai/features/ClipSceneController.java:256]
+- [x] [AI-Review][MEDIUM] Align remaining mutating-tool API examples to correlation-only request_id wording (remove idempotency claim in Story 1.4 scope) [docs/reference/api-reference.md:208]
+- [x] [AI-Review][MEDIUM] Reconcile current-story File List with actual current git delta to keep this review pass auditable [_bmad-output/implementation-artifacts/1-4-logging-request-id-correlation-hardening-mutating-tools-only.md:171]
 
 ## Dev Notes
 
@@ -165,6 +172,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-05: Addressed final 2 review follow-ups: (1) Added request_id sanitization in McpErrorHandler.sanitizeRequestId() with type check (String only), length limit (256 chars), and control character stripping to prevent log injection; (2) Added comprehensive request_id propagation tests for launch_clip (3 tests), session_launchSceneByIndex (3 tests), and device parameter setters (4 tests). All tests pass.
 - 2026-02-09: ✅ Resolved final 2 review findings [MEDIUM]: (1) Enhanced extractLoggingParameters to include arg_count and collection-size summaries (e.g. parameters_count) beyond request_id, satisfying AC 5 counts/shape requirement. Updated appendCorrelationParameters to output all sanitized logging params generically. Added 5 tests. (2) Added 2 tests asserting error.operation equals MCP tool name when BitwigApiException or generic exception has a different internal operation. All 18 McpErrorHandlerTest tests pass. Full suite green.
 - 2026-02-09: ✅ Resolved final 4 review findings (3 MEDIUM, 1 LOW): (1) Replaced pseudo-tests with handler-execution tests in ClipToolTest, SceneToolTest, DeviceParamToolTest — all now invoke handlers, verify controller wiring, and validate response format. (2) Added AC4 cross-check test in TransportToolTest asserting failure log ErrorCode matches MCP envelope ErrorCode. (3) Expanded extractLoggingParameters to capture nested shape (item_keys for List<Map>, keys for Map args). (4) Added whitespace-only request_id rejection in sanitizeRequestId. 22 McpErrorHandlerTest, 12 ClipToolTest, 10 SceneToolTest, 13 DeviceParamToolTest, 11 TransportToolTest — all pass. Full suite green (54 test suites, 0 failures).
+- 2026-02-10: ✅ Resolved final 4 review findings (3 HIGH, 1 MEDIUM): (1) Removed un-correlated controller-level logging from TransportController and DeviceController mutating methods — MCP handler's StructuredLogger covers start/finish with request_id correlation. (2) Removed per-item parameter value logging in DeviceController batch operations — enforces summary-only bounded logging per AC 5. (3) Reconciled File List with git reality — added 5 newly changed files (controllers + controller tests + integration test). (4) Clarified request_id semantics in api-reference.md and all 4 tool schemas: correlation-only in 1.4, idempotency deduplication handled separately. Updated 20 test assertions across 3 test files. All 480 tests pass.
+- 2026-02-10: ✅ Resolved final 3 review findings (1 HIGH, 2 MEDIUM): (1) Removed uncorrelated controller-level logging from ClipSceneController.launchClip() and launchSceneByIndex() — MCP handler's StructuredLogger provides correlated start/finish with request_id. (2) Aligned 4 remaining mutating-tool API reference request_id descriptions to correlation-only wording. (3) Added ClipSceneController.java to File List. All 480 tests pass.
 
 ### File List
 
@@ -175,12 +184,18 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - src/main/java/io/github/fabb/wigai/mcp/tool/ClipTool.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/SceneTool.java
 - src/main/java/io/github/fabb/wigai/mcp/tool/DeviceParamTool.java
+- src/main/java/io/github/fabb/wigai/features/TransportController.java
+- src/main/java/io/github/fabb/wigai/features/DeviceController.java
+- src/main/java/io/github/fabb/wigai/features/ClipSceneController.java
 - src/test/java/io/github/fabb/wigai/mcp/tool/TransportToolTest.java
 - src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java
 - src/test/java/io/github/fabb/wigai/mcp/tool/SceneToolTest.java
 - src/test/java/io/github/fabb/wigai/mcp/tool/DeviceParamToolTest.java
 - src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java
 - src/test/java/io/github/fabb/wigai/common/logging/StructuredLoggerTest.java
+- src/test/java/io/github/fabb/wigai/features/TransportControllerTest.java
+- src/test/java/io/github/fabb/wigai/features/DeviceControllerTest.java
+- src/test/java/io/github/fabb/wigai/integration/ErrorHandlingIntegrationTest.java
 - docs/reference/api-reference.md
 
 ## Change Log
@@ -191,3 +206,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - 2026-01-05: Addressed final 2 code review findings (2 MEDIUM): request_id sanitization and comprehensive propagation tests for all mutating tools
 - 2026-02-09: Addressed final 2 code review findings (2 MEDIUM): parameter summaries (counts/shape) in logging, error.operation override tests
 - 2026-02-09: Addressed final 4 code review findings (3 MEDIUM, 1 LOW): handler-execution tests, AC4 ErrorCode cross-check, nested shape summaries, whitespace-only request_id rejection. All review follow-ups resolved. Story ready for review.
+- 2026-02-10: Senior code review added 4 new follow-up action items (3 HIGH, 1 MEDIUM); story moved to in-progress pending fixes.
+- 2026-02-10: Addressed final 4 code review findings (3 HIGH, 1 MEDIUM): removed un-correlated controller logging, removed per-item value logging, reconciled File List, clarified request_id semantics. All review follow-ups resolved. All 480 tests pass. Story ready for review.
+- 2026-02-10: Senior code review added 3 additional follow-up action items (1 HIGH, 2 MEDIUM); story moved to in-progress pending fixes.
+- 2026-02-10: Addressed final 3 code review findings (1 HIGH, 2 MEDIUM): removed uncorrelated ClipSceneController logging, aligned API reference request_id wording, reconciled File List. All 480 tests pass. Story ready for review.

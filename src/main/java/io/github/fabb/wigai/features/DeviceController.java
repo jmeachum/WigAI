@@ -66,20 +66,11 @@ public class DeviceController {
      * @throws BitwigApiException if parameterIndex is out of range, value is out of range, no device is selected, or Bitwig API error occurs
      */
     public void setSelectedDeviceParameter(int parameterIndex, double value) throws BitwigApiException {
-        logger.info("DeviceController: Setting parameter " + parameterIndex + " to " + value);
-
         try {
-            // Use BitwigApiFacade to perform the actual parameter setting
-            // This will handle all validation (parameter index, value range, device selection)
             bitwigApiFacade.setSelectedDeviceParameter(parameterIndex, value);
-
-            logger.info("DeviceController: Successfully set parameter " + parameterIndex + " to " + value);
-
         } catch (BitwigApiException e) {
-            logger.error("DeviceController: Error setting parameter " + parameterIndex + ": " + e.getMessage());
-            throw e; // Re-throw BitwigApiException as-is
+            throw e;
         } catch (Exception e) {
-            logger.error("DeviceController: Unexpected error setting parameter " + parameterIndex + ": " + e.getMessage());
             throw new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "setSelectedDeviceParameter", e.getMessage(), e);
         }
     }
@@ -94,16 +85,12 @@ public class DeviceController {
      * @throws RuntimeException if no device is selected (top-level error)
      */
     public List<ParameterSettingResult> setMultipleSelectedDeviceParameters(List<ParameterSetting> parameters) {
-        logger.info("DeviceController: Setting " + parameters.size() + " parameters");
-
-        // First, validate device selection (top-level validation)
+        // Validate device selection (top-level validation)
         try {
-            bitwigApiFacade.getSelectedDeviceName(); // This will throw BitwigApiException if no device selected
+            bitwigApiFacade.getSelectedDeviceName();
         } catch (BitwigApiException e) {
-            logger.error("DeviceController: No device selected for batch parameter setting");
-            throw e; // Re-throw as-is
+            throw e;
         } catch (Exception e) {
-            logger.error("DeviceController: Unexpected error checking device selection for batch parameter setting");
             throw new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "setMultipleSelectedDeviceParameters", e.getMessage(), e);
         }
 
@@ -111,12 +98,8 @@ public class DeviceController {
 
         for (ParameterSetting param : parameters) {
             try {
-                logger.info("DeviceController: Processing parameter " + param.parameter_index() + " = " + param.value());
-
-                // Use existing single parameter setting method which handles validation
                 bitwigApiFacade.setSelectedDeviceParameter(param.parameter_index(), param.value());
 
-                // Create success result
                 ParameterSettingResult result = new ParameterSettingResult(
                     param.parameter_index(),
                     "success",
@@ -126,10 +109,7 @@ public class DeviceController {
                 );
                 results.add(result);
 
-                logger.info("DeviceController: Successfully set parameter " + param.parameter_index() + " to " + param.value());
-
             } catch (BitwigApiException e) {
-                // Structured error handling
                 ParameterSettingResult result = new ParameterSettingResult(
                     param.parameter_index(),
                     "error",
@@ -139,10 +119,7 @@ public class DeviceController {
                 );
                 results.add(result);
 
-                logger.error("DeviceController: BitwigApi error for parameter " + param.parameter_index() + ": " + e.getMessage());
-
             } catch (Exception e) {
-                // Other unexpected errors
                 ParameterSettingResult result = new ParameterSettingResult(
                     param.parameter_index(),
                     "error",
@@ -151,14 +128,8 @@ public class DeviceController {
                     "Unexpected error setting parameter: " + e.getMessage()
                 );
                 results.add(result);
-
-                logger.error("DeviceController: Unexpected error setting parameter " + param.parameter_index() + ": " + e.getMessage());
             }
         }
-
-        long successCount = results.stream().filter(r -> "success".equals(r.status())).count();
-        long errorCount = results.size() - successCount;
-        logger.info("DeviceController: Batch operation completed - " + successCount + " succeeded, " + errorCount + " failed");
 
         return results;
     }
