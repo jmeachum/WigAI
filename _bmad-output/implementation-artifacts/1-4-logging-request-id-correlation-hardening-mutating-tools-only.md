@@ -1,6 +1,6 @@
 # Story 1.4: Logging + `request_id` Correlation Hardening (Mutating Tools Only)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -61,6 +61,8 @@ so that I can reliably debug failures and performance issues without logging sen
 - [x] [AI-Review][HIGH] Implement request_id dedupe — OUT OF SCOPE for 1.4 (logging only); moved to Story 1.7
 - [x] [AI-Review][MEDIUM] Validate/sanitize request_id (type/length) before logging to prevent log injection or oversized payloads [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:147]
 - [x] [AI-Review][MEDIUM] Add request_id propagation tests for launch_clip, session_launchSceneByIndex, and device parameter setters [src/test/java/io/github/fabb/wigai/mcp/tool/ClipToolTest.java:27]
+- [ ] [AI-Review][MEDIUM] Add parameter summaries (counts/shape) in logging parameters beyond request_id to satisfy AC 5 [src/main/java/io/github/fabb/wigai/mcp/McpErrorHandler.java:153]
+- [ ] [AI-Review][MEDIUM] Add test asserting error.operation equals MCP tool name when exception operation differs (executeWithErrorHandling override) [src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java:10]
 
 ## Dev Notes
 
