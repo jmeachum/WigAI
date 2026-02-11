@@ -4,6 +4,8 @@ import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.error.WigAIErrorHandler;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
+import io.github.fabb.wigai.common.retry.RetryExecutor;
+import io.github.fabb.wigai.common.retry.RetryPolicy;
 import io.modelcontextprotocol.spec.McpSchema;
 
 import java.util.List;
@@ -92,6 +94,7 @@ public class McpErrorHandler {
 
     /**
      * Executes a tool operation with standardized error handling and response formatting.
+     * Uses no-retry policy — intended for read-only / non-mutating tool paths.
      *
      * @param operation The operation name for error context
      * @param logger The structured logger
@@ -99,12 +102,12 @@ public class McpErrorHandler {
      * @return A McpSchema.CallToolResult with success or error response
      */
     public static McpSchema.CallToolResult executeWithErrorHandling(String operation, StructuredLogger logger, ToolOperation task) {
-        return executeWithErrorHandling(operation, null, logger, task);
+        return executeWithErrorHandling(operation, null, logger, RetryPolicy.NONE, task);
     }
 
     /**
-     * Executes a tool operation with standardized error handling, response formatting, and request_id correlation.
-     * This overload accepts tool arguments to extract request_id for logging correlation.
+     * Executes a tool operation with standardized error handling, response formatting, request_id correlation,
+     * and bounded retry for transient failures. Uses the default retry policy for mutating tools.
      *
      * @param operation The operation name for error context
      * @param arguments The tool arguments (may contain request_id for correlation)
@@ -117,15 +120,45 @@ public class McpErrorHandler {
             Map<String, Object> arguments,
             StructuredLogger logger,
             ToolOperation task) {
+        return executeWithErrorHandling(operation, arguments, logger, RetryPolicy.DEFAULT, task);
+    }
+
+    /**
+     * Executes a tool operation with standardized error handling, response formatting, request_id correlation,
+     * and bounded retry according to the specified policy.
+     * <p>
+     * Retry behavior:
+     * <ul>
+     *   <li>Retryable failures (transient host-state/timing): retried up to maxAttempts with backoff</li>
+     *   <li>Non-retryable failures (validation/state errors): fail fast with zero retries</li>
+     *   <li>Total runtime bounded by policy totalTimeoutMs</li>
+     * </ul>
+     *
+     * @param operation The operation name for error context
+     * @param arguments The tool arguments (may contain request_id for correlation)
+     * @param logger The structured logger
+     * @param retryPolicy The retry policy to apply
+     * @param task The tool operation to execute
+     * @return A McpSchema.CallToolResult with success or error response
+     */
+    public static McpSchema.CallToolResult executeWithErrorHandling(
+            String operation,
+            Map<String, Object> arguments,
+            StructuredLogger logger,
+            RetryPolicy retryPolicy,
+            ToolOperation task) {
 
         String operationId = logger.generateOperationId();
         Map<String, Object> loggingParams = extractLoggingParameters(arguments);
         StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, loggingParams);
 
         try {
-            Object result = task.execute();
-            timedOperation.success(result);
-            return createSuccessResponse(result);
+            RetryExecutor.RetryResult<Object> retryResult = RetryExecutor.executeWithRetry(
+                operation, retryPolicy, logger, operationId, loggingParams,
+                task::execute
+            );
+            timedOperation.success(retryResult.value());
+            return createSuccessResponse(retryResult.value());
         } catch (BitwigApiException e) {
             timedOperation.failure(e.getErrorCode(), e.getMessage());
             // Always use the provided operation name (MCP tool name), not the exception's internal operation

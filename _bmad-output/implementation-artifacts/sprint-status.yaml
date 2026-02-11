@@ -47,7 +47,7 @@ development_status:
   1-2-localhost-binding-defaults-preferences-guardrails: done
   1-3-standardize-baseline-tool-response-envelopes-align-with-status-tool-api-reference: done
   1-4-logging-request-id-correlation-hardening-mutating-tools-only: done
-  1-5-non-blocking-execution-bounded-retry-verification-baseline-tools: ready-for-dev
+  1-5-non-blocking-execution-bounded-retry-verification-baseline-tools: done
   1-6-align-index-validation-error-codes-with-canonical-semantics: drafted
   1-7-idempotency-dedupe-for-mutating-tools-request-id-key: backlog
   epic-1-retrospective: optional
