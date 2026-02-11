@@ -2,34 +2,39 @@
 
 ## Generated Tests
 
-### API / Functional Harness Tests
-- [x] `src/test/java/io/github/fabb/wigai/smoke/McpSmokeHarnessAtddTest.java` - Added mutation-mode device round-trip coverage:
-  - `1.1-ATDD-014` skips parameter set when `get_selected_device_parameters` returns empty parameters
-  - `1.1-ATDD-015` skips parameter set when first parameter is missing required `value`
-  - `1.1-ATDD-016` fails harness when `set_selected_device_parameter` returns typed error
-  - `1.1-ATDD-017` fails harness when `get_selected_device_parameters` returns invalid success envelope
+### API and Service Tests
+- [x] `src/test/java/io/github/fabb/wigai/common/retry/RetryPolicyTest.java` - Added capped-backoff and negative-input clamping tests (`testBackoff_AttemptIndexIsCappedAtTen`, `testConstructor_NegativeBackoffAndTimeoutAreClampedToZero`)
+- [x] `src/test/java/io/github/fabb/wigai/common/retry/RetryExecutorTest.java` - Added timeout-reason logging assertion, interrupted-execution test, hard-timeout enforcement test (`testHardTimeout_TaskBlocksIndefinitely_EventuallyThrows`), BITWIG_TIMEOUT on total timeout exceeded (`testTotalTimeoutExceeded_ThrowsBitwigTimeoutNotStaleException`), BITWIG_TIMEOUT on interrupted backoff (`testInterruptedDuringBackoff_ThrowsBitwigTimeoutNotStaleException`), and null-logger exhaustion coverage (`testRetryExhaustion_NullLogger_ThrowsLastExceptionWithoutNpe`)
+- [x] `src/test/java/io/github/fabb/wigai/smoke/McpTimingStressTest.java` - Added initialization failure and tools/list failure fail-fast tests
+- [x] `src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java` - Added `testExecuteWithErrorHandling_ThreeArgOverload_DoesNotRetryRetryableFailure` regression test for read-only no-retry path
+
+### Existing Uncommitted Tests Verified
+- [x] `src/test/java/io/github/fabb/wigai/common/retry/RetryPolicyTest.java` - Retry classification and policy bounds
+- [x] `src/test/java/io/github/fabb/wigai/common/retry/RetryExecutorTest.java` - Retry execution, fail-fast, timeout, metadata logging
+- [x] `src/test/java/io/github/fabb/wigai/mcp/McpErrorHandlerTest.java` - Retry integration and envelope invariants
+- [x] `src/test/java/io/github/fabb/wigai/smoke/McpTimingStressTest.java` - Timing-stress boundedness and actionable error behavior
 
 ### E2E Tests
-- [ ] Not applicable for this workflow run (project is a Bitwig-hosted MCP server; no browser UI E2E target selected)
+- [ ] Not applicable for current uncommitted change set (no UI/browser workflow in changed scope)
 
 ## Coverage
-- Smoke harness mutation-mode branch coverage: **increased** for device parameter round-trip paths (skip + failure branches)
-- Files updated: **1 test file**
-- New tests added: **4**
+- Changed production components: 3/3 covered (`McpErrorHandler`, `RetryExecutor`, `RetryPolicy`)
+- Changed harness component: 1/1 covered (`McpTimingStressHarness`)
+- Total changed components covered: 4/4
 
-## Verification
-- Targeted run: `./gradlew test --tests io.github.fabb.wigai.smoke.McpSmokeHarnessAtddTest` ✅
-- Full test suite: `./gradlew test` ✅
+## Validation Run
+Executed:
 
-## Notes
-- Existing framework patterns were preserved (JUnit 5 + Gradle).
-- Tests use standard JUnit assertions and existing smoke test helpers.
-- No production code changes were required.
+```bash
+./gradlew test \
+  --tests io.github.fabb.wigai.common.retry.RetryPolicyTest \
+  --tests io.github.fabb.wigai.common.retry.RetryExecutorTest \
+  --tests io.github.fabb.wigai.mcp.McpErrorHandlerTest \
+  --tests io.github.fabb.wigai.smoke.McpTimingStressTest
+```
+
+Result: `BUILD SUCCESSFUL`
 
 ## Next Steps
-- Add host-required functional tests (`@Tag("host_required")`) for fixture-backed Bitwig scenarios outside CI.
-- Add coverage for currently untested mutating tools in host-functional mode:
-  - `set_selected_device_parameters`
-  - `session_launchSceneByIndex`
-  - `session_launchSceneByName`
-  - `launch_clip`
+- Run full `./gradlew test` in CI to ensure no cross-suite regressions.
+- If story-level verification is needed, run host-required smoke harness tasks separately.
