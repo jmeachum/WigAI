@@ -360,6 +360,18 @@ So that retries from clients do not cause double-apply of state-changing operati
 **When** they run
 **Then** they verify: cache hit returns cached result, cache miss executes normally, TTL expiry allows re-execution, and max entries eviction works correctly.
 
+### Sprint Sequencing Note (Post-Epic 1 Hardening)
+
+After Story 1.7 is complete, run a dedicated dependency-refresh + regression sprint checkpoint before starting Epic 2 implementation.
+
+**Required checkpoint outcomes:**
+
+1. Dependency refresh scope reviewed and planned (MCP SDK, Jetty, JUnit, and related transitive risks).
+2. Full automated test suite passes after updates.
+3. Host-required MCP smoke harness passes against a running Bitwig instance.
+4. No envelope/error-contract regressions (`status` + `data|error`, canonical error code semantics).
+5. Rollback point created (tag/branch) before merge/promotion.
+
 ## Epic 2: Safe Track Targeting & Discovery
 
 External AI agents can reliably target the intended track (by index/name/selected) with guardrails (explicit refusal when context is missing; fuzzy matching support; refusal on ambiguity) so actions occur on the correct track without surprises.
