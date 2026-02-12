@@ -254,7 +254,7 @@ class ParameterValidatorTest {
             ParameterValidator.validateParameterIndex(8, 8, "testOp")
         );
 
-        assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("parameter_index"));
     }
 
@@ -301,7 +301,7 @@ class ParameterValidatorTest {
             ParameterValidator.validateClipIndex(-1, "testOp")
         );
 
-        assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("clip_index"));
     }
 
@@ -318,8 +318,82 @@ class ParameterValidatorTest {
             ParameterValidator.validateSceneIndex(-1, "testOp")
         );
 
-        assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("scene_index"));
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_Success() {
+        Map<String, Object> arguments = Map.of("clip_index", 5);
+
+        int result = ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", "testOp");
+
+        assertEquals(5, result);
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_FromDouble() {
+        Map<String, Object> arguments = Map.of("scene_index", 3.0);
+
+        int result = ParameterValidator.validateRequiredIndexInteger(arguments, "scene_index", "testOp");
+
+        assertEquals(3, result);
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_NotANumber() {
+        Map<String, Object> arguments = Map.of("clip_index", "not a number");
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", "testOp")
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER_TYPE, exception.getErrorCode());
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_NonInteger() {
+        Map<String, Object> arguments = Map.of("clip_index", 1.5);
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", "testOp")
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_Overflow() {
+        Map<String, Object> arguments = Map.of("clip_index", 4294967296.0);
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", "testOp")
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("out of integer range"));
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_NegativeOverflow() {
+        Map<String, Object> arguments = Map.of("scene_index", -3000000000.0);
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            ParameterValidator.validateRequiredIndexInteger(arguments, "scene_index", "testOp")
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
+    }
+
+    @Test
+    void testValidateRequiredIndexInteger_Missing() {
+        Map<String, Object> arguments = new HashMap<>();
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", "testOp")
+        );
+
+        assertEquals(ErrorCode.MISSING_REQUIRED_PARAMETER, exception.getErrorCode());
     }
 
     @Test

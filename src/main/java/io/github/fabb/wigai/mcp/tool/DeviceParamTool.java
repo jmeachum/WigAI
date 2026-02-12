@@ -236,7 +236,7 @@ public class DeviceParamTool {
      * Parses the arguments for setting a single parameter.
      */
     private static SetParameterArguments parseSetParameterArguments(Map<String, Object> arguments) {
-        int parameterIndex = ParameterValidator.validateRequiredInteger(arguments, "parameter_index", SET_PARAMETER_TOOL);
+        int parameterIndex = ParameterValidator.validateRequiredIndexInteger(arguments, "parameter_index", SET_PARAMETER_TOOL);
         if (parameterIndex < 0 || parameterIndex > 7) {
             throw new BitwigApiException(
                 ErrorCode.INVALID_PARAMETER_INDEX,
@@ -287,7 +287,7 @@ public class DeviceParamTool {
 
             Map<String, Object> paramMap = (Map<String, Object>) paramObj;
 
-            int parameterIndex = ParameterValidator.validateRequiredInteger(paramMap, "parameter_index", SET_MULTIPLE_PARAMETERS_TOOL);
+            int parameterIndex = ParameterValidator.validateRequiredIndexInteger(paramMap, "parameter_index", SET_MULTIPLE_PARAMETERS_TOOL);
             if (parameterIndex < 0 || parameterIndex > 7) {
                 throw new BitwigApiException(
                     ErrorCode.INVALID_PARAMETER_INDEX,

@@ -97,7 +97,7 @@ public class SceneTool {
      */
     private static LaunchSceneArguments parseArguments(Map<String, Object> arguments) {
         // Validate required parameters
-        int sceneIndex = ParameterValidator.validateRequiredInteger(arguments, "scene_index", TOOL_NAME);
+        int sceneIndex = ParameterValidator.validateRequiredIndexInteger(arguments, "scene_index", TOOL_NAME);
         sceneIndex = ParameterValidator.validateSceneIndex(sceneIndex, TOOL_NAME);
 
         return new LaunchSceneArguments(sceneIndex);

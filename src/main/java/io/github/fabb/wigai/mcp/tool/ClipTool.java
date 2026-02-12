@@ -103,7 +103,7 @@ public class ClipTool {
         String trackName = ParameterValidator.validateRequiredString(arguments, "track_name", TOOL_NAME);
         trackName = ParameterValidator.validateNotEmpty(trackName, "track_name", TOOL_NAME);
 
-        int clipIndex = ParameterValidator.validateRequiredInteger(arguments, "clip_index", TOOL_NAME);
+        int clipIndex = ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", TOOL_NAME);
         clipIndex = ParameterValidator.validateClipIndex(clipIndex, TOOL_NAME);
 
         return new LaunchClipArguments(trackName, clipIndex);

@@ -90,7 +90,7 @@ public enum ErrorCode {
 
         // Handle common aliases and variations
         return switch (normalized) {
-            case "CLIP_INDEX_OUT_OF_BOUNDS" -> INVALID_RANGE;
+            case "CLIP_INDEX_OUT_OF_BOUNDS" -> INVALID_PARAMETER_INDEX;
             case "BITWIG_ERROR" -> BITWIG_API_ERROR;
             default -> OPERATION_FAILED;
         };

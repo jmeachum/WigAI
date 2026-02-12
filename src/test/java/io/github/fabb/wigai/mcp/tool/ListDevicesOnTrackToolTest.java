@@ -258,7 +258,7 @@ class ListDevicesOnTrackToolTest {
         String responseJson = ((McpSchema.TextContent) result.content().get(0)).text();
         JsonNode response = objectMapper.readTree(responseJson);
         assertEquals("error", response.get("status").asText());
-        assertEquals("INVALID_PARAMETER", response.get("error").get("code").asText());
+        assertEquals("INVALID_PARAMETER_INDEX", response.get("error").get("code").asText());
     }
 
     @Test

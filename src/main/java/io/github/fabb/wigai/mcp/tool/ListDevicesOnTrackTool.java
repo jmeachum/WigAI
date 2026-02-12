@@ -92,9 +92,26 @@ public class ListDevicesOnTrackTool {
         if (arguments.containsKey("track_index")) {
             Object indexObj = arguments.get("track_index");
             if (indexObj instanceof Number) {
+                double raw = ((Number) indexObj).doubleValue();
+                if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
+                    throw new IllegalArgumentException("Parameter 'track_index' must be an integer, got: " + indexObj);
+                }
+                if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
+                    throw new io.github.fabb.wigai.common.error.BitwigApiException(
+                        io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER_INDEX,
+                        operation,
+                        "track_index value out of integer range: " + indexObj,
+                        java.util.Map.of("track_index", indexObj)
+                    );
+                }
                 int index = ((Number) indexObj).intValue();
                 if (index < 0) {
-                    throw new IllegalArgumentException("track_index must be >= 0");
+                    throw new io.github.fabb.wigai.common.error.BitwigApiException(
+                        io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER_INDEX,
+                        operation,
+                        "track_index must be >= 0, got: " + index,
+                        java.util.Map.of("track_index", index)
+                    );
                 }
                 trackIndex = index;
             } else if (indexObj != null) {

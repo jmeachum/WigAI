@@ -547,8 +547,8 @@ class BaselineToolEnvelopeAtddTest {
     }
 
     @Test
-    void launchClipInvalidRangeError() throws Exception {
-        // AC2 coverage: validation error with INVALID_RANGE code for clip_index
+    void launchClipInvalidParameterIndexError() throws Exception {
+        // AC2 coverage: validation error with INVALID_PARAMETER_INDEX code for clip_index
         StructuredLogger logger = mockStructuredLogger();
         ClipSceneController clipSceneController = mock(ClipSceneController.class);
 
@@ -558,7 +558,7 @@ class BaselineToolEnvelopeAtddTest {
             buildRequest("launch_clip", Map.of("track_name", "Track 1", "clip_index", -1))  // negative clip_index
         );
 
-        assertError(result, "INVALID_RANGE", "launch_clip");
+        assertError(result, "INVALID_PARAMETER_INDEX", "launch_clip");
     }
 
     @Test

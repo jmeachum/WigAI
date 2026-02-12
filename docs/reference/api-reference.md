@@ -259,8 +259,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
 *   **Errors**:
-    *   Top-level: `DEVICE_NOT_SELECTED`, `MISSING_REQUIRED_PARAMETER` (for missing parameters array), `EMPTY_PARAMETER` (for empty parameters array), `INVALID_PARAMETER` (for malformed parameters: not an array or entries not objects)
-    *   Per-item in `results`: `INVALID_PARAMETER_INDEX`, `INVALID_RANGE` (for value outside 0.0-1.0), `BITWIG_API_ERROR`
+    *   Top-level: `DEVICE_NOT_SELECTED`, `MISSING_REQUIRED_PARAMETER` (for missing parameters array), `EMPTY_PARAMETER` (for empty parameters array), `INVALID_PARAMETER` (for malformed parameters: not an array or entries not objects), `INVALID_PARAMETER_INDEX` (for parameter_index outside valid range 0-7 or overflow), `INVALID_RANGE` (for value outside 0.0-1.0)
+    *   Per-item in `results`: `BITWIG_API_ERROR`
 
 ### Session Control Commands
 
@@ -289,7 +289,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Errors**:
     *   `MISSING_REQUIRED_PARAMETER`: track_name or clip_index not provided
     *   `EMPTY_PARAMETER`: track_name cannot be empty
-    *   `INVALID_RANGE`: clip_index is negative or outside the valid range for the track
+    *   `INVALID_PARAMETER_INDEX`: clip_index is negative or outside the valid range for the track
     *   `TRACK_NOT_FOUND`: The specified track name was not found
     *   `BITWIG_API_ERROR`: Internal error occurred while launching clip
 
@@ -315,8 +315,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     ```
 *   **Errors**:
     *   `MISSING_REQUIRED_PARAMETER`: scene_index not provided
-    *   `INVALID_RANGE`: scene_index is negative
-    *   `SCENE_NOT_FOUND`: No scene exists at the specified index
+    *   `INVALID_PARAMETER_INDEX`: scene_index is negative or exceeds valid bounds
+    *   `SCENE_NOT_FOUND`: No tracks found in Bitwig session
     *   `BITWIG_API_ERROR`: Internal error occurred while launching scene
 
 #### `session_launchSceneByName`
@@ -493,6 +493,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     - Clip slot provides clip name and state flags; clip length and loop status are not exposed via slot API and are omitted.
 *   **Errors**:
     *   `INVALID_PARAMETER`: Invalid combination or types of parameters
+    *   `INVALID_PARAMETER_INDEX`: Index outside valid bounds (e.g., negative track_index)
     *   `TRACK_NOT_FOUND`: Target track not found or no track selected when required
     *   `BITWIG_API_ERROR`: Internal Bitwig API error
 
@@ -583,7 +584,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 
 *   **Errors**:
     *   `INVALID_PARAMETER`: Invalid combination or types of parameters
-    *   `INVALID_RANGE`: Index outside of valid range
+    *   `INVALID_PARAMETER_INDEX`: Index outside of valid range
     *   `TRACK_NOT_FOUND`: Target track not found or no track selected when required
     *   `BITWIG_API_ERROR`: Internal Bitwig API error
 
@@ -709,10 +710,12 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Validation Rules**:
     - At least one of `scene_index` or `scene_name` must be provided
     - `scene_index` must be >= 0 if provided
-    - Invalid `scene_index` (negative or out of range) results in `INVALID_PARAMETER` error
+    - Negative `scene_index` results in `INVALID_PARAMETER_INDEX` error
+    - Non-negative `scene_index` exceeding available scenes results in `INVALID_PARAMETER_INDEX` error
 *   **Errors**:
-    *   `SCENE_NOT_FOUND`: Scene not found by index or name
-    *   `INVALID_PARAMETER`: Invalid parameter value (e.g., negative scene_index)
+    *   `SCENE_NOT_FOUND`: Scene not found by name (scene_name lookup fails)
+    *   `INVALID_PARAMETER_INDEX`: Index outside valid bounds (negative or exceeding scene count)
+    *   `INVALID_PARAMETER`: Non-integer `scene_index` value (e.g., `1.5`)
     *   `MISSING_REQUIRED_PARAMETER`: Neither scene_index nor scene_name provided
     *   `BITWIG_API_ERROR`: Internal error occurred while retrieving clip information
 
@@ -777,7 +780,7 @@ Rules:
 
 - Errors:
   - `INVALID_PARAMETER`
-  - `INVALID_RANGE`
+  - `INVALID_PARAMETER_INDEX`
   - `TRACK_NOT_FOUND`
   - `DEVICE_NOT_FOUND`
   - `DEVICE_NOT_SELECTED`

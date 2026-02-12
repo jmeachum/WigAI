@@ -153,9 +153,9 @@ class ErrorCodeTest {
 
     @Test
     void testFromStringAliasClipIndexOutOfBounds() {
-        // CLIP_INDEX_OUT_OF_BOUNDS is an alias for INVALID_RANGE
-        assertEquals(ErrorCode.INVALID_RANGE, ErrorCode.fromString("CLIP_INDEX_OUT_OF_BOUNDS"));
-        assertEquals(ErrorCode.INVALID_RANGE, ErrorCode.fromString("clip_index_out_of_bounds"));
+        // CLIP_INDEX_OUT_OF_BOUNDS is an alias for INVALID_PARAMETER_INDEX
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, ErrorCode.fromString("CLIP_INDEX_OUT_OF_BOUNDS"));
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, ErrorCode.fromString("clip_index_out_of_bounds"));
     }
 
     @Test
