@@ -314,7 +314,7 @@ public class BitwigApiFacade {
             // Validate track index
             if (index < 0 || index >= trackBank.getSizeOfBank()) {
                 throw new BitwigApiException(
-                    ErrorCode.INVALID_RANGE,
+                    ErrorCode.INVALID_PARAMETER_INDEX,
                     operation,
                     "Track index must be between 0 and " + (trackBank.getSizeOfBank() - 1) + ", got: " + index,
                     Map.of("index", index, "max_index", trackBank.getSizeOfBank() - 1)
@@ -528,6 +528,63 @@ public class BitwigApiFacade {
     }
 
     /**
+     * Gets the number of clip slots available for a track by index.
+     * Avoids name-based lookup ambiguity when multiple tracks share the same name.
+     *
+     * @param trackIndex The zero-based track index
+     * @return The number of clip slots, or 0 if track not found at index
+     */
+    public int getTrackClipCountByIndex(int trackIndex) {
+        Optional<Track> trackOpt = findTrackByIndex(trackIndex);
+        if (trackOpt.isPresent()) {
+            return trackOpt.get().clipLauncherSlotBank().getSizeOfBank();
+        }
+        return 0;
+    }
+
+    /**
+     * Launches a clip at the specified track index and clip index.
+     * Avoids name-based lookup ambiguity when multiple tracks share the same name.
+     *
+     * @param trackIndex The zero-based track index
+     * @param clipIndex The zero-based clip slot index to launch
+     * @throws BitwigApiException if track not found, clip index invalid, or launch fails
+     */
+    public void launchClipByTrackIndex(int trackIndex, int clipIndex) throws BitwigApiException {
+        final String operation = "launchClipByTrackIndex";
+
+        WigAIErrorHandler.executeWithErrorHandling(operation, () -> {
+            ParameterValidator.validateClipIndex(clipIndex, operation);
+
+            Optional<Track> trackOpt = findTrackByIndex(trackIndex);
+            if (trackOpt.isEmpty()) {
+                throw new BitwigApiException(
+                    ErrorCode.TRACK_NOT_FOUND,
+                    operation,
+                    "Track at index " + trackIndex + " does not exist",
+                    Map.of("trackIndex", trackIndex)
+                );
+            }
+
+            Track targetTrack = trackOpt.get();
+            ClipLauncherSlotBank slotBank = targetTrack.clipLauncherSlotBank();
+            if (clipIndex >= slotBank.getSizeOfBank()) {
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER_INDEX,
+                    operation,
+                    "Clip index " + clipIndex + " out of bounds for track at index " + trackIndex,
+                    Map.of("trackIndex", trackIndex, "clipIndex", clipIndex, "maxIndex", slotBank.getSizeOfBank() - 1)
+                );
+            }
+
+            ClipLauncherSlot slot = slotBank.getItemAt(clipIndex);
+            slot.launch();
+
+            logger.info("BitwigApiFacade: Successfully launched clip at track[" + trackIndex + "][" + clipIndex + "]");
+        });
+    }
+
+    /**
      * Launches a clip at the specified track and clip index.
      *
      * @param trackName The name of the track containing the clip
@@ -560,7 +617,7 @@ public class BitwigApiFacade {
             ClipLauncherSlotBank slotBank = targetTrack.clipLauncherSlotBank();
             if (clipIndex >= slotBank.getSizeOfBank()) {
                 throw new BitwigApiException(
-                    ErrorCode.INVALID_RANGE,
+                    ErrorCode.INVALID_PARAMETER_INDEX,
                     operation,
                     "Clip index " + clipIndex + " out of bounds for track '" + trackName + "' (max: " + (slotBank.getSizeOfBank() - 1) + ")",
                     Map.of("trackName", trackName, "clipIndex", clipIndex, "maxIndex", slotBank.getSizeOfBank() - 1)
@@ -1268,7 +1325,7 @@ public class BitwigApiFacade {
         return WigAIErrorHandler.executeWithErrorHandling(operation, () -> {
             if (index < 0 || index >= trackBank.getSizeOfBank()) {
                 throw new BitwigApiException(
-                    ErrorCode.INVALID_RANGE,
+                    ErrorCode.INVALID_PARAMETER_INDEX,
                     operation,
                     "Track index must be between 0 and " + (trackBank.getSizeOfBank() - 1) + ", got: " + index,
                     Map.of("index", index, "max_index", trackBank.getSizeOfBank() - 1)
@@ -1496,7 +1553,7 @@ public class BitwigApiFacade {
             if (trackIndex != null) {
                 // Track by index
                 if (trackIndex < 0 || trackIndex >= trackBank.getSizeOfBank()) {
-                    throw new BitwigApiException(ErrorCode.INVALID_RANGE, operation,
+                    throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, operation,
                         "Track index " + trackIndex + " is out of range [0, " + (trackBank.getSizeOfBank() - 1) + "]");
                 }
 
@@ -1768,7 +1825,7 @@ public class BitwigApiFacade {
 
         if (trackIndex != null) {
             if (trackIndex < 0 || trackIndex >= trackBank.getSizeOfBank()) {
-                throw new BitwigApiException(ErrorCode.INVALID_RANGE, operation,
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, operation,
                     "Track index " + trackIndex + " is out of range [0, " + (trackBank.getSizeOfBank() - 1) + "]");
             }
             Optional<Track> trackOpt = findTrackByIndex(trackIndex);
@@ -1798,7 +1855,7 @@ public class BitwigApiFacade {
 
         if (deviceIndex != null) {
             if (deviceIndex < 0 || deviceIndex >= deviceBank.getSizeOfBank()) {
-                throw new BitwigApiException(ErrorCode.INVALID_RANGE, operation,
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, operation,
                     "Device index " + deviceIndex + " is out of range [0, " + (deviceBank.getSizeOfBank() - 1) + "]");
             }
             targetDevice = deviceBank.getItemAt(deviceIndex);

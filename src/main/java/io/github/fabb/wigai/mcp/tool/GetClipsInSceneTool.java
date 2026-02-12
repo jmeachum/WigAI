@@ -77,10 +77,27 @@ public class GetClipsInSceneTool {
                     Integer sceneIndex = null;
                     if (sceneIndexObj != null) {
                         if (sceneIndexObj instanceof Number) {
+                            double raw = ((Number) sceneIndexObj).doubleValue();
+                            if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
+                                throw new io.github.fabb.wigai.common.error.BitwigApiException(
+                                    io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER,
+                                    operation,
+                                    "Scene index must be an integer, got: " + sceneIndexObj,
+                                    Map.of("scene_index", sceneIndexObj)
+                                );
+                            }
+                            if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
+                                throw new io.github.fabb.wigai.common.error.BitwigApiException(
+                                    io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER_INDEX,
+                                    operation,
+                                    "Scene index value out of integer range: " + sceneIndexObj,
+                                    Map.of("scene_index", sceneIndexObj)
+                                );
+                            }
                             int index = ((Number) sceneIndexObj).intValue();
                             if (index < 0) {
                                 throw new io.github.fabb.wigai.common.error.BitwigApiException(
-                                    io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER,
+                                    io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER_INDEX,
                                     operation,
                                     "Scene index must be >= 0, got: " + index,
                                     Map.of("scene_index", index)

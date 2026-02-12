@@ -5,6 +5,7 @@ import io.github.fabb.wigai.common.Logger;
 import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.features.ClipSceneController.ClipLaunchResult;
+import io.github.fabb.wigai.features.ClipSceneController.SceneLaunchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -198,5 +199,109 @@ class ClipSceneControllerTest {
         assertEquals("Clip at Drums[7] launched.", result.getMessage());
 
         verify(bitwigApiFacade).launchClip(trackName, clipIndex);
+    }
+
+    // === Scene index out-of-bounds and overflow regression tests ===
+
+    @Test
+    void testLaunchSceneByIndex_NegativeIndex() {
+        // Controller defense-in-depth: negative scene index returns INVALID_PARAMETER_INDEX
+        SceneLaunchResult result = controller.launchSceneByIndex(-1);
+
+        assertFalse(result.isSuccess());
+        assertEquals("INVALID_PARAMETER_INDEX", result.getErrorCode());
+        assertTrue(result.getMessage().contains("non-negative"));
+    }
+
+    @Test
+    void testLaunchSceneByIndex_OutOfBounds() {
+        // Scene index exceeds all track clip counts → INVALID_PARAMETER_INDEX
+        when(bitwigApiFacade.getTrackBankSize()).thenReturn(2);
+        when(bitwigApiFacade.getTrackNameByIndex(0)).thenReturn("Track 1");
+        when(bitwigApiFacade.getTrackNameByIndex(1)).thenReturn("Track 2");
+        when(bitwigApiFacade.getTrackClipCountByIndex(0)).thenReturn(4);
+        when(bitwigApiFacade.getTrackClipCountByIndex(1)).thenReturn(4);
+
+        SceneLaunchResult result = controller.launchSceneByIndex(999);
+
+        assertFalse(result.isSuccess());
+        assertEquals("INVALID_PARAMETER_INDEX", result.getErrorCode());
+        assertTrue(result.getMessage().contains("out of bounds"));
+    }
+
+    @Test
+    void testLaunchSceneByIndex_NoTracksReturnsSceneNotFound() {
+        // No tracks in session → SCENE_NOT_FOUND
+        when(bitwigApiFacade.getTrackBankSize()).thenReturn(2);
+        when(bitwigApiFacade.getTrackNameByIndex(0)).thenThrow(
+            new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, "getTrackNameByIndex", "Track at index 0 does not exist"));
+        when(bitwigApiFacade.getTrackNameByIndex(1)).thenThrow(
+            new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, "getTrackNameByIndex", "Track at index 1 does not exist"));
+
+        SceneLaunchResult result = controller.launchSceneByIndex(0);
+
+        assertFalse(result.isSuccess());
+        assertEquals("SCENE_NOT_FOUND", result.getErrorCode());
+        assertTrue(result.getMessage().contains("No tracks found"));
+    }
+
+    @Test
+    void testLaunchSceneByIndex_LaunchFailPreservesNonIndexError() {
+        // Clips exist at scene index but all launches fail with BITWIG_API_ERROR
+        // Must NOT collapse into INVALID_PARAMETER_INDEX
+        when(bitwigApiFacade.getTrackBankSize()).thenReturn(2);
+        when(bitwigApiFacade.getTrackNameByIndex(0)).thenReturn("Track 1");
+        when(bitwigApiFacade.getTrackNameByIndex(1)).thenReturn("Track 2");
+        when(bitwigApiFacade.getTrackClipCountByIndex(0)).thenReturn(8);
+        when(bitwigApiFacade.getTrackClipCountByIndex(1)).thenReturn(8);
+        doThrow(new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "launchClipByTrackIndex", "API error"))
+            .when(bitwigApiFacade).launchClipByTrackIndex(anyInt(), anyInt());
+
+        SceneLaunchResult result = controller.launchSceneByIndex(0);
+
+        assertFalse(result.isSuccess());
+        assertEquals("BITWIG_API_ERROR", result.getErrorCode());
+        assertTrue(result.getMessage().contains("Failed to launch scene"));
+    }
+
+    @Test
+    void testLaunchSceneByIndex_UsesIndexBasedApis() {
+        // Verify index-based APIs are called instead of name-based
+        when(bitwigApiFacade.getTrackBankSize()).thenReturn(1);
+        when(bitwigApiFacade.getTrackNameByIndex(0)).thenReturn("Drums");
+        when(bitwigApiFacade.getTrackClipCountByIndex(0)).thenReturn(8);
+
+        SceneLaunchResult result = controller.launchSceneByIndex(0);
+
+        assertTrue(result.isSuccess());
+        verify(bitwigApiFacade).getTrackClipCountByIndex(0);
+        verify(bitwigApiFacade).launchClipByTrackIndex(0, 0);
+        verify(bitwigApiFacade, never()).getTrackClipCount(anyString());
+        verify(bitwigApiFacade, never()).launchClip(anyString(), anyInt());
+    }
+
+    @Test
+    void testGetClipsInScene_OutOfBounds() {
+        // Scene index exceeds scene count → INVALID_PARAMETER_INDEX from controller
+        when(bitwigApiFacade.getSceneCount()).thenReturn(4);
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            controller.getClipsInScene(999, null)
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("out of bounds"));
+    }
+
+    @Test
+    void testGetClipsInScene_NegativeIndex() {
+        // Negative scene index is invalid per isSceneIndexValid
+        when(bitwigApiFacade.getSceneCount()).thenReturn(4);
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            controller.getClipsInScene(-1, null)
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
     }
 }

@@ -41,24 +41,34 @@ public class ClipSceneController {
         try {
             // Validate scene index
             if (sceneIndex < 0) {
-                return SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index must be non-negative");
+                return SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index must be non-negative");
             }
 
             int trackCount = bitwigApiFacade.getTrackBankSize();
             int launchedCount = 0;
             boolean anyTrack = false;
+            boolean anyClipAtIndex = false;
+            BitwigApiException lastLaunchError = null;
 
             for (int trackIdx = 0; trackIdx < trackCount; trackIdx++) {
                 try {
-                    String trackName = bitwigApiFacade.getTrackNameByIndex(trackIdx);
+                    // Use index-based API to avoid duplicate-track-name ambiguity
+                    bitwigApiFacade.getTrackNameByIndex(trackIdx);
                     anyTrack = true;
-                    int clipCount = bitwigApiFacade.getTrackClipCount(trackName);
+                    int clipCount = bitwigApiFacade.getTrackClipCountByIndex(trackIdx);
                     if (sceneIndex < clipCount) {
-                        bitwigApiFacade.launchClip(trackName, sceneIndex);
+                        anyClipAtIndex = true;
+                        bitwigApiFacade.launchClipByTrackIndex(trackIdx, sceneIndex);
                         launchedCount++;
                     }
                 } catch (BitwigApiException e) {
-                    // Track doesn't exist or clip launch failed, continue with next track
+                    if (e.getErrorCode() == ErrorCode.TRACK_NOT_FOUND
+                            || e.getErrorCode() == ErrorCode.INVALID_PARAMETER_INDEX) {
+                        // Track doesn't exist or index-related issue — skip to next track
+                        continue;
+                    }
+                    // Non-index failure (e.g., BITWIG_API_ERROR) — preserve for reporting
+                    lastLaunchError = e;
                 }
             }
 
@@ -69,8 +79,12 @@ public class ClipSceneController {
             if (launchedCount > 0) {
                 String msg = "Scene " + sceneIndex + " launched on " + launchedCount + " track(s).";
                 return SceneLaunchResult.success(msg);
+            } else if (anyClipAtIndex && lastLaunchError != null) {
+                // Clips existed at this scene index but all launches failed for non-index reasons
+                return SceneLaunchResult.error(lastLaunchError.getErrorCode().getCode(),
+                    "Failed to launch scene " + sceneIndex + ": " + lastLaunchError.getMessage());
             } else {
-                return SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index " + sceneIndex + " is out of bounds for all tracks");
+                return SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index " + sceneIndex + " is out of bounds for all tracks");
             }
         } catch (Exception e) {
             return SceneLaunchResult.error("BITWIG_ERROR", "Internal error occurred while launching scene: " + e.getMessage());
@@ -142,9 +156,9 @@ public class ClipSceneController {
                 // Validate scene index exists by checking if any track has clips at this index
                 if (!isSceneIndexValid(targetSceneIndex)) {
                     throw new BitwigApiException(
-                        ErrorCode.SCENE_NOT_FOUND,
+                        ErrorCode.INVALID_PARAMETER_INDEX,
                         "get_clips_in_scene",
-                        "Scene not found: " + targetSceneIndex,
+                        "Scene index out of bounds: " + targetSceneIndex,
                         Map.of("scene_index", targetSceneIndex)
                     );
                 }

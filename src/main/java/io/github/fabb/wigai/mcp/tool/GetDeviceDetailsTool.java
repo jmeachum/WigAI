@@ -115,10 +115,28 @@ public class GetDeviceDetailsTool {
         Boolean getForSelectedDevice = null;
 
         if (arguments.containsKey("track_index")) {
-            trackIndex = ParameterValidator.validateRequiredInteger(arguments, "track_index", TOOL_NAME);
+            Object trackIndexObj = arguments.get("track_index");
+            if (!(trackIndexObj instanceof Number)) {
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_TYPE, TOOL_NAME,
+                    "track_index must be an integer",
+                    Map.of("parameter", "track_index", "value", trackIndexObj));
+            }
+            double rawTrackIndex = ((Number) trackIndexObj).doubleValue();
+            if (rawTrackIndex != Math.floor(rawTrackIndex) || Double.isNaN(rawTrackIndex) || Double.isInfinite(rawTrackIndex)) {
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
+                    "track_index must be an integer, got: " + trackIndexObj,
+                    Map.of("parameter", "track_index", "value", trackIndexObj));
+            }
+            if (rawTrackIndex < Integer.MIN_VALUE || rawTrackIndex > Integer.MAX_VALUE) {
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
+                    "track_index value out of integer range: " + trackIndexObj,
+                    Map.of("parameter", "track_index", "value", trackIndexObj));
+            }
+            trackIndex = ((Number) trackIndexObj).intValue();
             if (trackIndex < 0) {
-                throw new BitwigApiException(ErrorCode.INVALID_RANGE, TOOL_NAME,
-                    "track_index must be non-negative, got: " + trackIndex);
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
+                    "track_index must be non-negative, got: " + trackIndex,
+                    Map.of("parameter", "track_index", "value", trackIndex));
             }
         }
 
@@ -128,10 +146,28 @@ public class GetDeviceDetailsTool {
         }
 
         if (arguments.containsKey("device_index")) {
-            deviceIndex = ParameterValidator.validateRequiredInteger(arguments, "device_index", TOOL_NAME);
+            Object deviceIndexObj = arguments.get("device_index");
+            if (!(deviceIndexObj instanceof Number)) {
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_TYPE, TOOL_NAME,
+                    "device_index must be an integer",
+                    Map.of("parameter", "device_index", "value", deviceIndexObj));
+            }
+            double rawDeviceIndex = ((Number) deviceIndexObj).doubleValue();
+            if (rawDeviceIndex != Math.floor(rawDeviceIndex) || Double.isNaN(rawDeviceIndex) || Double.isInfinite(rawDeviceIndex)) {
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
+                    "device_index must be an integer, got: " + deviceIndexObj,
+                    Map.of("parameter", "device_index", "value", deviceIndexObj));
+            }
+            if (rawDeviceIndex < Integer.MIN_VALUE || rawDeviceIndex > Integer.MAX_VALUE) {
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
+                    "device_index value out of integer range: " + deviceIndexObj,
+                    Map.of("parameter", "device_index", "value", deviceIndexObj));
+            }
+            deviceIndex = ((Number) deviceIndexObj).intValue();
             if (deviceIndex < 0) {
-                throw new BitwigApiException(ErrorCode.INVALID_RANGE, TOOL_NAME,
-                    "device_index must be non-negative, got: " + deviceIndex);
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
+                    "device_index must be non-negative, got: " + deviceIndex,
+                    Map.of("parameter", "device_index", "value", deviceIndex));
             }
         }
 

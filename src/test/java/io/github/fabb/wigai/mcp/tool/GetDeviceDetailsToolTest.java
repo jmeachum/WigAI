@@ -1,5 +1,6 @@
 package io.github.fabb.wigai.mcp.tool;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.github.fabb.wigai.common.Logger;
 import io.github.fabb.wigai.common.data.ParameterInfo;
 import io.github.fabb.wigai.common.error.BitwigApiException;
@@ -7,6 +8,8 @@ import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.features.DeviceController;
 import io.modelcontextprotocol.server.McpServerFeatures;
+import io.modelcontextprotocol.server.McpSyncServerExchange;
+import io.modelcontextprotocol.spec.McpSchema;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,170 +62,178 @@ class GetDeviceDetailsToolTest {
     }
 
     @Test
-    void testParameterValidation_ValidSelectedDeviceMode() {
-        // Should not throw exception
+    void testParameterValidation_ValidSelectedDeviceMode() throws Exception {
+        mockDeviceDetailsSuccess();
         Map<String, Object> args = Map.of("get_for_selected_device", true);
-        assertDoesNotThrow(() -> invokeParseArguments(args));
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        assertFalse(result.isError());
     }
 
     @Test
-    void testParameterValidation_ValidIdentifierMode() {
-        // Should not throw exception
+    void testParameterValidation_ValidIdentifierMode() throws Exception {
+        mockDeviceDetailsSuccess();
         Map<String, Object> args = Map.of(
             "track_index", 0,
             "device_index", 1
         );
-        assertDoesNotThrow(() -> invokeParseArguments(args));
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        assertFalse(result.isError());
     }
 
     @Test
-    void testParameterValidation_ValidIdentifierModeWithNames() {
-        // Should not throw exception
+    void testParameterValidation_ValidIdentifierModeWithNames() throws Exception {
+        mockDeviceDetailsSuccess();
         Map<String, Object> args = Map.of(
             "track_name", "Bass Track",
             "device_name", "EQ Eight"
         );
-        assertDoesNotThrow(() -> invokeParseArguments(args));
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        assertFalse(result.isError());
     }
 
     @Test
-    void testParameterValidation_DefaultSelectedMode() {
-        // Should default to selected mode when no parameters provided
+    void testParameterValidation_DefaultSelectedMode() throws Exception {
+        mockDeviceDetailsSuccess();
         Map<String, Object> args = Map.of();
-        assertDoesNotThrow(() -> invokeParseArguments(args));
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        assertFalse(result.isError());
     }
 
     @Test
-    void testParameterValidation_BothTrackIdentifiers() {
-        // Should throw exception when both track_index and track_name provided
-        Map<String, Object> args = Map.of(
-            "track_index", 0,
-            "track_name", "Bass Track",
-            "device_index", 1
-        );
+    void testParameterValidation_BothTrackIdentifiers() throws Exception {
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", 0);
+        args.put("track_name", "Bass Track");
+        args.put("device_index", 1);
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Exactly one of track_index or track_name"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Exactly one of track_index or track_name"));
     }
 
     @Test
-    void testParameterValidation_BothDeviceIdentifiers() {
-        // Should throw exception when both device_index and device_name provided
-        Map<String, Object> args = Map.of(
-            "track_index", 0,
-            "device_index", 1,
-            "device_name", "EQ Eight"
-        );
+    void testParameterValidation_BothDeviceIdentifiers() throws Exception {
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", 0);
+        args.put("device_index", 1);
+        args.put("device_name", "EQ Eight");
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Exactly one of device_index or device_name"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Exactly one of device_index or device_name"));
     }
 
     @Test
-    void testParameterValidation_SelectedModeWithIdentifiers() {
-        // Should throw exception when get_for_selected_device=true with identifiers
+    void testParameterValidation_SelectedModeWithIdentifiers() throws Exception {
         Map<String, Object> args = Map.of(
             "get_for_selected_device", true,
             "track_index", 0
         );
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Cannot provide get_for_selected_device=true together with other identifier"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Cannot provide get_for_selected_device=true together with other identifier"));
     }
 
     @Test
-    void testParameterValidation_FalseModeWithoutIdentifiers() {
-        // Should throw exception when get_for_selected_device=false without identifiers
+    void testParameterValidation_FalseModeWithoutIdentifiers() throws Exception {
         Map<String, Object> args = Map.of(
             "get_for_selected_device", false
         );
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Must provide identifier parameters when get_for_selected_device=false"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Must provide identifier parameters when get_for_selected_device=false"));
     }
 
     @Test
-    void testParameterValidation_NegativeTrackIndex() {
-        // Should throw exception for negative track index
-        Map<String, Object> args = Map.of(
-            "track_index", -1,
-            "device_index", 0
-        );
+    void testParameterValidation_NegativeTrackIndex() throws Exception {
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", -1);
+        args.put("device_index", 0);
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("track_index must be non-negative"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER_INDEX", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("track_index must be non-negative"));
     }
 
     @Test
-    void testParameterValidation_NegativeDeviceIndex() {
-        // Should throw exception for negative device index
-        Map<String, Object> args = Map.of(
-            "track_index", 0,
-            "device_index", -1
-        );
+    void testParameterValidation_NegativeDeviceIndex() throws Exception {
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", 0);
+        args.put("device_index", -1);
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("device_index must be non-negative"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER_INDEX", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("device_index must be non-negative"));
     }
 
     @Test
-    void testParameterValidation_EmptyTrackName() {
-        // Should throw exception for empty track name
-        Map<String, Object> args = Map.of(
-            "track_name", "",
-            "device_index", 0
-        );
+    void testParameterValidation_EmptyTrackName() throws Exception {
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_name", "");
+        args.put("device_index", 0);
 
-        assertThrows(BitwigApiException.class, () -> invokeParseArguments(args));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        assertTrue(result.isError());
     }
 
     @Test
-    void testParameterValidation_EmptyDeviceName() {
-        // Should throw exception for empty device name
-        Map<String, Object> args = Map.of(
-            "track_index", 0,
-            "device_name", ""
-        );
+    void testParameterValidation_EmptyDeviceName() throws Exception {
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", 0);
+        args.put("device_name", "");
 
-        assertThrows(BitwigApiException.class, () -> invokeParseArguments(args));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        assertTrue(result.isError());
     }
 
     @Test
-    void testParameterValidation_IncompleteIdentifiers_MissingDevice() {
-        // Should throw exception when track is specified but device is not
+    void testParameterValidation_IncompleteIdentifiers_MissingDevice() throws Exception {
         Map<String, Object> args = Map.of(
             "track_index", 0
         );
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Exactly one of device_index or device_name"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Exactly one of device_index or device_name"));
     }
 
     @Test
-    void testParameterValidation_IncompleteIdentifiers_MissingTrack() {
-        // Should throw exception when device is specified but track is not
+    void testParameterValidation_IncompleteIdentifiers_MissingTrack() throws Exception {
         Map<String, Object> args = Map.of(
             "device_index", 0
         );
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> invokeParseArguments(args));
-        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Exactly one of track_index or track_name"));
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("INVALID_PARAMETER", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Exactly one of track_index or track_name"));
     }
 
     @Test
@@ -279,99 +291,70 @@ class GetDeviceDetailsToolTest {
 
     @Test
     void testDeviceNotFoundError() throws Exception {
-        // Mock device not found exception
         when(deviceController.getDeviceDetails(any(), any(), any(), any(), any()))
             .thenThrow(new BitwigApiException(ErrorCode.DEVICE_NOT_FOUND, "get_device_details", "Device not found"));
 
-        // This would be tested in integration tests where the full handler chain is invoked
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> deviceController.getDeviceDetails(0, null, 5, null, null));
-        assertEquals(ErrorCode.DEVICE_NOT_FOUND, exception.getErrorCode());
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", 0);
+        args.put("device_index", 5);
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("DEVICE_NOT_FOUND", error.get("code").asText());
     }
 
     @Test
     void testTrackNotFoundError() throws Exception {
-        // Mock track not found exception
         when(deviceController.getDeviceDetails(any(), any(), any(), any(), any()))
             .thenThrow(new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, "get_device_details", "Track not found"));
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> deviceController.getDeviceDetails(99, null, 0, null, null));
-        assertEquals(ErrorCode.TRACK_NOT_FOUND, exception.getErrorCode());
+        HashMap<String, Object> args = new HashMap<>();
+        args.put("track_index", 99);
+        args.put("device_index", 0);
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("TRACK_NOT_FOUND", error.get("code").asText());
     }
 
     @Test
     void testDeviceNotSelectedError() throws Exception {
-        // Mock device not selected exception
         when(deviceController.getDeviceDetails(any(), any(), any(), any(), any()))
             .thenThrow(new BitwigApiException(ErrorCode.DEVICE_NOT_SELECTED, "get_device_details", "No device selected"));
 
-        BitwigApiException exception = assertThrows(BitwigApiException.class,
-            () -> deviceController.getDeviceDetails(null, null, null, null, true));
-        assertEquals(ErrorCode.DEVICE_NOT_SELECTED, exception.getErrorCode());
+        Map<String, Object> args = Map.of("get_for_selected_device", true);
+
+        McpSchema.CallToolResult result = invokeToolHandler(args);
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("DEVICE_NOT_SELECTED", error.get("code").asText());
     }
 
     /**
-     * Helper method to test argument parsing by invoking the private parseArguments method
-     * using reflection-like approach through testing the validation logic.
+     * Invokes the real tool handler through the specification, exercising the actual
+     * parseArguments path instead of a mirrored reimplementation.
      */
-    private void invokeParseArguments(Map<String, Object> arguments) {
-        // Test parameter validation by recreating the logic from parseArguments
-        Integer trackIndex = arguments.containsKey("track_index") ?
-            (Integer) arguments.get("track_index") : null;
-        String trackName = arguments.containsKey("track_name") ?
-            (String) arguments.get("track_name") : null;
-        Integer deviceIndex = arguments.containsKey("device_index") ?
-            (Integer) arguments.get("device_index") : null;
-        String deviceName = arguments.containsKey("device_name") ?
-            (String) arguments.get("device_name") : null;
-        Boolean getForSelectedDevice = arguments.containsKey("get_for_selected_device") ?
-            (Boolean) arguments.get("get_for_selected_device") : null;
+    private McpSchema.CallToolResult invokeToolHandler(Map<String, Object> arguments) {
+        McpServerFeatures.SyncToolSpecification spec =
+            GetDeviceDetailsTool.getDeviceDetailsSpecification(deviceController, structuredLogger);
+        McpSchema.CallToolRequest request = McpSchema.CallToolRequest.builder()
+            .name("get_device_details")
+            .arguments(arguments)
+            .build();
+        return spec.callHandler().apply(mock(McpSyncServerExchange.class), request);
+    }
 
-        // Validate ranges
-        if (trackIndex != null && trackIndex < 0) {
-            throw new BitwigApiException(ErrorCode.INVALID_RANGE, "get_device_details",
-                "track_index must be non-negative, got: " + trackIndex);
-        }
-        if (deviceIndex != null && deviceIndex < 0) {
-            throw new BitwigApiException(ErrorCode.INVALID_RANGE, "get_device_details",
-                "device_index must be non-negative, got: " + deviceIndex);
-        }
-
-        // Validate empty strings
-        if (trackName != null && trackName.trim().isEmpty()) {
-            throw new BitwigApiException(ErrorCode.EMPTY_PARAMETER, "get_device_details",
-                "track_name cannot be empty");
-        }
-        if (deviceName != null && deviceName.trim().isEmpty()) {
-            throw new BitwigApiException(ErrorCode.EMPTY_PARAMETER, "get_device_details",
-                "device_name cannot be empty");
-        }
-
-        // Validate parameter rules (same as in the actual implementation)
-        boolean hasIdentifiers = trackIndex != null || trackName != null || deviceIndex != null || deviceName != null;
-        boolean wantsSelected = Boolean.TRUE.equals(getForSelectedDevice);
-
-        if (wantsSelected && hasIdentifiers) {
-            throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, "get_device_details",
-                "Cannot provide get_for_selected_device=true together with other identifier parameters");
-        }
-
-        if (Boolean.FALSE.equals(getForSelectedDevice) && !hasIdentifiers) {
-            throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, "get_device_details",
-                "Must provide identifier parameters when get_for_selected_device=false");
-        }
-
-        if (hasIdentifiers) {
-            if ((trackIndex != null && trackName != null) || (trackIndex == null && trackName == null)) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, "get_device_details",
-                    "Exactly one of track_index or track_name must be provided, not both or neither");
-            }
-
-            if ((deviceIndex != null && deviceName != null) || (deviceIndex == null && deviceName == null)) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, "get_device_details",
-                    "Exactly one of device_index or device_name must be provided, not both or neither");
-            }
-        }
+    /**
+     * Sets up the deviceController mock to return a valid result for any input,
+     * used by tests that verify validation passes (non-error paths).
+     */
+    private void mockDeviceDetailsSuccess() throws Exception {
+        List<ParameterInfo> controls = List.of(new ParameterInfo(0, "Param", 0.5, "50%"));
+        DeviceController.DeviceDetailsResult result = new DeviceController.DeviceDetailsResult(
+            0, "Track", 0, "Device", "AudioFX", false, true, controls
+        );
+        when(deviceController.getDeviceDetails(any(), any(), any(), any(), any())).thenReturn(result);
     }
 }

@@ -104,8 +104,8 @@ class SceneToolTest {
 
     @Test
     void testHandleLaunchScene_ControllerReturnsError() throws Exception {
-        // Arrange: Mock controller returning error result
-        SceneLaunchResult errorResult = SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index 99 out of range");
+        // Arrange: Mock controller returning error result for out-of-bounds index
+        SceneLaunchResult errorResult = SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index 99 is out of bounds for all tracks");
         when(clipSceneController.launchSceneByIndex(99)).thenReturn(errorResult);
 
         Map<String, Object> arguments = new HashMap<>();
@@ -124,8 +124,8 @@ class SceneToolTest {
 
         // Assert: Error response format is correct
         JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
-        assertEquals("SCENE_NOT_FOUND", errorNode.get("code").asText());
-        assertEquals("Scene index 99 out of range", errorNode.get("message").asText());
+        assertEquals("INVALID_PARAMETER_INDEX", errorNode.get("code").asText());
+        assertEquals("Scene index 99 is out of bounds for all tracks", errorNode.get("message").asText());
         assertEquals("session_launchSceneByIndex", errorNode.get("operation").asText());
     }
 
@@ -250,7 +250,7 @@ class SceneToolTest {
         // AC 4: On failure, logs include ErrorCode and request_id
 
         // Arrange
-        SceneLaunchResult errorResult = SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene index 99 out of range");
+        SceneLaunchResult errorResult = SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index 99 is out of bounds for all tracks");
         when(clipSceneController.launchSceneByIndex(99)).thenReturn(errorResult);
 
         Map<String, Object> arguments = new HashMap<>();
@@ -278,6 +278,6 @@ class SceneToolTest {
             "request_id should be in logging parameters for error correlation");
 
         // Assert: Verify failure was logged with correct ErrorCode
-        verify(timedOperation).failure(eq(ErrorCode.SCENE_NOT_FOUND), any());
+        verify(timedOperation).failure(eq(ErrorCode.INVALID_PARAMETER_INDEX), any());
     }
 }

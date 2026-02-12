@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 
@@ -182,6 +182,24 @@ class ErrorContractComplianceTest {
                 "conflicting track_index with get_selected",
                 ErrorCode.INVALID_PARAMETER,
                 "parameter has wrong type or malformed structure"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_clips_in_scene",
+                "scene_index is non-integer (1.5)",
+                ErrorCode.INVALID_PARAMETER,
+                "parameter has wrong type (non-integer scene_index)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_device_details",
+                "track_index is non-integer (1.5)",
+                ErrorCode.INVALID_PARAMETER,
+                "parameter has wrong type (non-integer track_index)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_device_details",
+                "device_index is non-integer (1.5)",
+                ErrorCode.INVALID_PARAMETER,
+                "parameter has wrong type (non-integer device_index)"
             ))
         );
     }
@@ -208,6 +226,126 @@ class ErrorContractComplianceTest {
                 "parameter entry has index 10",
                 ErrorCode.INVALID_PARAMETER_INDEX,
                 "index outside valid bounds (e.g., parameter_index 0-7)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "launch_clip",
+                "clip_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (clip_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "session_launchSceneByIndex",
+                "scene_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (scene_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_clips_in_scene",
+                "scene_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (scene_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "list_devices_on_track",
+                "track_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_track_details",
+                "track_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_clips_in_scene",
+                "scene_index is 999 (exceeds scene count)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (scene_index exceeds scene count)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_track_details",
+                "track_index is 999 (exceeds track count)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index exceeds track count)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "list_devices_on_track",
+                "track_index is 999 (exceeds track count)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index exceeds track count)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "session_launchSceneByIndex",
+                "scene_index is 999 (exceeds track clip counts)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (scene_index exceeds track clip counts)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_device_details",
+                "track_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_device_details",
+                "device_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (device_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_device_details",
+                "track_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_device_details",
+                "device_index is -1",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (device_index negative)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_clips_in_scene",
+                "scene_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (scene_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "get_track_details",
+                "track_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "list_devices_on_track",
+                "track_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (track_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "launch_clip",
+                "clip_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (clip_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "session_launchSceneByIndex",
+                "scene_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (scene_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "set_selected_device_parameter",
+                "parameter_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (parameter_index overflow)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "set_selected_device_parameters",
+                "parameter_index overflow (4294967296)",
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index outside valid bounds (parameter_index overflow)"
             ))
         );
     }
@@ -228,18 +366,6 @@ class ErrorContractComplianceTest {
                 "value is -0.1",
                 ErrorCode.INVALID_RANGE,
                 "numeric value outside allowed range (e.g., value 0.0-1.0)"
-            )),
-            Arguments.of(ErrorScenario.of(
-                "launch_clip",
-                "clip_index is -1",
-                ErrorCode.INVALID_RANGE,
-                "numeric value outside allowed range"
-            )),
-            Arguments.of(ErrorScenario.of(
-                "session_launchSceneByIndex",
-                "scene_index is -1",
-                ErrorCode.INVALID_RANGE,
-                "numeric value outside allowed range"
             ))
         );
     }
@@ -294,16 +420,16 @@ class ErrorContractComplianceTest {
     static Stream<Arguments> sceneNotFoundScenarios() {
         return Stream.of(
             Arguments.of(ErrorScenario.of(
-                "session_launchSceneByIndex",
-                "scene_index does not exist",
-                ErrorCode.SCENE_NOT_FOUND,
-                "state error - specified scene was not found"
-            )),
-            Arguments.of(ErrorScenario.of(
                 "session_launchSceneByName",
                 "scene_name does not exist",
                 ErrorCode.SCENE_NOT_FOUND,
                 "state error - specified scene was not found"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "session_launchSceneByIndex",
+                "no tracks in session",
+                ErrorCode.SCENE_NOT_FOUND,
+                "state error - no tracks found in Bitwig session"
             ))
         );
     }
@@ -521,6 +647,7 @@ class ErrorContractComplianceTest {
             case "get_selected_device_parameters" -> invokeGetSelectedDeviceParameters(scenario, logger);
             case "get_track_details" -> invokeGetTrackDetails(scenario, logger);
             case "list_scenes" -> invokeListScenes(scenario, logger);
+            case "get_device_details" -> invokeGetDeviceDetails(scenario, logger);
             default -> throw new IllegalArgumentException("Unknown tool: " + scenario.tool());
         };
     }
@@ -539,6 +666,7 @@ class ErrorContractComplianceTest {
             case "track_name is empty string" -> Map.of("track_name", "", "clip_index", 0);
             case "track_name is whitespace only" -> Map.of("track_name", "   ", "clip_index", 0);
             case "clip_index is -1" -> Map.of("track_name", "Test", "clip_index", -1);
+            case "clip_index overflow (4294967296)" -> Map.of("track_name", "Test", "clip_index", 4294967296.0);
             case "track_name does not exist" -> Map.of("track_name", "NonExistent", "clip_index", 0);
             default -> Map.of();
         };
@@ -550,8 +678,23 @@ class ErrorContractComplianceTest {
     private McpSchema.CallToolResult invokeGetClipsInScene(ErrorScenario scenario, StructuredLogger logger) throws Exception {
         ClipSceneController controller = mock(ClipSceneController.class);
 
+        // Configure mock for out-of-bounds scene_index (controller throws INVALID_PARAMETER_INDEX)
+        if (scenario.condition().contains("exceeds scene count")) {
+            when(controller.getClipsInScene(eq(999), isNull()))
+                .thenThrow(new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER_INDEX,
+                    "get_clips_in_scene",
+                    "Scene index out of bounds: 999",
+                    Map.of("scene_index", 999)
+                ));
+        }
+
         Map<String, Object> args = switch (scenario.condition()) {
             case "scene_index not provided" -> Map.of();
+            case "scene_index is -1" -> Map.of("scene_index", -1);
+            case "scene_index is 999 (exceeds scene count)" -> Map.of("scene_index", 999);
+            case "scene_index overflow (4294967296)" -> Map.of("scene_index", 4294967296.0);
+            case "scene_index is non-integer (1.5)" -> Map.of("scene_index", 1.5);
             default -> Map.of();
         };
 
@@ -573,6 +716,7 @@ class ErrorContractComplianceTest {
             case "value not provided" -> Map.of("parameter_index", 0);
             case "parameter_index is 8 (outside 0-7)" -> Map.of("parameter_index", 8, "value", 0.5);
             case "parameter_index is -1" -> Map.of("parameter_index", -1, "value", 0.5);
+            case "parameter_index overflow (4294967296)" -> Map.of("parameter_index", 4294967296.0, "value", 0.5);
             case "value is 1.5 (outside 0.0-1.0)" -> Map.of("parameter_index", 0, "value", 1.5);
             case "value is -0.1" -> Map.of("parameter_index", 0, "value", -0.1);
             case "no device selected in Bitwig" -> Map.of("parameter_index", 0, "value", 0.5);
@@ -590,6 +734,7 @@ class ErrorContractComplianceTest {
             case "parameters is empty array" -> Map.of("parameters", List.of());
             case "parameters is not an array" -> Map.of("parameters", "not-an-array");
             case "parameter entry has index 10" -> Map.of("parameters", List.of(Map.of("parameter_index", 10, "value", 0.5)));
+            case "parameter_index overflow (4294967296)" -> Map.of("parameters", List.of(Map.of("parameter_index", 4294967296.0, "value", 0.5)));
             default -> Map.of();
         };
 
@@ -619,14 +764,20 @@ class ErrorContractComplianceTest {
     private McpSchema.CallToolResult invokeLaunchSceneByIndex(ErrorScenario scenario, StructuredLogger logger) throws Exception {
         ClipSceneController controller = mock(ClipSceneController.class);
 
-        if (scenario.condition().contains("does not exist")) {
-            when(controller.launchSceneByIndex(anyInt()))
-                .thenReturn(ClipSceneController.SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene not found"));
+        if (scenario.condition().contains("exceeds track clip counts")) {
+            when(controller.launchSceneByIndex(eq(999)))
+                .thenReturn(ClipSceneController.SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index 999 is out of bounds for all tracks"));
+        }
+        if (scenario.condition().equals("no tracks in session")) {
+            when(controller.launchSceneByIndex(eq(0)))
+                .thenReturn(ClipSceneController.SceneLaunchResult.error("SCENE_NOT_FOUND", "No tracks found in Bitwig session"));
         }
 
         Map<String, Object> args = switch (scenario.condition()) {
             case "scene_index is -1" -> Map.of("scene_index", -1);
-            case "scene_index does not exist" -> Map.of("scene_index", 999);
+            case "scene_index is 999 (exceeds track clip counts)" -> Map.of("scene_index", 999);
+            case "scene_index overflow (4294967296)" -> Map.of("scene_index", 4294967296.0);
+            case "no tracks in session" -> Map.of("scene_index", 0);
             default -> Map.of();
         };
 
@@ -649,8 +800,18 @@ class ErrorContractComplianceTest {
     private McpSchema.CallToolResult invokeListDevicesOnTrack(ErrorScenario scenario, StructuredLogger logger) throws Exception {
         io.github.fabb.wigai.bitwig.BitwigApiFacade facade = mock(io.github.fabb.wigai.bitwig.BitwigApiFacade.class);
 
+        if (scenario.condition().contains("exceeds track count")) {
+            when(facade.getDevicesOnTrack(eq(999), isNull(), isNull())).thenThrow(
+                new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX,
+                    "list_devices_on_track", "Track index out of bounds: 999",
+                    Map.of("track_index", 999)));
+        }
+
         Map<String, Object> args = switch (scenario.condition()) {
             case "conflicting track_index with get_selected" -> Map.of("track_index", 0, "get_selected", true);
+            case "track_index is -1" -> Map.of("track_index", -1);
+            case "track_index is 999 (exceeds track count)" -> Map.of("track_index", 999);
+            case "track_index overflow (4294967296)" -> Map.of("track_index", 4294967296.0);
             default -> Map.of();
         };
 
@@ -679,9 +840,22 @@ class ErrorContractComplianceTest {
         if (scenario.condition().contains("no track selected")) {
             when(facade.getSelectedTrackDetails()).thenReturn(null);
         }
+        if (scenario.condition().contains("exceeds track count")) {
+            when(facade.getTrackDetailsByIndex(999)).thenThrow(
+                new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX,
+                    "get_track_details", "Track index out of bounds: 999",
+                    Map.of("track_index", 999)));
+        }
+
+        Map<String, Object> args = switch (scenario.condition()) {
+            case "track_index is -1" -> Map.of("track_index", -1);
+            case "track_index is 999 (exceeds track count)" -> Map.of("track_index", 999);
+            case "track_index overflow (4294967296)" -> Map.of("track_index", 4294967296.0);
+            default -> Map.of();
+        };
 
         McpServerFeatures.SyncToolSpecification spec = GetTrackDetailsTool.specification(facade, logger);
-        return spec.callHandler().apply(mock(McpSyncServerExchange.class), buildRequest("get_track_details", Map.of()));
+        return spec.callHandler().apply(mock(McpSyncServerExchange.class), buildRequest("get_track_details", args));
     }
 
     private McpSchema.CallToolResult invokeListScenes(ErrorScenario scenario, StructuredLogger logger) throws Exception {
@@ -694,6 +868,44 @@ class ErrorContractComplianceTest {
 
         McpServerFeatures.SyncToolSpecification spec = ListScenesTool.specification(facade, logger);
         return spec.callHandler().apply(mock(McpSyncServerExchange.class), buildRequest("list_scenes", Map.of()));
+    }
+
+    private McpSchema.CallToolResult invokeGetDeviceDetails(ErrorScenario scenario, StructuredLogger logger) throws Exception {
+        DeviceController controller = mock(DeviceController.class);
+
+        // Overflow and negative scenarios are caught by tool-level validation (no mock needed).
+        // Non-integer scenarios also caught at validation layer.
+        java.util.HashMap<String, Object> args = new java.util.HashMap<>();
+        switch (scenario.condition()) {
+            case "track_index overflow (4294967296)" -> {
+                args.put("track_index", 4294967296.0);
+                args.put("device_index", 0);
+            }
+            case "device_index overflow (4294967296)" -> {
+                args.put("track_index", 0);
+                args.put("device_index", 4294967296.0);
+            }
+            case "track_index is -1" -> {
+                args.put("track_index", -1);
+                args.put("device_index", 0);
+            }
+            case "device_index is -1" -> {
+                args.put("track_index", 0);
+                args.put("device_index", -1);
+            }
+            case "track_index is non-integer (1.5)" -> {
+                args.put("track_index", 1.5);
+                args.put("device_index", 0);
+            }
+            case "device_index is non-integer (1.5)" -> {
+                args.put("track_index", 0);
+                args.put("device_index", 1.5);
+            }
+            default -> {}
+        }
+
+        McpServerFeatures.SyncToolSpecification spec = GetDeviceDetailsTool.getDeviceDetailsSpecification(controller, logger);
+        return spec.callHandler().apply(mock(McpSyncServerExchange.class), buildRequest("get_device_details", args));
     }
 
     // ========================================================================

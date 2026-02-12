@@ -90,6 +90,65 @@ public class ParameterValidator {
                 Map.of("parameter", parameterName, "value", value)
             );
         }
+        double raw = ((Number) value).doubleValue();
+        if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER,
+                operation,
+                parameterName + " must be an integer, got: " + value,
+                Map.of("parameter", parameterName, "value", value)
+            );
+        }
+        if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER,
+                operation,
+                parameterName + " value out of integer range: " + value,
+                Map.of("parameter", parameterName, "value", value)
+            );
+        }
+        return ((Number) value).intValue();
+    }
+
+    /**
+     * Validates and extracts a required integer parameter that represents an index selector.
+     * Identical to {@link #validateRequiredInteger} except overflow values emit
+     * {@code INVALID_PARAMETER_INDEX} instead of {@code INVALID_PARAMETER}, matching
+     * the canonical error taxonomy for index-bound violations.
+     *
+     * @param arguments The arguments map
+     * @param parameterName The parameter name (e.g., "clip_index", "scene_index")
+     * @param operation The operation context
+     * @return The integer value
+     * @throws BitwigApiException if the parameter is missing, not an integer, or overflows
+     */
+    public static int validateRequiredIndexInteger(Map<String, Object> arguments, String parameterName, String operation) {
+        Object value = validateRequired(arguments, parameterName, operation);
+        if (!(value instanceof Number)) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER_TYPE,
+                operation,
+                parameterName + " must be an integer",
+                Map.of("parameter", parameterName, "value", value)
+            );
+        }
+        double raw = ((Number) value).doubleValue();
+        if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER,
+                operation,
+                parameterName + " must be an integer, got: " + value,
+                Map.of("parameter", parameterName, "value", value)
+            );
+        }
+        if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                operation,
+                parameterName + " value out of integer range: " + value,
+                Map.of("parameter", parameterName, "value", value)
+            );
+        }
         return ((Number) value).intValue();
     }
 
@@ -192,7 +251,15 @@ public class ParameterValidator {
      * @throws BitwigApiException if the index is outside the valid range (0 to parameterCount-1)
      */
     public static int validateParameterIndex(int parameterIndex, int parameterCount, String operation) {
-        return validateRange(parameterIndex, 0, parameterCount - 1, "parameter_index", operation);
+        if (parameterIndex < 0 || parameterIndex > parameterCount - 1) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                operation,
+                "parameter_index must be between 0 and " + (parameterCount - 1) + ", got: " + parameterIndex,
+                Map.of("parameter", "parameter_index", "value", parameterIndex, "min", 0, "max", parameterCount - 1)
+            );
+        }
+        return parameterIndex;
     }
 
     /**
@@ -218,7 +285,7 @@ public class ParameterValidator {
     public static int validateClipIndex(int clipIndex, String operation) {
         if (clipIndex < 0) {
             throw new BitwigApiException(
-                ErrorCode.INVALID_RANGE,
+                ErrorCode.INVALID_PARAMETER_INDEX,
                 operation,
                 "clip_index must be non-negative, got: " + clipIndex,
                 Map.of("parameter", "clip_index", "value", clipIndex)
@@ -238,7 +305,7 @@ public class ParameterValidator {
     public static int validateSceneIndex(int sceneIndex, String operation) {
         if (sceneIndex < 0) {
             throw new BitwigApiException(
-                ErrorCode.INVALID_RANGE,
+                ErrorCode.INVALID_PARAMETER_INDEX,
                 operation,
                 "scene_index must be non-negative, got: " + sceneIndex,
                 Map.of("parameter", "scene_index", "value", sceneIndex)

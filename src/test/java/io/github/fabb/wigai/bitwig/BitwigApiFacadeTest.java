@@ -367,7 +367,7 @@ public class BitwigApiFacadeTest {
             bitwigApiFacade.setSelectedDeviceParameter(8, 0.5);
         });
 
-        assertEquals(ErrorCode.INVALID_RANGE, exception.getErrorCode());
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("parameter_index must be between 0 and 7, got: 8"));
 
         // Test invalid parameter index (negative)
@@ -375,7 +375,7 @@ public class BitwigApiFacadeTest {
             bitwigApiFacade.setSelectedDeviceParameter(-1, 0.5);
         });
 
-        assertEquals(ErrorCode.INVALID_RANGE, exception2.getErrorCode());
+        assertEquals(ErrorCode.INVALID_PARAMETER_INDEX, exception2.getErrorCode());
         assertTrue(exception2.getMessage().contains("parameter_index must be between 0 and 7, got: -1"));
     }
 

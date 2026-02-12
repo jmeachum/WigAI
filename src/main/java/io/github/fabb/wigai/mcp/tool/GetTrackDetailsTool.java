@@ -114,9 +114,26 @@ public class GetTrackDetailsTool {
             if (!(idxObj instanceof Number)) {
                 throw new IllegalArgumentException("Parameter 'track_index' must be an integer");
             }
+            double raw = ((Number) idxObj).doubleValue();
+            if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
+                throw new IllegalArgumentException("Parameter 'track_index' must be an integer, got: " + idxObj);
+            }
+            if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER_INDEX,
+                    operation,
+                    "track_index value out of integer range: " + idxObj,
+                    Map.of("track_index", idxObj)
+                );
+            }
             int index = ((Number) idxObj).intValue();
             if (index < 0) {
-                throw new IllegalArgumentException("Parameter 'track_index' must be >= 0");
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER_INDEX,
+                    operation,
+                    "track_index must be >= 0, got: " + index,
+                    Map.of("track_index", index)
+                );
             }
             return new ValidatedParams(Target.INDEX, index, null);
         }
