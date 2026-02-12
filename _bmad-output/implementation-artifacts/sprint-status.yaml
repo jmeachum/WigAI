@@ -49,7 +49,7 @@ development_status:
   1-4-logging-request-id-correlation-hardening-mutating-tools-only: done
   1-5-non-blocking-execution-bounded-retry-verification-baseline-tools: done
   1-6-align-index-validation-error-codes-with-canonical-semantics: done
-  1-7-idempotency-dedupe-for-mutating-tools-request-id-key: backlog
+  1-7-idempotency-dedupe-for-mutating-tools-request-id-key: ready-for-dev
   epic-1-retrospective: optional
 
   epic-2: backlog
