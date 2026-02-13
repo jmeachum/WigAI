@@ -39,6 +39,10 @@ public class SceneByNameTool {
                   "type": "string",
                   "minLength": 1,
                   "description": "Case-sensitive name of the scene to launch"
+                },
+                "request_id": {
+                  "type": "string",
+                  "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
                 }
               },
               "required": ["scene_name"]
@@ -53,6 +57,7 @@ public class SceneByNameTool {
         BiFunction<McpSyncServerExchange, CallToolRequest, McpSchema.CallToolResult> handler =
             (exchange, req) -> McpErrorHandler.executeWithErrorHandling(
                 TOOL_NAME,
+                req.arguments(),
                 logger,
                 new McpErrorHandler.ToolOperation() {
                     @Override

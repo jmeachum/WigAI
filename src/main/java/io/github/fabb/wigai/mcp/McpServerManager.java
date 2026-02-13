@@ -27,6 +27,8 @@ import io.modelcontextprotocol.spec.McpSchema;
 import com.bitwig.extension.controller.api.ControllerHost;
 import io.github.fabb.wigai.mcp.tool.SceneByNameTool;
 
+import java.util.List;
+
 /**
  * Manages the MCP server for the WigAI extension.
  * Responsible for configuring and managing the MCP HTTP servlet
@@ -131,32 +133,51 @@ public class McpServerManager {
         // Create StructuredLogger for tools that have been migrated to unified error handling
         StructuredLogger structuredLogger = new StructuredLogger(logger, "MCP-Tools");
 
+        List<McpServerFeatures.SyncToolSpecification> specs = allToolSpecifications(
+                extensionDefinition, bitwigApiFacade, transportController,
+                clipSceneController, deviceController, structuredLogger);
+
         McpServer.sync(this.transportProvider)
             .serverInfo("WigAI", extensionDefinition.getVersion())
             .capabilities(McpSchema.ServerCapabilities.builder()
                 .tools(true)
                 .logging()
                 .build())
-            .tools(
-                StatusTool.specification(this.extensionDefinition, bitwigApiFacade, structuredLogger),
-                TransportTool.transportStartSpecification(transportController, structuredLogger),
-                TransportTool.transportStopSpecification(transportController, structuredLogger),
-                ClipTool.launchClipSpecification(clipSceneController, structuredLogger),
-                SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger),
-                SceneByNameTool.launchSceneByNameSpecification(clipSceneController, structuredLogger),
-                DeviceParamTool.getSelectedDeviceParametersSpecification(deviceController, structuredLogger),
-                DeviceParamTool.setSelectedDeviceParameterSpecification(deviceController, structuredLogger),
-                DeviceParamTool.setMultipleDeviceParametersSpecification(deviceController, structuredLogger),
-                GetDeviceDetailsTool.getDeviceDetailsSpecification(deviceController, structuredLogger),
-                ListTracksTool.specification(bitwigApiFacade, structuredLogger),
-                ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger),
-                GetTrackDetailsTool.specification(bitwigApiFacade, structuredLogger),
-                ListScenesTool.specification(bitwigApiFacade, structuredLogger),
-                GetClipsInSceneTool.getClipsInSceneSpecification(clipSceneController, structuredLogger)
-            )
+            .tools(specs.toArray(McpServerFeatures.SyncToolSpecification[]::new))
             .build();
 
         // 4. Return the MCP servlet
         return new ServletHolder(this.transportProvider);
+    }
+
+    /**
+     * Returns all tool specifications registered with the MCP server.
+     * This is the authoritative, single-source list used by both production registration
+     * and test discovery to prevent dual-list drift.
+     */
+    static List<McpServerFeatures.SyncToolSpecification> allToolSpecifications(
+            WigAIExtensionDefinition extensionDefinition,
+            BitwigApiFacade bitwigApiFacade,
+            TransportController transportController,
+            ClipSceneController clipSceneController,
+            DeviceController deviceController,
+            StructuredLogger structuredLogger) {
+        return List.of(
+            StatusTool.specification(extensionDefinition, bitwigApiFacade, structuredLogger),
+            TransportTool.transportStartSpecification(transportController, structuredLogger),
+            TransportTool.transportStopSpecification(transportController, structuredLogger),
+            ClipTool.launchClipSpecification(clipSceneController, structuredLogger),
+            SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger),
+            SceneByNameTool.launchSceneByNameSpecification(clipSceneController, structuredLogger),
+            DeviceParamTool.getSelectedDeviceParametersSpecification(deviceController, structuredLogger),
+            DeviceParamTool.setSelectedDeviceParameterSpecification(deviceController, structuredLogger),
+            DeviceParamTool.setMultipleDeviceParametersSpecification(deviceController, structuredLogger),
+            GetDeviceDetailsTool.getDeviceDetailsSpecification(deviceController, structuredLogger),
+            ListTracksTool.specification(bitwigApiFacade, structuredLogger),
+            ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger),
+            GetTrackDetailsTool.specification(bitwigApiFacade, structuredLogger),
+            ListScenesTool.specification(bitwigApiFacade, structuredLogger),
+            GetClipsInSceneTool.getClipsInSceneSpecification(clipSceneController, structuredLogger)
+        );
     }
 }

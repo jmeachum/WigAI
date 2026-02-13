@@ -542,6 +542,14 @@ Bitwig Studio Extension (Java) with an embedded local MCP server (brownfield con
 - All mutating tools MUST accept optional `request_id`.
 - Idempotency is implemented by deduping `(tool_name, request_id)` in bounded in-memory storage (TTL + max entries).
 - Idempotency is best-effort and not durable across restarts (acceptable for local-first MVP).
+- `request_id` dedupe keying contract MUST be explicit: non-empty printable ASCII (`32..126`) string, max length `1024`; invalid/oversized values execute normally without dedupe.
+- Logging sanitization rules for `request_id` are separate from dedupe keying rules and MUST NOT alter dedupe key semantics.
+- Reusing the same `(tool_name, request_id)` with a different non-correlation payload MUST fail with `INVALID_PARAMETER` (payload consistency invariant).
+- Numeric payload comparison for fingerprinting MUST be subtype-agnostic and based on canonical decimal semantics (treat JSON numbers as values, not Java number class identities).
+- Dedupe MUST be gated in the shared `McpErrorHandler` execution path and limited to mutating operations only.
+- Mutating allowlist parity MUST use the MCP runtime registration path as source-of-truth; avoid manual mirrored tool lists.
+- Story-level tests MUST use structural schema assertions (`properties` and `required`) for `request_id` and MUST NOT rely on schema string matching.
+- Story and code-review cycles MUST remove ad-hoc generated workspace artifacts before merge (e.g., stray compiled classes outside standard build output).
 
 **Logging:**
 

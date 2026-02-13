@@ -130,7 +130,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 #### `transport_start`
 *   **Description**: Start Bitwig's transport playback.
 *   **Parameters**:
-    *   `request_id` (string, optional): Correlation ID for request tracing (idempotency deduplication handled separately)
+    *   `request_id` (string, optional): Correlation ID for request tracing and idempotency deduplication (see [Idempotency / Deduplication](#idempotency--deduplication))
 *   **Returns**:
     ```json
     {
@@ -145,7 +145,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 #### `transport_stop`
 *   **Description**: Stop Bitwig's transport playback.
 *   **Parameters**:
-    *   `request_id` (string, optional): Correlation ID for request tracing (idempotency deduplication handled separately)
+    *   `request_id` (string, optional): Correlation ID for request tracing and idempotency deduplication (see [Idempotency / Deduplication](#idempotency--deduplication))
 *   **Returns**:
     ```json
     {
@@ -205,7 +205,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     {
       "parameter_index": 0, // Integer (0-7)
       "value": 0.5, // Float/Double (0.0-1.0)
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
 *   **Returns**:
@@ -236,7 +236,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
         { "parameter_index": 1, "value": 0.80 }
         // ... more parameters
       ],
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
 *   **Returns**:
@@ -271,7 +271,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     {
       "track_name": "Drums", // Case-sensitive string
       "clip_index": 0, // Non-negative integer (0-based)
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
 *   **Returns**:
@@ -299,7 +299,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     ```json
     {
       "scene_index": 1, // Non-negative integer (0-based)
-      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing (idempotency deduplication handled separately)
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
 *   **Returns**:
@@ -324,7 +324,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Parameters**:
     ```json
     {
-      "scene_name": "Verse 1" // Case-sensitive
+      "scene_name": "Verse 1", // Case-sensitive
+      "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
 *   **Returns**:
@@ -812,6 +813,55 @@ All MCP tools use a standardized response envelope.
 
 - error.code is one of the values defined in the ErrorCode enum.
 - error.operation identifies the tool/operation that failed.
+
+### Idempotency / Deduplication
+
+Mutating tools support opt-in idempotency deduplication via the `request_id` parameter.
+
+**How it works:**
+
+- When a mutating tool receives a `request_id`, the result is cached using the composite key `(tool_name, request_id)`.
+- If the same `(tool_name, request_id)` pair is received again within the TTL window, the cached first result is returned without re-executing the operation.
+- If no `request_id` is provided, no deduplication occurs (backward compatible).
+
+**Keying semantics:**
+
+- The dedupe key is `(tool_name, request_id)` — the same `request_id` used across different tools does not collide.
+- The full `request_id` value is used for cache keying (no truncation) when accepted. For logging, values are sanitized to 256 characters.
+- `request_id` must be a non-empty string containing only printable characters (ASCII 32–126). Non-string, empty, blank, or control-character-containing values are ignored and the request executes normally without deduplication.
+- Oversized `request_id` values (`length > 1024`) are rejected for dedupe keying and the request executes normally without deduplication.
+- Concurrent requests with the same `(tool_name, request_id)` are serialized atomically — only one executes; the other receives the cached result.
+- Payload consistency is enforced: reusing the same `request_id` with a different payload (different non-`request_id` arguments) is rejected with an `INVALID_PARAMETER` error. Each `request_id` must map to a single unique request.
+- Numeric values in payload consistency checks are normalized by value semantics (canonical decimal form) rather than runtime number subtype, so equivalent JSON numbers (e.g., `1`, `1.0`, `1.00`) are treated as the same value.
+
+**Bounded storage defaults:**
+
+| Parameter | Default | System Property | Description |
+|-----------|---------|-----------------|-------------|
+| TTL | 60 seconds | `wigai.idempotency.ttl.millis` | Time-to-live for cached entries |
+| Max entries | 1000 | `wigai.idempotency.max.entries` | Maximum cache entries before eviction |
+
+Both values can be overridden at startup via JVM system properties (e.g., `-Dwigai.idempotency.ttl.millis=120000`).
+
+**Eviction policy:**
+
+1. Expired entries (past TTL) are evicted first.
+2. If still at capacity, the oldest entry is evicted.
+
+**Cached result behavior:**
+
+- Both success and error results are cached. A failed first execution returns the same error on dedupe hit.
+- The cached result is the complete response envelope — identical to the original response.
+
+**Logging:**
+
+- On dedupe hit, a structured log entry is emitted: `Dedupe hit | request_id=<id> | outcome=success|error | returning cached result`.
+- No re-execution logging occurs on dedupe hit (the operation is not re-executed).
+
+**Scope:**
+
+- Idempotency is in-memory only; cache does not persist across server restarts.
+- Read-only tools (e.g., `status`, `list_tracks`) do not participate in deduplication.
 
 ## External APIs Consumed
 

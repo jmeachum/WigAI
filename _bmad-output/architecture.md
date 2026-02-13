@@ -46,6 +46,26 @@ WigAI is a single-part Java 21 Bitwig Studio extension that exposes a local MCP 
 - Idempotency and correlation for mutating operations:
   - `request_id` should be supported and propagated for retry safety and diagnostics.
 
+## Idempotency Contract Invariants
+
+- `request_id` keying contract:
+  - `request_id` is optional; dedupe applies only when present and valid.
+  - Accepted dedupe-keying values are non-empty printable ASCII (`32..126`) strings.
+  - `request_id` length greater than `1024` MUST skip dedupe and execute normally.
+  - Logging sanitization (truncation/scrubbing) is separate from dedupe-keying semantics.
+- Payload consistency invariant:
+  - For accepted dedupe requests, the server computes a deterministic payload fingerprint from non-correlation arguments.
+  - Numeric values are compared by canonical decimal semantics (JSON number meaning), not by Java runtime subtype (`Integer`/`Long`/`Float`/`Double`/`BigDecimal`).
+  - Reusing the same `(tool_name, request_id)` with a different payload fingerprint MUST return `INVALID_PARAMETER` and MUST NOT return a stale cached result.
+- Mutating-only gating source-of-truth:
+  - Dedupe gating MUST be enforced in the shared MCP execution path, not by per-tool convention.
+  - Mutating operation parity checks MUST derive from the authoritative MCP tool registration path.
+- Required test style:
+  - Use structural schema assertions (`properties` + `required`) for `request_id`; do not use schema substring matching.
+  - Use registration-discovery parity tests for mutating allowlist coverage; avoid manual dual-list maintenance.
+  - Include integration tests for hit/miss, TTL expiry, payload mismatch rejection, and invalid `request_id` fallback behavior.
+  - Keep workspace/story artifacts clean: generated ad-hoc files outside tracked source/doc paths MUST NOT be committed.
+
 ## Data Architecture
 
 - Persistence: none detected (no DB schemas/migrations).
