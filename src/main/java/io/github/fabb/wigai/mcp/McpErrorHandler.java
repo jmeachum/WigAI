@@ -6,16 +6,95 @@ import io.github.fabb.wigai.common.error.WigAIErrorHandler;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.common.retry.RetryExecutor;
 import io.github.fabb.wigai.common.retry.RetryPolicy;
+import io.github.fabb.wigai.mcp.idempotency.IdempotencyCache;
+import io.github.fabb.wigai.mcp.idempotency.IdempotencyKey;
 import io.modelcontextprotocol.spec.McpSchema;
 
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Supplier;
 
 /**
  * Centralized MCP error handling utility for consistent tool response formatting.
  * Ensures all MCP tools return standardized JSON response format with proper error handling.
  */
 public class McpErrorHandler {
+
+    /** System property key for idempotency TTL in milliseconds. */
+    static final String PROP_IDEMPOTENCY_TTL_MILLIS = "wigai.idempotency.ttl.millis";
+
+    /** System property key for idempotency max cache entries. */
+    static final String PROP_IDEMPOTENCY_MAX_ENTRIES = "wigai.idempotency.max.entries";
+
+    /**
+     * Shared idempotency cache for mutating tool deduplication.
+     * Reads TTL and max entries from system properties, falling back to defaults.
+     */
+    private static volatile IdempotencyCache idempotencyCache = createDefaultCache();
+
+    /**
+     * Creates an IdempotencyCache using system property overrides when present,
+     * falling back to built-in defaults (TTL=60s, maxEntries=1000).
+     * Invalid property values (non-numeric, non-positive) fail safe to defaults.
+     */
+    static IdempotencyCache createDefaultCache() {
+        long ttl = parseLongProperty(PROP_IDEMPOTENCY_TTL_MILLIS, IdempotencyCache.DEFAULT_TTL_MILLIS);
+        int maxEntries = parseIntProperty(PROP_IDEMPOTENCY_MAX_ENTRIES, IdempotencyCache.DEFAULT_MAX_ENTRIES);
+        return new IdempotencyCache(ttl, maxEntries, System::currentTimeMillis);
+    }
+
+    /**
+     * Parses a long system property, returning the default on missing/invalid values.
+     */
+    static long parseLongProperty(String key, long defaultValue) {
+        String value = System.getProperty(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            long parsed = Long.parseLong(value);
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Parses an int system property, returning the default on missing/invalid values.
+     */
+    static int parseIntProperty(String key, int defaultValue) {
+        String value = System.getProperty(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Replaces the idempotency cache instance (for testing).
+     */
+    static void setIdempotencyCache(IdempotencyCache cache) {
+        idempotencyCache = cache;
+    }
+
+    /**
+     * Returns the current idempotency cache instance.
+     */
+    static IdempotencyCache getIdempotencyCache() {
+        return idempotencyCache;
+    }
 
     /**
      * Creates a standardized MCP success response.
@@ -150,6 +229,61 @@ public class McpErrorHandler {
 
         String operationId = logger.generateOperationId();
         Map<String, Object> loggingParams = extractLoggingParameters(arguments);
+
+        // Idempotency dedupe: use raw (un-truncated) request_id for cache keying (opt-in)
+        String rawRequestId = arguments != null
+                ? extractRawRequestId(arguments.get("request_id"))
+                : null;
+
+        if (rawRequestId != null && isMutatingOperation(operation)) {
+            IdempotencyKey dedupeKey = new IdempotencyKey(operation, rawRequestId);
+            String payloadFingerprint = computePayloadFingerprint(arguments);
+            Supplier<McpSchema.CallToolResult> computation = () ->
+                    executeOperation(operation, logger, operationId, loggingParams, retryPolicy, task);
+
+            IdempotencyCache.DedupeResult dedupeResult =
+                    idempotencyCache.getOrCompute(dedupeKey, payloadFingerprint, computation);
+
+            if (dedupeResult.payloadMismatch()) {
+                String mismatchMessage = "request_id reused with different payload; "
+                        + "each request_id must map to a single unique request";
+                StructuredLogger.TimedOperation timedOperation =
+                        logger.startTimedOperation(operationId, operation, loggingParams);
+                timedOperation.failure(ErrorCode.INVALID_PARAMETER, mismatchMessage);
+                String sanitizedForLog = sanitizeRequestId(rawRequestId);
+                logger.info(operationId, operation,
+                        "Dedupe payload mismatch | request_id=" + sanitizedForLog
+                                + " | rejecting mismatched replay");
+                return createErrorResponse(ErrorCode.INVALID_PARAMETER, mismatchMessage, operation);
+            }
+
+            if (dedupeResult.cacheHit()) {
+                String sanitizedForLog = sanitizeRequestId(rawRequestId);
+                String outcome = dedupeResult.result().isError() ? "error" : "success";
+                logger.info(operationId, operation,
+                        "Dedupe hit | request_id=" + sanitizedForLog
+                                + " | outcome=" + outcome
+                                + " | returning cached result");
+            }
+            return dedupeResult.result();
+        }
+
+        // Non-dedupe path (no request_id)
+        return executeOperation(operation, logger, operationId, loggingParams, retryPolicy, task);
+    }
+
+    /**
+     * Executes the tool operation with retry, error handling, and timed logging.
+     * Extracted to share between dedupe and non-dedupe paths.
+     */
+    private static McpSchema.CallToolResult executeOperation(
+            String operation,
+            StructuredLogger logger,
+            String operationId,
+            Map<String, Object> loggingParams,
+            RetryPolicy retryPolicy,
+            ToolOperation task) {
+
         StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, loggingParams);
 
         try {
@@ -171,15 +305,188 @@ public class McpErrorHandler {
     }
 
     /**
-     * Maximum length for request_id to prevent oversized log payloads.
+     * Maximum length for request_id in log output (truncation-safe for logging only).
      * 256 chars is generous (standard UUID is 36 chars).
      */
     private static final int MAX_REQUEST_ID_LENGTH = 256;
 
     /**
+     * Explicit mutating operation allowlist for idempotency dedupe.
+     * Shared execution path enforces dedupe only for these operations.
+     */
+    private static final java.util.Set<String> MUTATING_OPERATIONS = java.util.Set.of(
+        "transport_start",
+        "transport_stop",
+        "launch_clip",
+        "session_launchSceneByIndex",
+        "session_launchSceneByName",
+        "set_selected_device_parameter",
+        "set_selected_device_parameters"
+    );
+
+    static boolean isMutatingOperation(String operation) {
+        return operation != null && MUTATING_OPERATIONS.contains(operation);
+    }
+
+    static java.util.Set<String> mutatingOperationsForTest() {
+        return MUTATING_OPERATIONS;
+    }
+
+    /**
+     * Maximum length for request_id accepted for cache keying.
+     * IDs exceeding this bound skip dedupe entirely (returned as null from extractRawRequestId)
+     * to avoid oversized-key memory/CPU pressure while preserving collision-safe semantics.
+     */
+    static final int MAX_RAW_REQUEST_ID_LENGTH = 1024;
+
+    /**
      * Known correlation-only keys that are not counted as business arguments.
      */
     private static final java.util.Set<String> CORRELATION_KEYS = java.util.Set.of("request_id");
+
+    /**
+     * Computes a collision-resistant SHA-256 digest of non-correlation arguments for payload
+     * consistency enforcement. The fingerprint excludes {@code request_id} so that identical
+     * business payloads produce the same digest regardless of correlation ID.
+     * Arguments are canonicalized (sorted keys, deterministic value serialization) before hashing.
+     *
+     * @param arguments The raw tool arguments (may be null)
+     * @return A hex-encoded SHA-256 digest of the non-correlation arguments, or empty string if null/empty
+     */
+    static String computePayloadFingerprint(Map<String, Object> arguments) {
+        if (arguments == null || arguments.isEmpty()) {
+            return "";
+        }
+        TreeMap<String, Object> sorted = new TreeMap<>();
+        for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+            if (!CORRELATION_KEYS.contains(entry.getKey())) {
+                sorted.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (sorted.isEmpty()) {
+            return "";
+        }
+        String canonical = canonicalizeValue(sorted);
+        return sha256Hex(canonical);
+    }
+
+    /**
+     * Recursively produces a deterministic canonical string for any value.
+     * Uses typed, length-delimited segments so delimiter characters inside keys/values
+     * cannot create canonicalization ambiguity.
+     */
+    private static String canonicalizeValue(Object value) {
+        if (value == null) {
+            return "n;";
+        }
+        if (value instanceof Map<?, ?> map) {
+            TreeMap<String, Object> sorted = new TreeMap<>();
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                sorted.put(String.valueOf(e.getKey()), e.getValue());
+            }
+            StringBuilder sb = new StringBuilder("m{");
+            for (Map.Entry<String, Object> entry : sorted.entrySet()) {
+                String key = entry.getKey();
+                String encodedValue = canonicalizeValue(entry.getValue());
+                sb.append("k").append(key.length()).append(":").append(key);
+                sb.append("v").append(encodedValue.length()).append(":").append(encodedValue).append(";");
+            }
+            sb.append("}");
+            return sb.toString();
+        }
+        if (value instanceof Collection<?> col) {
+            StringBuilder sb = new StringBuilder("l[");
+            for (Object item : col) {
+                String encodedItem = canonicalizeValue(item);
+                sb.append("i").append(encodedItem.length()).append(":").append(encodedItem).append(";");
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        if (value.getClass().isArray()) {
+            StringBuilder sb = new StringBuilder("a[");
+            int length = Array.getLength(value);
+            for (int i = 0; i < length; i++) {
+                String encodedItem = canonicalizeValue(Array.get(value, i));
+                sb.append("i").append(encodedItem.length()).append(":").append(encodedItem).append(";");
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        if (value instanceof String str) {
+            return "s" + str.length() + ":" + str + ";";
+        }
+        if (value instanceof Number number) {
+            return "d" + normalizeNumber(number) + ";";
+        }
+        if (value instanceof Boolean bool) {
+            return bool ? "b1;" : "b0;";
+        }
+        String asString = String.valueOf(value);
+        String className = value.getClass().getName();
+        return "o" + className.length() + ":" + className
+            + "v" + asString.length() + ":" + asString + ";";
+    }
+
+    private static String normalizeNumber(Number number) {
+        if (number instanceof Byte || number instanceof Short
+            || number instanceof Integer || number instanceof Long
+            || number instanceof java.math.BigInteger) {
+            return number.toString();
+        }
+        if (number instanceof BigDecimal bigDecimal) {
+            return normalizeBigDecimal(bigDecimal);
+        }
+        if (number instanceof Float floatValue) {
+            if (Float.isNaN(floatValue)) {
+                return "NaN";
+            }
+            if (Float.isInfinite(floatValue)) {
+                return floatValue > 0 ? "Infinity" : "-Infinity";
+            }
+            return normalizeBigDecimal(new BigDecimal(Float.toString(floatValue)));
+        }
+        if (number instanceof Double doubleValue) {
+            if (Double.isNaN(doubleValue)) {
+                return "NaN";
+            }
+            if (Double.isInfinite(doubleValue)) {
+                return doubleValue > 0 ? "Infinity" : "-Infinity";
+            }
+            return normalizeBigDecimal(new BigDecimal(Double.toString(doubleValue)));
+        }
+        try {
+            return normalizeBigDecimal(new BigDecimal(number.toString()));
+        } catch (NumberFormatException ex) {
+            return number.toString();
+        }
+    }
+
+    private static String normalizeBigDecimal(BigDecimal bigDecimal) {
+        BigDecimal normalized = bigDecimal.stripTrailingZeros();
+        if (normalized.scale() < 0) {
+            normalized = normalized.setScale(0);
+        }
+        return normalized.toPlainString();
+    }
+
+    /**
+     * Computes the SHA-256 hex digest of the given input string.
+     */
+    private static String sha256Hex(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(64);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 is always available in standard Java
+            throw new RuntimeException("SHA-256 not available", e);
+        }
+    }
 
     /**
      * Extracts logging-safe parameters from tool arguments.
@@ -235,6 +542,41 @@ public class McpErrorHandler {
 
         // Return null if no logging-relevant parameters found
         return loggingParams.isEmpty() ? null : loggingParams;
+    }
+
+    /**
+     * Extracts the raw request_id for cache keying purposes.
+     * Performs type, blank, length, and printability checks.
+     * IDs exceeding {@link #MAX_RAW_REQUEST_ID_LENGTH} are rejected (return null)
+     * to avoid oversized-key memory/CPU pressure.
+     * IDs containing control or non-printable characters (ASCII 0-31, 127) are rejected
+     * to align key semantics with logging-safe correlation and avoid invisible-key ambiguity.
+     *
+     * @param requestId The raw request_id value from arguments
+     * @return The raw request_id string, or null if invalid/absent/oversized/non-printable
+     */
+    static String extractRawRequestId(Object requestId) {
+        if (requestId == null) {
+            return null;
+        }
+        if (!(requestId instanceof String)) {
+            return null;
+        }
+        String raw = (String) requestId;
+        if (raw.isEmpty() || raw.isBlank()) {
+            return null;
+        }
+        if (raw.length() > MAX_RAW_REQUEST_ID_LENGTH) {
+            return null;
+        }
+        // Reject IDs containing non-printable-ASCII characters (strict 32..126 range)
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c < 32 || c > 126) {
+                return null;
+            }
+        }
+        return raw;
     }
 
     /**
@@ -297,29 +639,17 @@ public class McpErrorHandler {
             StructuredLogger logger,
             ParameterValidator<T> validator,
             ToolOperationWithParams<T> task) {
-
-        String operationId = logger.generateOperationId();
-        Map<String, Object> loggingParams = extractLoggingParameters(arguments);
-        StructuredLogger.TimedOperation timedOperation = logger.startTimedOperation(operationId, operation, loggingParams);
-
-        try {
-            // Validate parameters
-            T validatedParams = validator.validate(arguments, operation);
-
-            // Execute operation with validated parameters
-            Object result = task.execute(validatedParams);
-
-            timedOperation.success(result);
-            return createSuccessResponse(result);
-        } catch (BitwigApiException e) {
-            timedOperation.failure(e.getErrorCode(), e.getMessage());
-            // Always use the provided operation name (MCP tool name), not the exception's internal operation
-            return createErrorResponse(e.getErrorCode(), e.getMessage(), operation);
-        } catch (Exception e) {
-            ErrorCode errorCode = ErrorCode.fromException(e);
-            timedOperation.failure(errorCode, e.getMessage());
-            return createErrorResponse(e, operation, logger);
-        }
+        RetryPolicy retryPolicy = isMutatingOperation(operation) ? RetryPolicy.DEFAULT : RetryPolicy.NONE;
+        return executeWithErrorHandling(
+            operation,
+            arguments,
+            logger,
+            retryPolicy,
+            () -> {
+                T validatedParams = validator.validate(arguments, operation);
+                return task.execute(validatedParams);
+            }
+        );
     }
 
     /**

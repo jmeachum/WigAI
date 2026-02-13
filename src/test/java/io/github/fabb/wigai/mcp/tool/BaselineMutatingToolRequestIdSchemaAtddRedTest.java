@@ -5,6 +5,7 @@ import io.github.fabb.wigai.features.ClipSceneController;
 import io.github.fabb.wigai.features.DeviceController;
 import io.github.fabb.wigai.features.TransportController;
 import io.modelcontextprotocol.server.McpServerFeatures;
+import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,13 +41,21 @@ class BaselineMutatingToolRequestIdSchemaAtddRedTest {
         assertSchemaHasRequestId(TransportTool.transportStopSpecification(transportController, structuredLogger));
         assertSchemaHasRequestId(ClipTool.launchClipSpecification(clipSceneController, structuredLogger));
         assertSchemaHasRequestId(SceneTool.launchSceneByIndexSpecification(clipSceneController, structuredLogger));
+        assertSchemaHasRequestId(SceneByNameTool.launchSceneByNameSpecification(clipSceneController, structuredLogger));
         assertSchemaHasRequestId(DeviceParamTool.setSelectedDeviceParameterSpecification(deviceController, structuredLogger));
         assertSchemaHasRequestId(DeviceParamTool.setMultipleDeviceParametersSpecification(deviceController, structuredLogger));
     }
 
-    private void assertSchemaHasRequestId(McpServerFeatures.SyncToolSpecification specification) throws Exception {
-        String schemaString = specification.tool().inputSchema().toString();
-        assertNotNull(schemaString, "Schema must exist for: " + specification.tool().name());
-        assertTrue(schemaString.contains("request_id"), "Expected request_id to be present in schema for: " + specification.tool().name());
+    private void assertSchemaHasRequestId(McpServerFeatures.SyncToolSpecification specification) {
+        String toolName = specification.tool().name();
+        McpSchema.JsonSchema schema = specification.tool().inputSchema();
+        assertNotNull(schema, "Schema must exist for: " + toolName);
+        assertNotNull(schema.properties(), "Schema properties must exist for: " + toolName);
+        assertTrue(schema.properties().containsKey("request_id"),
+            "request_id must be present in properties for: " + toolName);
+        if (schema.required() != null) {
+            assertFalse(schema.required().contains("request_id"),
+                "request_id must remain optional (not in required) for: " + toolName);
+        }
     }
 }
