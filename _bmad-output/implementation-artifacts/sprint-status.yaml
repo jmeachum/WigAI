@@ -50,7 +50,7 @@ development_status:
   1-5-non-blocking-execution-bounded-retry-verification-baseline-tools: done
   1-6-align-index-validation-error-codes-with-canonical-semantics: done
   1-7-idempotency-dedupe-for-mutating-tools-request-id-key: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   epic-2: backlog
   2-1-standard-track-targeting-contract-index-exact-name-selected-default: backlog
