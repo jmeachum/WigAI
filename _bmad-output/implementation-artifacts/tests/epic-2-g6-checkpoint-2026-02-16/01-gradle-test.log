@@ -1,0 +1,18 @@
+Project version: 0.3.1
+> Task :compileJava
+> Task :processResources UP-TO-DATE
+> Task :classes
+
+> Task :compileTestJava
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :processTestResources NO-SOURCE
+> Task :testClasses
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :test
+
+[Incubating] Problems report is available at: file:///Users/josh/code/WigAI/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 7s
+4 actionable tasks: 3 executed, 1 up-to-date
