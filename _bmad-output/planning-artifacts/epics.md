@@ -818,3 +818,67 @@ So that I can implement batch variation workflows without trial-and-error.
 **Given** Epic 5 is implemented
 **When** documentation is updated
 **Then** `docs/reference/api-reference.md` documents `batch_create_write_launcher_clips`, shows examples for `launch=false` batching, and explains strict (atomic) vs partial (opt-in) modes.
+
+## Epic 6: Platform & Dependency Modernization
+
+WigAI maintains a supported, secure, and test-verified runtime/tooling baseline by executing dependency upgrades through phased, compatibility-gated stories that do not block feature delivery.
+
+### Story 6.1: Patch Refresh (Jetty 11.0.26 + JUnit 5.x) With Validation Gates
+
+As a WigAI maintainer,
+I want low-risk patch upgrades applied first,
+so that we reduce known support debt while preserving current runtime behavior.
+
+**Acceptance Criteria:**
+
+**Given** current pinned dependencies are documented
+**When** patch upgrades are applied (`Jetty 11.0.20 -> 11.0.26`, `JUnit 5.10.x -> latest 5.x`)
+**Then** the project compiles, tests pass, and no MCP envelope or error-contract regressions occur.
+
+**Given** patch upgrades are applied
+**When** host-required smoke tests run
+**Then** safe and mutation smoke both pass with evidence captured.
+
+### Story 6.2: Major Migration Spike (Jetty 12 + Jakarta Alignment + MCP SDK 0.17.x + Bitwig API 24)
+
+As a WigAI maintainer,
+I want a dedicated migration spike for major-version candidates,
+so that we can make upgrade decisions from measured compatibility evidence instead of assumptions.
+
+**Acceptance Criteria:**
+
+**Given** major targets are identified
+**When** a migration spike is executed
+**Then** a compatibility matrix is produced for Jetty 12, Jakarta/Servlet alignment, MCP SDK 0.17.x, and Bitwig Extension API 24.
+
+**Given** spike findings are recorded
+**When** go/no-go is evaluated
+**Then** each target has explicit blockers, required code changes, regression risks, and rollback recommendations.
+
+### Story 6.3: Execute Approved Major Upgrades + Compatibility Fixes
+
+As a WigAI maintainer,
+I want approved major upgrades implemented in a controlled sequence,
+so that modernization can land without destabilizing runtime behavior.
+
+**Acceptance Criteria:**
+
+**Given** Story 6.2 selects approved upgrade targets
+**When** upgrades are implemented
+**Then** all required compatibility fixes are applied and validated with full automated regression plus host-required smoke.
+
+**Given** major upgrades are implemented
+**When** release readiness is reviewed
+**Then** rollback references and risk notes are documented for promotion.
+
+### Story 6.4: Documentation, Contracts, and Release Guardrails Refresh
+
+As a WigAI maintainer,
+I want all architecture/API/testing references updated after modernization,
+so that docs, runtime behavior, and release workflows stay in lockstep.
+
+**Acceptance Criteria:**
+
+**Given** modernization stories are complete
+**When** documentation and guardrail artifacts are refreshed
+**Then** architecture references, API contracts, test runbooks, and release checklists reflect the new baseline and evidence paths.

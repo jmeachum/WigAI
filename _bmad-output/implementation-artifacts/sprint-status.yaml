@@ -68,7 +68,7 @@ development_status:
   epic-1-retrospective: done
 
   epic-2: backlog
-  2-0-dependency-version-refresh-checkpoint-g6-closure: backlog
+  2-0-dependency-version-refresh-checkpoint-g6-closure: done
   2-1-contract-semantics-dor-and-runtime-test-docs-lockstep-gate-activation: backlog
   2-2-duplicate-track-name-ambiguity-behavior-defined-and-tested: backlog
   2-3-standard-track-targeting-contract-index-exact-name-selected-default: backlog
@@ -97,3 +97,10 @@ development_status:
   5-2-guardrails-for-batch-safety-bounded-work: backlog
   5-3-update-api-reference-for-batch-tool-recommended-workflows: backlog
   epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-patch-refresh-jetty-11-0-26-junit-5-x-validation: backlog
+  6-2-major-migration-spike-jetty-12-jakarta-mcp-sdk-0-17-bitwig-api-24: backlog
+  6-3-major-upgrade-implementation-and-compatibility-fixes: backlog
+  6-4-docs-contracts-release-guardrails-refresh: backlog
+  epic-6-retrospective: optional
