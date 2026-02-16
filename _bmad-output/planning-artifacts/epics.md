@@ -376,7 +376,77 @@ After Story 1.7 is complete, run a dedicated dependency-refresh + regression spr
 
 External AI agents can reliably target the intended track (by index/name/selected) with guardrails (explicit refusal when context is missing; fuzzy matching support; refusal on ambiguity) so actions occur on the correct track without surprises.
 
-### Story 2.1: Standard Track Targeting Contract (Index/Exact Name/Selected Default)
+> **Epic 2 kickoff sequencing note:** Stories `2.0`, `2.1`, and `2.2` are kickoff-gate stories. Feature implementation starts at Story `2.3` only after gates `G1..G6` are complete.
+
+### Story 2.0: Dependency/Version Refresh Checkpoint Closure for Epic 2 Kickoff (G6)
+
+As the WigAI delivery team,
+I want a dedicated checkpoint story that captures dependency/version refresh evidence and closes kickoff gate G6,
+so that Epic 2 implementation starts only after technical baseline verification is complete.
+
+**Acceptance Criteria:**
+
+**Given** Epic 1 Stories 1.6 and 1.7 are complete  
+**When** the checkpoint story is executed  
+**Then** a dependency/version matrix is recorded with current baselines for MCP SDK, Jetty, JUnit, and key transitive-risk notes.
+
+**Given** dependency/version baselines are reviewed  
+**When** regression verification runs  
+**Then** evidence links are recorded for a full automated test suite pass.
+
+**Given** host verification is required for kickoff readiness  
+**When** smoke verification runs against a running Bitwig instance  
+**Then** evidence links are recorded for host-required smoke pass results.
+
+**Given** release safety requires rollback readiness  
+**When** checkpoint evidence is finalized  
+**Then** a rollback point reference (tag/branch/commit) is recorded.
+
+**Given** all checkpoint evidence is complete  
+**When** kickoff artifacts are synchronized  
+**Then** G6 in `_bmad-output/implementation-artifacts/epic-2-kickoff-checklist-2026-02-14.md` is updated to `done` and sprint tracking remains synchronized.
+
+### Story 2.1: Contract Semantics DoR + Runtime/Test/Docs Lockstep Gate Activation (G1)
+
+As a WigAI Scrum/quality team,
+I want every Epic 2 story to include explicit Contract Semantics DoR and Runtime/Test/Docs lockstep criteria before development begins,
+so that story execution and review cannot drift from documented behavioral contracts.
+
+**Acceptance Criteria:**
+
+**Given** an Epic 2 story is prepared for implementation  
+**When** the story is moved to ready-for-dev  
+**Then** it contains a Contract Semantics DoR section with explicit behavioral constraints and error-contract expectations.
+
+**Given** an Epic 2 story is ready for review  
+**When** runtime behavior, tests, and docs are evaluated  
+**Then** lockstep criteria are present and enforced in that story’s completion checks.
+
+**Given** kickoff gate G1 is evaluated  
+**When** at least one Epic 2 story demonstrates these sections with explicit pass criteria references  
+**Then** G1 can be marked `done` with evidence links in the kickoff checklist.
+
+### Story 2.2: Duplicate-Track-Name Ambiguity Behavior Defined and Tested (G2)
+
+As an external AI agent developer,
+I want duplicate track names to be handled deterministically with explicit ambiguity signaling and no implicit mutating actions,
+so that ambiguous targeting never causes accidental edits.
+
+**Acceptance Criteria:**
+
+**Given** duplicate tracks share the same exact name  
+**When** a resolution flow is executed  
+**Then** WigAI returns an ambiguity/candidate response and requires explicit confirmation via `track_index`.
+
+**Given** a mutating tool request is ambiguous by track name  
+**When** explicit confirmation is not provided  
+**Then** WigAI refuses the mutation and does not perform implicit actions.
+
+**Given** Story 2.2 is complete  
+**When** kickoff gate G2 is evaluated  
+**Then** G2 evidence includes tests proving ambiguity-safe behavior and no implicit mutating action under duplicate-name ambiguity.
+
+### Story 2.3: Standard Track Targeting Contract (Index/Exact Name/Selected Default)
 
 As an external AI agent developer,
 I want a consistent way to target tracks across WigAI tools,
@@ -404,7 +474,7 @@ So that I can reliably act on the intended track without custom per-tool rules.
 **When** the request is validated
 **Then** WigAI refuses with `INVALID_PARAMETER` (exactly one targeting mode must be used).
 
-### Story 2.2: `resolve_track` Tool (Deterministic “Fuzzy” Matching → Candidate List + Ambiguity)
+### Story 2.4: `resolve_track` Tool (Deterministic “Fuzzy” Matching → Candidate List + Ambiguity)
 
 As an external AI agent developer,
 I want WigAI to resolve a fuzzy track query into candidate tracks,
@@ -432,7 +502,7 @@ So that I can ask the user to confirm the intended track before executing action
 **When** it returns
 **Then** it returns a standardized error with `TRACK_NOT_FOUND` and an actionable message (e.g., suggesting `list_tracks`).
 
-### Story 2.3: Apply Track Targeting Contract to Existing Mutating Tools + Documentation
+### Story 2.5: Apply Track Targeting Contract to Existing Mutating Tools + Documentation
 
 As an external AI agent developer,
 I want mutating tools to support the standard track targeting contract and have examples of the “resolve → confirm → act” flow,
