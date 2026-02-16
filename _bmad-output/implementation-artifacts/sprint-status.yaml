@@ -1,8 +1,8 @@
-# generated: 2025-12-18T15:14:52-07:00
+# generated: 2026-02-14T00:55:47Z
 # project: WigAI
-# project_key: wigai
+# project_key: NOKEY
 # tracking_system: file-system
-# story_location: /Users/josh/code/WigAI/docs/sprint-artifacts
+# story_location: /Users/josh/code/WigAI/_bmad-output/implementation-artifacts
 
 # STATUS DEFINITIONS:
 # ==================
@@ -12,36 +12,51 @@
 #   - done: All stories in epic completed
 #
 # Epic Status Transitions:
-#   - backlog → in-progress: Automatically when first story is created (via create-story)
-#   - in-progress → done: Manually when all stories reach 'done' status
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach 'done' status
 #
 # Story Status:
 #   - backlog: Story only exists in epic file
-#   - drafted: Story file created in stories folder
-#   - ready-for-dev: Draft approved and story context created
+#   - ready-for-dev: Story file created in stories folder
 #   - in-progress: Developer actively working on implementation
 #   - review: Ready for code review (via Dev's code-review workflow)
 #   - done: Story completed
 #
 # Retrospective Status:
 #   - optional: Can be completed but not required
-#   - completed: Retrospective has been done
+#   - done: Retrospective has been completed
 #
 # WORKFLOW NOTES:
 # ===============
 # - Epic transitions to 'in-progress' automatically when first story is created
 # - Stories can be worked in parallel if team capacity allows
-# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# CARRY-FORWARD CONTEXT (Epic 1 Retrospective - 2026-02-13):
+# ==========================================================
+# - Epic 2 kickoff remains gated until these items are complete:
+#   1) Contract Semantics DoR and Contract Lockstep gate active
+#   2) Duplicate-track-name ambiguity behavior defined and tested
+#   3) Epic 1 smoke test executed with evidence
+#   4) Epic 1 deployment completed and post-deploy smoke verified
+#   5) Stakeholder acceptance for Epic 1 recorded
+#   6) Dependency/version refresh checkpoint from Story 1.6 and Story 1.7 completed
+# - Epic 2 context emphasis:
+#   - Ambiguous track names must never trigger implicit mutating actions
+#   - Runtime behavior, tests, and docs must stay in lockstep at review gate
+# - Kickoff gate tracker:
+#   - _bmad-output/implementation-artifacts/epic-2-kickoff-checklist-2026-02-14.md
+# - Epic 1 functional smoke run sheet:
+#   - _bmad-output/implementation-artifacts/epic-1-functional-smoke-runsheet-2026-02-14.md
 
-generated: '2025-12-18T15:14:52-07:00'
-project: 'WigAI'
-project_key: 'wigai'
-tracking_system: 'file-system'
-story_location: '/Users/josh/code/WigAI/docs/sprint-artifacts'
+generated: 2026-02-14T00:55:47Z
+project: WigAI
+project_key: NOKEY
+tracking_system: file-system
+story_location: /Users/josh/code/WigAI/_bmad-output/implementation-artifacts
 
 development_status:
-
   epic-1: done
   1-1-repeatable-mcp-smoke-test-harness-checklist: done
   1-2-localhost-binding-defaults-preferences-guardrails: done
