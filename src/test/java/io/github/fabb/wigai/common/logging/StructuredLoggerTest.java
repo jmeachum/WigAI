@@ -51,6 +51,10 @@ class StructuredLoggerTest {
         verify(baseLogger).info(messageCaptor.capture());
 
         String logMessage = messageCaptor.getValue();
+        assertTrue(logMessage.startsWith("[TestComponent] [op-1] [transport_start]"),
+            "Structured message should start with component/operation metadata. Actual: " + logMessage);
+        assertFalse(logMessage.matches("^\\[[0-9]{4}-[0-9]{2}-[0-9]{2}T.*"),
+            "StructuredLogger should not inject timestamp prefix; base Logger handles timestamps.");
         assertTrue(logMessage.contains("request_id=test-correlation-123") || logMessage.contains("request_id\":\"test-correlation-123"),
             "Completion log should include request_id. Actual message: " + logMessage);
     }
@@ -74,6 +78,8 @@ class StructuredLoggerTest {
         verify(baseLogger).error(messageCaptor.capture());
 
         String logMessage = messageCaptor.getValue();
+        assertTrue(logMessage.startsWith("[TestComponent] [op-2] [transport_start]"),
+            "Structured message should start with component/operation metadata. Actual: " + logMessage);
         assertTrue(logMessage.contains("request_id=error-correlation-456") || logMessage.contains("request_id\":\"error-correlation-456"),
             "Failure log should include request_id. Actual message: " + logMessage);
     }

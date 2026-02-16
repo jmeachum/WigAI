@@ -3,9 +3,6 @@ package io.github.fabb.wigai.common.logging;
 import io.github.fabb.wigai.common.Logger;
 import io.github.fabb.wigai.common.error.ErrorCode;
 
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -19,8 +16,6 @@ public class StructuredLogger {
     private final String component;
     private final Map<String, String> contextMetadata;
     private final AtomicLong operationIdCounter = new AtomicLong(0);
-
-    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
     /**
      * Creates a new StructuredLogger instance.
@@ -86,7 +81,7 @@ public class StructuredLogger {
      * @param message The log message
      */
     public void info(String operationId, String operation, String message) {
-        String structuredMessage = formatMessage(LogLevel.INFO, operationId, operation, message, null, null);
+        String structuredMessage = formatMessage(operationId, operation, message, null);
         baseLogger.info(structuredMessage);
     }
 
@@ -107,7 +102,7 @@ public class StructuredLogger {
      * @param message The log message
      */
     public void warn(String operationId, String operation, String message) {
-        String structuredMessage = formatMessage(LogLevel.WARN, operationId, operation, message, null, null);
+        String structuredMessage = formatMessage(operationId, operation, message, null);
         baseLogger.warn(structuredMessage);
     }
 
@@ -128,7 +123,7 @@ public class StructuredLogger {
      * @param message The log message
      */
     public void error(String operationId, String operation, String message) {
-        String structuredMessage = formatMessage(LogLevel.ERROR, operationId, operation, message, null, null);
+        String structuredMessage = formatMessage(operationId, operation, message, null);
         baseLogger.error(structuredMessage);
     }
 
@@ -141,7 +136,7 @@ public class StructuredLogger {
      * @param throwable The exception to log
      */
     public void error(String operationId, String operation, String message, Throwable throwable) {
-        String structuredMessage = formatMessage(LogLevel.ERROR, operationId, operation, message, null, throwable);
+        String structuredMessage = formatMessage(operationId, operation, message, null);
         baseLogger.error(structuredMessage, throwable);
     }
 
@@ -174,7 +169,7 @@ public class StructuredLogger {
      * @param metadata Additional error metadata
      */
     public void errorWithCode(String operationId, String operation, String message, ErrorCode errorCode, Map<String, Object> metadata) {
-        String structuredMessage = formatMessage(LogLevel.ERROR, operationId, operation, message, errorCode, null);
+        String structuredMessage = formatMessage(operationId, operation, message, errorCode);
         if (metadata != null && !metadata.isEmpty()) {
             structuredMessage += " | Metadata: " + metadata.toString();
         }
@@ -189,8 +184,8 @@ public class StructuredLogger {
      * @param message The log message
      */
     public void debug(String operationId, String operation, String message) {
-        String structuredMessage = formatMessage(LogLevel.DEBUG, operationId, operation, message, null, null);
-        baseLogger.info(structuredMessage); // Bitwig Logger doesn't have debug level, use info
+        String structuredMessage = formatMessage(operationId, operation, message, null);
+        baseLogger.debug(structuredMessage);
     }
 
     /**
@@ -310,17 +305,11 @@ public class StructuredLogger {
     /**
      * Formats a log message with structured metadata.
      */
-    private String formatMessage(LogLevel level, String operationId, String operation, String message, ErrorCode errorCode, Throwable throwable) {
+    private String formatMessage(String operationId, String operation, String message, ErrorCode errorCode) {
         StringBuilder formatted = new StringBuilder();
 
-        // Timestamp
-        formatted.append("[").append(getCurrentTimestamp()).append("]");
-
-        // Log level
-        formatted.append(" [").append(level.name()).append("]");
-
         // Component
-        formatted.append(" [").append(component).append("]");
+        formatted.append("[").append(component).append("]");
 
         // Operation ID if available
         if (operationId != null) {
@@ -346,17 +335,6 @@ public class StructuredLogger {
         }
 
         return formatted.toString();
-    }
-
-    private String getCurrentTimestamp() {
-        return Instant.now().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER);
-    }
-
-    /**
-     * Log levels for structured logging.
-     */
-    public enum LogLevel {
-        DEBUG, INFO, WARN, ERROR
     }
 
     /**
