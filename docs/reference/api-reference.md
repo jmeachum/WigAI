@@ -265,12 +265,15 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 ### Session Control Commands
 
 #### `launch_clip`
-*   **Description**: Launch a specific clip in Bitwig by providing its track name and clip slot index.
+*   **Description**: Launch a specific clip in Bitwig by providing its track name and clip slot index. When duplicate tracks share the same exact `track_name`, the tool refuses implicit mutation and returns deterministic candidate guidance that requires explicit `track_index` confirmation.
+*   **Track-name lookup scope**:
+    - Name resolution scans the currently materialized track-bank window.
 *   **Parameters**:
     ```json
     {
       "track_name": "Drums", // Case-sensitive string
       "clip_index": 0, // Non-negative integer (0-based)
+      "track_index": 3, // Optional explicit confirmation index when track_name is ambiguous
       "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
@@ -281,6 +284,7 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       "data": {
         "action": "clip_launched",
         "track_name": "Drums",
+        "track_index": 3,
         "clip_index": 0,
         "message": "Clip at Drums[0] launched."
       }
@@ -290,6 +294,29 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     *   `MISSING_REQUIRED_PARAMETER`: track_name or clip_index not provided
     *   `EMPTY_PARAMETER`: track_name cannot be empty
     *   `INVALID_PARAMETER_INDEX`: clip_index is negative or outside the valid range for the track
+    *   `INVALID_PARAMETER`: ambiguous duplicate `track_name` without explicit `track_index` confirmation, non-integer `track_index`, or `track_index`/`track_name` mismatch
+        - Ambiguity refusals include `error.details` with `confirmation_parameter` and deterministic `candidates` list
+        - Ambiguity refusal example:
+          ```json
+          {
+            "status": "error",
+            "error": {
+              "code": "INVALID_PARAMETER",
+              "message": "Ambiguous track_name 'Drums'. Provide track_index to confirm target.",
+              "operation": "launch_clip",
+              "details": {
+                "reason": "ambiguous_track_name",
+                "track_name": "Drums",
+                "clip_index": 0,
+                "confirmation_parameter": "track_index",
+                "candidates": [
+                  { "track_index": 1, "track_name": "Drums" },
+                  { "track_index": 3, "track_name": "Drums" }
+                ]
+              }
+            }
+          }
+          ```
     *   `TRACK_NOT_FOUND`: The specified track name was not found
     *   `BITWIG_API_ERROR`: Internal error occurred while launching clip
 

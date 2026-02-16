@@ -61,7 +61,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 *Validation Errors (input validation failures):*
 - `MISSING_REQUIRED_PARAMETER` — parameter not provided in request
 - `EMPTY_PARAMETER` — parameter provided but empty (empty string, empty array)
-- `INVALID_PARAMETER` — parameter has wrong type or malformed structure (e.g., not an array when array expected)
+- `INVALID_PARAMETER` — parameter has wrong type, malformed structure, or ambiguous/conflicting selector inputs that require explicit disambiguation (e.g., duplicate exact-name targets requiring `track_index` confirmation)
 - `INVALID_PARAMETER_TYPE` — parameter type mismatch (e.g., string where number expected)
 - `INVALID_PARAMETER_INDEX` — index argument outside valid bounds (e.g., parameter_index not in 0-7, track_index negative)
 - `INVALID_RANGE` — numeric *value* outside allowed range (e.g., parameter value not in 0.0-1.0)

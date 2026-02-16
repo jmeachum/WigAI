@@ -122,18 +122,36 @@ public class McpErrorHandler {
      * @return A McpSchema.CallToolResult with error response
      */
     public static McpSchema.CallToolResult createErrorResponse(BitwigApiException exception, StructuredLogger logger) {
+        Map<String, Object> error = new java.util.LinkedHashMap<>();
+        error.put("code", exception.getErrorCode().getCode());
+        error.put("message", exception.getMessage());
+        error.put("operation", exception.getOperation());
+
+        Map<String, Object> details = normalizeErrorDetails(exception.getContext());
+        if (!details.isEmpty()) {
+            error.put("details", details);
+        }
+
         // For MCP tools, return the error in the API format directly
         Map<String, Object> response = Map.of(
             "status", "error",
-            "error", Map.of(
-                "code", exception.getErrorCode().getCode(),
-                "message", exception.getMessage(),
-                "operation", exception.getOperation()
-            )
+            "error", error
         );
         String jsonResponse = WigAIErrorHandler.toJsonString(response);
         McpSchema.TextContent textContent = new McpSchema.TextContent(jsonResponse);
         return new McpSchema.CallToolResult(List.of(textContent), true);
+    }
+
+    private static Map<String, Object> normalizeErrorDetails(Object context) {
+        if (!(context instanceof Map<?, ?> rawMap) || rawMap.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Object> normalized = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            normalized.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        return normalized;
     }
 
     /**
@@ -295,8 +313,16 @@ public class McpErrorHandler {
             return createSuccessResponse(retryResult.value());
         } catch (BitwigApiException e) {
             timedOperation.failure(e.getErrorCode(), e.getMessage());
-            // Always use the provided operation name (MCP tool name), not the exception's internal operation
-            return createErrorResponse(e.getErrorCode(), e.getMessage(), operation);
+            // Always use the provided operation name (MCP tool name), not the exception's internal operation.
+            // Preserve exception context for structured error details when available.
+            BitwigApiException normalized = new BitwigApiException(
+                e.getErrorCode(),
+                operation,
+                e.getMessage(),
+                e.getContext(),
+                e
+            );
+            return createErrorResponse(normalized, logger);
         } catch (Exception e) {
             ErrorCode errorCode = ErrorCode.fromException(e);
             timedOperation.failure(errorCode, e.getMessage());

@@ -258,33 +258,84 @@ public class ClipSceneController {
      * @return ClipLaunchResult indicating success/failure and any error details
      */
     public ClipLaunchResult launchClip(String trackName, int clipIndex) {
+        return launchClip(trackName, clipIndex, null);
+    }
+
+    /**
+     * Launches a clip with optional explicit track index confirmation.
+     *
+     * @param trackName The exact track name
+     * @param clipIndex The zero-based clip slot index
+     * @param trackIndex Optional explicit track index to confirm target when duplicates exist
+     * @return ClipLaunchResult indicating success/failure and any ambiguity guidance
+     */
+    public ClipLaunchResult launchClip(String trackName, int clipIndex, Integer trackIndex) {
         try {
-            // Find the track by name (case-sensitive) and launch the clip
-            try {
-                bitwigApiFacade.findTrackIndexByName(trackName); // This will throw BitwigApiException if track not found
-
-                // Check if clip index is within bounds
-                int trackClipCount = bitwigApiFacade.getTrackClipCount(trackName);
-                if (clipIndex < 0 || clipIndex >= trackClipCount) {
-                    return ClipLaunchResult.error("CLIP_INDEX_OUT_OF_BOUNDS",
-                        "Clip index " + clipIndex + " is out of bounds for track '" + trackName + "'");
+            int resolvedTrackIndex;
+            if (trackIndex != null) {
+                String actualTrackName = bitwigApiFacade.getTrackNameByIndex(trackIndex);
+                if (!trackName.equals(actualTrackName)) {
+                    return ClipLaunchResult.error(
+                        ErrorCode.INVALID_PARAMETER.getCode(),
+                        "track_index " + trackIndex + " does not match track_name '" + trackName + "'"
+                    );
                 }
-
-                // Launch the clip
-                bitwigApiFacade.launchClip(trackName, clipIndex);
-                return ClipLaunchResult.success("Clip at " + trackName + "[" + clipIndex + "] launched.");
-
-            } catch (BitwigApiException e) {
-                if (e.getErrorCode() == ErrorCode.TRACK_NOT_FOUND) {
-                    return ClipLaunchResult.error("TRACK_NOT_FOUND", "Track '" + trackName + "' not found");
-                } else {
-                    return ClipLaunchResult.error("BITWIG_ERROR", "Failed to launch clip: " + e.getMessage());
-                }
+                resolvedTrackIndex = trackIndex;
+            } else {
+                resolvedTrackIndex = bitwigApiFacade.findTrackIndexByName(trackName);
             }
 
+            int trackClipCount = bitwigApiFacade.getTrackClipCountByIndex(resolvedTrackIndex);
+            if (clipIndex < 0 || clipIndex >= trackClipCount) {
+                return ClipLaunchResult.error(
+                    ErrorCode.INVALID_PARAMETER_INDEX.getCode(),
+                    "Clip index " + clipIndex + " is out of bounds for track '" + trackName + "'"
+                );
+            }
+
+            bitwigApiFacade.launchClipByTrackIndex(resolvedTrackIndex, clipIndex);
+            return ClipLaunchResult.success("Clip at " + trackName + "[" + clipIndex + "] launched.", resolvedTrackIndex);
+        } catch (BitwigApiException e) {
+            if (e.getErrorCode() == ErrorCode.INVALID_PARAMETER) {
+                List<Map<String, Object>> candidates = extractAmbiguityCandidates(e.getContext());
+                if (!candidates.isEmpty()) {
+                    return ClipLaunchResult.ambiguity(e.getMessage(), candidates);
+                }
+            }
+            return ClipLaunchResult.error(e.getErrorCode().getCode(), e.getMessage());
         } catch (Exception e) {
-            return ClipLaunchResult.error("BITWIG_ERROR", "Internal error occurred while launching clip: " + e.getMessage());
+            return ClipLaunchResult.error(
+                ErrorCode.BITWIG_API_ERROR.getCode(),
+                "Internal error occurred while launching clip: " + e.getMessage()
+            );
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractAmbiguityCandidates(Object context) {
+        if (!(context instanceof Map<?, ?> contextMap)) {
+            return List.of();
+        }
+        Object rawCandidates = contextMap.get("candidates");
+        if (!(rawCandidates instanceof List<?> candidateList)) {
+            return List.of();
+        }
+        List<Map<String, Object>> candidates = new ArrayList<>();
+        for (Object entry : candidateList) {
+            if (entry instanceof Map<?, ?> candidate) {
+                Map<String, Object> normalized = new LinkedHashMap<>();
+                if (candidate.containsKey("track_index")) {
+                    normalized.put("track_index", candidate.get("track_index"));
+                }
+                if (candidate.containsKey("track_name")) {
+                    normalized.put("track_name", candidate.get("track_name"));
+                }
+                if (!normalized.isEmpty()) {
+                    candidates.add(normalized);
+                }
+            }
+        }
+        return candidates;
     }
 
     /**
@@ -294,11 +345,24 @@ public class ClipSceneController {
         private final boolean success;
         private final String errorCode;
         private final String message;
+        private final Integer trackIndex;
+        private final List<Map<String, Object>> candidates;
+        private final String confirmationParameter;
 
-        private ClipLaunchResult(boolean success, String errorCode, String message) {
+        private ClipLaunchResult(
+            boolean success,
+            String errorCode,
+            String message,
+            Integer trackIndex,
+            List<Map<String, Object>> candidates,
+            String confirmationParameter
+        ) {
             this.success = success;
             this.errorCode = errorCode;
             this.message = message;
+            this.trackIndex = trackIndex;
+            this.candidates = candidates == null ? List.of() : List.copyOf(candidates);
+            this.confirmationParameter = confirmationParameter;
         }
 
         /**
@@ -308,7 +372,14 @@ public class ClipSceneController {
          * @return Successful ClipLaunchResult
          */
         public static ClipLaunchResult success(String message) {
-            return new ClipLaunchResult(true, null, message);
+            return success(message, null);
+        }
+
+        /**
+         * Creates a successful result with the resolved track index.
+         */
+        public static ClipLaunchResult success(String message, Integer trackIndex) {
+            return new ClipLaunchResult(true, null, message, trackIndex, List.of(), null);
         }
 
         /**
@@ -319,7 +390,21 @@ public class ClipSceneController {
          * @return Error ClipLaunchResult
          */
         public static ClipLaunchResult error(String errorCode, String message) {
-            return new ClipLaunchResult(false, errorCode, message);
+            return new ClipLaunchResult(false, errorCode, message, null, List.of(), null);
+        }
+
+        /**
+         * Creates an ambiguity result with deterministic candidate guidance.
+         */
+        public static ClipLaunchResult ambiguity(String message, List<Map<String, Object>> candidates) {
+            return new ClipLaunchResult(
+                false,
+                ErrorCode.INVALID_PARAMETER.getCode(),
+                message,
+                null,
+                candidates,
+                "track_index"
+            );
         }
 
         /**
@@ -347,6 +432,22 @@ public class ClipSceneController {
          */
         public String getMessage() {
             return message;
+        }
+
+        public Integer getTrackIndex() {
+            return trackIndex;
+        }
+
+        public boolean isAmbiguous() {
+            return ErrorCode.INVALID_PARAMETER.getCode().equals(errorCode) && !candidates.isEmpty();
+        }
+
+        public List<Map<String, Object>> getCandidates() {
+            return candidates;
+        }
+
+        public String getConfirmationParameter() {
+            return confirmationParameter;
         }
     }
 
