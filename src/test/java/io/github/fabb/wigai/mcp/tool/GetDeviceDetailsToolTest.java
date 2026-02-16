@@ -109,6 +109,7 @@ class GetDeviceDetailsToolTest {
 
     @Test
     void testParameterValidation_BothTrackIdentifiers() throws Exception {
+        mockDeviceDetailsSuccess();
         HashMap<String, Object> args = new HashMap<>();
         args.put("track_index", 0);
         args.put("track_name", "Bass Track");
@@ -116,9 +117,7 @@ class GetDeviceDetailsToolTest {
 
         McpSchema.CallToolResult result = invokeToolHandler(args);
 
-        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
-        assertEquals("INVALID_PARAMETER", error.get("code").asText());
-        assertTrue(error.get("message").asText().contains("Exactly one of track_index or track_name"));
+        assertFalse(result.isError());
     }
 
     @Test
@@ -225,15 +224,14 @@ class GetDeviceDetailsToolTest {
 
     @Test
     void testParameterValidation_IncompleteIdentifiers_MissingTrack() throws Exception {
+        mockDeviceDetailsSuccess();
         Map<String, Object> args = Map.of(
             "device_index", 0
         );
 
         McpSchema.CallToolResult result = invokeToolHandler(args);
 
-        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
-        assertEquals("INVALID_PARAMETER", error.get("code").asText());
-        assertTrue(error.get("message").asText().contains("Exactly one of track_index or track_name"));
+        assertFalse(result.isError());
     }
 
     @Test

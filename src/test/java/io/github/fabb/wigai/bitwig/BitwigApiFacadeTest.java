@@ -1233,6 +1233,138 @@ public class BitwigApiFacadeTest {
     }
 
     @Test
+    void testFindTrackIndexByName_TrimmedCaseInsensitiveExactMatch() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(2);
+
+        Track track0 = mock(Track.class);
+        Track track1 = mock(Track.class);
+        when(mockTrackBank.getItemAt(0)).thenReturn(track0);
+        when(mockTrackBank.getItemAt(1)).thenReturn(track1);
+
+        com.bitwig.extension.controller.api.BooleanValue existsTrue = boolValue(true);
+        when(track0.exists()).thenReturn(existsTrue);
+        when(track1.exists()).thenReturn(existsTrue);
+
+        SettableStringValue bassName = stringValue("Bass");
+        SettableStringValue drumsName = stringValue("Drums");
+        when(track0.name()).thenReturn(bassName);
+        when(track1.name()).thenReturn(drumsName);
+
+        int index = bitwigApiFacade.findTrackIndexByName("  drums  ");
+        assertEquals(1, index);
+    }
+
+    @Test
+    void testResolveTrackIndex_DualSelectorsMismatchReturnsInvalidParameter() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(2);
+        Track track0 = mock(Track.class);
+        Track track1 = mock(Track.class);
+        when(mockTrackBank.getItemAt(0)).thenReturn(track0);
+        when(mockTrackBank.getItemAt(1)).thenReturn(track1);
+
+        com.bitwig.extension.controller.api.BooleanValue existsTrue = boolValue(true);
+        when(track0.exists()).thenReturn(existsTrue);
+        when(track1.exists()).thenReturn(existsTrue);
+        SettableStringValue bassName = stringValue("Bass");
+        SettableStringValue drumsName = stringValue("Drums");
+        when(track0.name()).thenReturn(bassName);
+        when(track1.name()).thenReturn(drumsName);
+
+        BitwigApiException exception = assertThrows(
+            BitwigApiException.class,
+            () -> bitwigApiFacade.resolveTrackIndex(0, "Drums", false, "list_devices_on_track")
+        );
+
+        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("does not match track_name"));
+    }
+
+    @Test
+    void testResolveTrackIndex_SelectedFallbackWithoutSelectionReturnsGuidance() {
+        com.bitwig.extension.controller.api.BooleanValue trackMissing = boolValue(false);
+        when(mockCursorTrack.exists()).thenReturn(trackMissing);
+
+        BitwigApiException exception = assertThrows(
+            BitwigApiException.class,
+            () -> bitwigApiFacade.resolveTrackIndex(null, null, true, "get_track_details")
+        );
+
+        assertEquals(ErrorCode.TRACK_NOT_FOUND, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("Provide track_index or track_name"));
+    }
+
+    @Test
+    void testGetSelectedTrackDetails_SelectedTrackOutsideMaterializedBankUsesCursorFallbackPayload() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(8);
+
+        com.bitwig.extension.controller.api.BooleanValue cursorExists = boolValue(true);
+        when(mockCursorTrack.exists()).thenReturn(cursorExists);
+
+        com.bitwig.extension.controller.api.IntegerValue cursorPosition = mock(com.bitwig.extension.controller.api.IntegerValue.class);
+        when(cursorPosition.get()).thenReturn(64);
+        when(mockCursorTrack.position()).thenReturn(cursorPosition);
+
+        SettableStringValue cursorTrackName = stringValue("Lead");
+        when(mockCursorTrack.name()).thenReturn(cursorTrackName);
+        SettableStringValue cursorTrackType = stringValue("Instrument");
+        when(mockCursorTrack.trackType()).thenReturn(cursorTrackType);
+        com.bitwig.extension.controller.api.BooleanValue cursorIsGroup = boolValue(false);
+        when(mockCursorTrack.isGroup()).thenReturn(cursorIsGroup);
+
+        RemoteControl cursorVolume = mock(RemoteControl.class);
+        SettableRangedValue cursorVolumeValue = mock(SettableRangedValue.class);
+        when(cursorVolumeValue.get()).thenReturn(0.42);
+        when(cursorVolume.value()).thenReturn(cursorVolumeValue);
+        SettableStringValue cursorVolumeDisplay = stringValue("-7.0 dB");
+        when(cursorVolume.displayedValue()).thenReturn(cursorVolumeDisplay);
+        when(mockCursorTrack.volume()).thenReturn(cursorVolume);
+
+        RemoteControl cursorPan = mock(RemoteControl.class);
+        SettableRangedValue cursorPanValue = mock(SettableRangedValue.class);
+        when(cursorPanValue.get()).thenReturn(0.5);
+        when(cursorPan.value()).thenReturn(cursorPanValue);
+        SettableStringValue cursorPanDisplay = stringValue("C");
+        when(cursorPan.displayedValue()).thenReturn(cursorPanDisplay);
+        when(mockCursorTrack.pan()).thenReturn(cursorPan);
+
+        SettableBooleanValue muted = mock(SettableBooleanValue.class);
+        when(muted.get()).thenReturn(false);
+        when(mockCursorTrack.mute()).thenReturn(muted);
+        SoloValue soloed = mock(SoloValue.class);
+        when(soloed.get()).thenReturn(false);
+        when(mockCursorTrack.solo()).thenReturn(soloed);
+        SettableBooleanValue armed = mock(SettableBooleanValue.class);
+        when(armed.get()).thenReturn(false);
+        when(mockCursorTrack.arm()).thenReturn(armed);
+        com.bitwig.extension.controller.api.BooleanValue monitoring = boolValue(true);
+        when(mockCursorTrack.isMonitoring()).thenReturn(monitoring);
+        SettableEnumValue monitorMode = mock(SettableEnumValue.class);
+        when(monitorMode.get()).thenReturn("AUTO");
+        when(mockCursorTrack.monitorMode()).thenReturn(monitorMode);
+
+        Map<String, Object> info = bitwigApiFacade.getSelectedTrackDetails();
+
+        assertNotNull(info);
+        assertEquals(64, info.get("index"));
+        assertEquals("Lead", info.get("name"));
+        assertEquals("instrument", info.get("type"));
+        assertEquals(false, info.get("is_group"));
+        assertEquals(true, info.get("is_selected"));
+        assertEquals(List.of(), info.get("devices"));
+        assertEquals(0.42, ((Number) info.get("volume")).doubleValue(), 1e-9);
+        assertEquals("-7.0 dB", info.get("volume_str"));
+        assertEquals(0.5, ((Number) info.get("pan")).doubleValue(), 1e-9);
+        assertEquals("C", info.get("pan_str"));
+        assertEquals(false, info.get("muted"));
+        assertEquals(false, info.get("soloed"));
+        assertEquals(false, info.get("armed"));
+        assertEquals(true, info.get("monitor_enabled"));
+        assertEquals(true, info.get("auto_monitor_enabled"));
+        assertEquals(List.of(), info.get("sends"));
+        assertEquals(List.of(), info.get("clips"));
+    }
+
+    @Test
     void testTrackExists_ReturnsFalseOnlyForTrackNotFound() {
         when(mockTrackBank.getSizeOfBank()).thenReturn(1);
         Track onlyTrack = mock(Track.class);

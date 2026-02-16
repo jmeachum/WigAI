@@ -206,11 +206,11 @@ class ClipSceneControllerTest {
 
     @Test
     void testLaunchClip_WithExplicitTrackIndex_Success() {
-        String trackName = "Drums";
+        String trackName = "  drums  ";
         int clipIndex = 2;
         int trackIndex = 3;
 
-        when(bitwigApiFacade.getTrackNameByIndex(trackIndex)).thenReturn(trackName);
+        when(bitwigApiFacade.getTrackNameByIndex(trackIndex)).thenReturn("Drums");
         when(bitwigApiFacade.getTrackClipCountByIndex(trackIndex)).thenReturn(8);
         doNothing().when(bitwigApiFacade).launchClipByTrackIndex(trackIndex, clipIndex);
 

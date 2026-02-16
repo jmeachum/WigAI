@@ -4,6 +4,7 @@ import io.github.fabb.wigai.bitwig.BitwigApiFacade;
 import io.github.fabb.wigai.common.Logger;
 import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
+import io.github.fabb.wigai.common.validation.TrackTargetingContract;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -253,7 +254,7 @@ public class ClipSceneController {
     /**
      * Launches a clip at the specified track and clip index.
      *
-     * @param trackName The name of the track containing the clip (case-sensitive)
+     * @param trackName The name of the track containing the clip (exact match after trim + case-insensitive normalization)
      * @param clipIndex The zero-based index of the clip slot to launch
      * @return ClipLaunchResult indicating success/failure and any error details
      */
@@ -274,7 +275,7 @@ public class ClipSceneController {
             int resolvedTrackIndex;
             if (trackIndex != null) {
                 String actualTrackName = bitwigApiFacade.getTrackNameByIndex(trackIndex);
-                if (!trackName.equals(actualTrackName)) {
+                if (!TrackTargetingContract.namesMatchNormalized(trackName, actualTrackName)) {
                     return ClipLaunchResult.error(
                         ErrorCode.INVALID_PARAMETER.getCode(),
                         "track_index " + trackIndex + " does not match track_name '" + trackName + "'"

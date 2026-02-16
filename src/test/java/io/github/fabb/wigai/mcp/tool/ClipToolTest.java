@@ -229,7 +229,7 @@ class ClipToolTest {
     }
 
     @Test
-    void testHandleLaunchClip_WithFractionalTrackIndexReturnsInvalidParameter() throws Exception {
+    void testHandleLaunchClip_WithFractionalTrackIndexReturnsInvalidParameterIndex() throws Exception {
         Map<String, Object> arguments = new HashMap<>();
         arguments.put("track_name", "Drums");
         arguments.put("clip_index", 0);
@@ -242,7 +242,7 @@ class ClipToolTest {
         McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
 
         JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
-        assertEquals("INVALID_PARAMETER", errorNode.get("code").asText());
+        assertEquals("INVALID_PARAMETER_INDEX", errorNode.get("code").asText());
         verify(clipSceneController, never()).launchClip(anyString(), anyInt(), anyInt());
     }
 

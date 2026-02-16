@@ -192,14 +192,14 @@ class ErrorContractComplianceTest {
             Arguments.of(ErrorScenario.of(
                 "get_device_details",
                 "track_index is non-integer (1.5)",
-                ErrorCode.INVALID_PARAMETER,
-                "parameter has wrong type (non-integer track_index)"
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index conversion failure for track_index selector"
             )),
             Arguments.of(ErrorScenario.of(
                 "get_device_details",
                 "device_index is non-integer (1.5)",
-                ErrorCode.INVALID_PARAMETER,
-                "parameter has wrong type (non-integer device_index)"
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                "index conversion failure for device_index selector"
             ))
         );
     }
@@ -801,7 +801,7 @@ class ErrorContractComplianceTest {
         io.github.fabb.wigai.bitwig.BitwigApiFacade facade = mock(io.github.fabb.wigai.bitwig.BitwigApiFacade.class);
 
         if (scenario.condition().contains("exceeds track count")) {
-            when(facade.getDevicesOnTrack(eq(999), isNull(), isNull())).thenThrow(
+            when(facade.getDevicesOnTrack(eq(999), isNull(), eq(false))).thenThrow(
                 new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX,
                     "list_devices_on_track", "Track index out of bounds: 999",
                     Map.of("track_index", 999)));
@@ -841,7 +841,7 @@ class ErrorContractComplianceTest {
             when(facade.getSelectedTrackDetails()).thenReturn(null);
         }
         if (scenario.condition().contains("exceeds track count")) {
-            when(facade.getTrackDetailsByIndex(999)).thenThrow(
+            when(facade.resolveTrackIndex(eq(999), isNull(), eq(false), eq("get_track_details"))).thenThrow(
                 new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX,
                     "get_track_details", "Track index out of bounds: 999",
                     Map.of("track_index", 999)));

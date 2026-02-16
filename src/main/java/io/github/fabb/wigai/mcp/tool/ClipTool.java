@@ -38,7 +38,7 @@ public class ClipTool {
               "properties": {
                 "track_name": {
                   "type": "string",
-                  "description": "Name of the track containing the clip (case-sensitive)"
+                  "description": "Name of the track containing the clip (exact match after trim + case-insensitive normalization)"
                 },
                 "clip_index": {
                   "type": "integer",
@@ -152,7 +152,7 @@ public class ClipTool {
         double raw = number.doubleValue();
         if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
             throw new BitwigApiException(
-                ErrorCode.INVALID_PARAMETER,
+                ErrorCode.INVALID_PARAMETER_INDEX,
                 TOOL_NAME,
                 "track_index must be an integer, got: " + value,
                 Map.of("parameter", "track_index", "value", value)
@@ -183,7 +183,7 @@ public class ClipTool {
     /**
      * Data record for validated launch clip arguments.
      *
-     * @param trackName The name of the track (case-sensitive)
+     * @param trackName The name of the track (exact match after trim + case-insensitive normalization)
      * @param clipIndex The zero-based clip slot index
      * @param trackIndex Optional explicit track index confirmation
      */

@@ -265,15 +265,15 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 ### Session Control Commands
 
 #### `launch_clip`
-*   **Description**: Launch a specific clip in Bitwig by providing its track name and clip slot index. When duplicate tracks share the same exact `track_name`, the tool refuses implicit mutation and returns deterministic candidate guidance that requires explicit `track_index` confirmation.
+*   **Description**: Launch a specific clip in Bitwig by providing its track name and clip slot index. Track targeting uses exact normalized matching (`trim` + case-insensitive). When duplicate tracks share the same normalized exact `track_name`, the tool refuses implicit mutation and returns deterministic candidate guidance that requires explicit `track_index` confirmation.
 *   **Track-name lookup scope**:
     - Name resolution scans the currently materialized track-bank window.
 *   **Parameters**:
     ```json
     {
-      "track_name": "Drums", // Case-sensitive string
+      "track_name": "Drums", // Exact match after trim + case-insensitive normalization
       "clip_index": 0, // Non-negative integer (0-based)
-      "track_index": 3, // Optional explicit confirmation index when track_name is ambiguous
+      "track_index": 3, // Optional explicit index; when provided, index is authoritative and track_name is confirmation
       "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
@@ -293,8 +293,8 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 *   **Errors**:
     *   `MISSING_REQUIRED_PARAMETER`: track_name or clip_index not provided
     *   `EMPTY_PARAMETER`: track_name cannot be empty
-    *   `INVALID_PARAMETER_INDEX`: clip_index is negative or outside the valid range for the track
-    *   `INVALID_PARAMETER`: ambiguous duplicate `track_name` without explicit `track_index` confirmation, non-integer `track_index`, or `track_index`/`track_name` mismatch
+    *   `INVALID_PARAMETER_INDEX`: clip_index is negative/out of range for the track, or `track_index` is not a valid integer index
+    *   `INVALID_PARAMETER`: ambiguous duplicate `track_name` without explicit `track_index` confirmation, or `track_index`/`track_name` mismatch
         - Ambiguity refusals include `error.details` with `confirmation_parameter` and deterministic `candidates` list
         - Ambiguity refusal example:
           ```json
@@ -457,9 +457,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
     Rules:
-    - Exactly one of `track_index`, `track_name`, or `get_selected` may be provided. If none provided, behaves as `get_selected=true`.
-    - Providing multiple results in `INVALID_PARAMETER`.
-    - `track_name` match is case-sensitive.
+    - Selector precedence is `track_index` → `track_name` → selected-track fallback.
+    - If both `track_index` and `track_name` are provided, `track_index` is authoritative and `track_name` must match the indexed track after normalization (`trim` + case-insensitive).
+    - If neither selector is provided, behaves as selected-track fallback.
+    - `get_selected` is optional compatibility input; do not combine it with `track_index`/`track_name`.
 *   **Returns**:
     ```json
     {
@@ -536,9 +537,10 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     }
     ```
     Rules:
-    - Exactly one of `track_index`, `track_name`, or `get_selected` may be provided. If none provided, behaves as `get_selected=true`.
-    - `track_name` match is case-sensitive (exact).
-    - Providing multiple results in `INVALID_PARAMETER`.
+    - Selector precedence is `track_index` → `track_name` → selected-track fallback.
+    - If both `track_index` and `track_name` are provided, `track_index` is authoritative and `track_name` must match the indexed track after normalization (`trim` + case-insensitive).
+    - If neither selector is provided, behaves as selected-track fallback.
+    - `get_selected` is optional compatibility input; do not combine it with `track_index`/`track_name`.
 *   **Returns**:
     ```json
     {
@@ -767,10 +769,13 @@ Rules:
   - Target-by-identifiers mode: if any of `track_index`, `track_name`, `device_index`, or `device_name` is provided, target that specific device.
 - Constraints:
   - Providing `get_for_selected_device=true` together with any identifier → `INVALID_PARAMETER`.
-  - Exactly one of `track_index` OR `track_name` must be provided in identifier mode; not both → `INVALID_PARAMETER`.
   - Exactly one of `device_index` OR `device_name` must be provided in identifier mode; not both → `INVALID_PARAMETER`.
-  - `track_name` and `device_name` require case-sensitive exact matches.
-  - If `get_for_selected_device=false` (or omitted) and no identifiers are provided → `INVALID_PARAMETER`.
+  - Track selector precedence in identifier mode: `track_index` → `track_name` → selected-track fallback.
+  - If both `track_index` and `track_name` are provided, `track_index` is authoritative and `track_name` must match the indexed track after normalization (`trim` + case-insensitive).
+  - If identifier mode provides no track selector, WigAI falls back to the currently selected track.
+  - `track_name` uses exact normalized matching (`trim` + case-insensitive). `device_name` remains exact case-sensitive.
+  - If `get_for_selected_device` is omitted and no identifiers are provided, WigAI defaults to selected-device mode.
+  - If `get_for_selected_device=false` and no identifiers are provided → `INVALID_PARAMETER`.
 
 - Returns:
 ```json

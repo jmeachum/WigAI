@@ -4,6 +4,7 @@ import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.common.validation.ParameterValidator;
+import io.github.fabb.wigai.common.validation.TrackTargetingContract;
 import io.github.fabb.wigai.features.DeviceController;
 import io.github.fabb.wigai.mcp.McpErrorHandler;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -44,7 +45,7 @@ public class GetDeviceDetailsTool {
                 },
                 "track_name": {
                   "type": "string",
-                  "description": "Name of the track containing the device (case-sensitive)"
+                  "description": "Name of the track containing the device (exact match after trim + case-insensitive normalization)"
                 },
                 "device_index": {
                   "type": "integer",
@@ -107,43 +108,14 @@ public class GetDeviceDetailsTool {
      * @throws IllegalArgumentException if arguments are invalid
      */
     private static GetDeviceDetailsArguments parseArguments(Map<String, Object> arguments) {
-        // Extract optional parameters
-        Integer trackIndex = null;
-        String trackName = null;
+        TrackTargetingContract.TrackTargetSelectors trackTargetSelectors =
+            TrackTargetingContract.parse(arguments, TOOL_NAME, false);
+
+        Integer trackIndex = trackTargetSelectors.trackIndex();
+        String trackName = trackTargetSelectors.trackName();
         Integer deviceIndex = null;
         String deviceName = null;
         Boolean getForSelectedDevice = null;
-
-        if (arguments.containsKey("track_index")) {
-            Object trackIndexObj = arguments.get("track_index");
-            if (!(trackIndexObj instanceof Number)) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_TYPE, TOOL_NAME,
-                    "track_index must be an integer",
-                    Map.of("parameter", "track_index", "value", trackIndexObj));
-            }
-            double rawTrackIndex = ((Number) trackIndexObj).doubleValue();
-            if (rawTrackIndex != Math.floor(rawTrackIndex) || Double.isNaN(rawTrackIndex) || Double.isInfinite(rawTrackIndex)) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
-                    "track_index must be an integer, got: " + trackIndexObj,
-                    Map.of("parameter", "track_index", "value", trackIndexObj));
-            }
-            if (rawTrackIndex < Integer.MIN_VALUE || rawTrackIndex > Integer.MAX_VALUE) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
-                    "track_index value out of integer range: " + trackIndexObj,
-                    Map.of("parameter", "track_index", "value", trackIndexObj));
-            }
-            trackIndex = ((Number) trackIndexObj).intValue();
-            if (trackIndex < 0) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
-                    "track_index must be non-negative, got: " + trackIndex,
-                    Map.of("parameter", "track_index", "value", trackIndex));
-            }
-        }
-
-        if (arguments.containsKey("track_name")) {
-            trackName = ParameterValidator.validateRequiredString(arguments, "track_name", TOOL_NAME);
-            trackName = ParameterValidator.validateNotEmpty(trackName, "track_name", TOOL_NAME);
-        }
 
         if (arguments.containsKey("device_index")) {
             Object deviceIndexObj = arguments.get("device_index");
@@ -154,7 +126,7 @@ public class GetDeviceDetailsTool {
             }
             double rawDeviceIndex = ((Number) deviceIndexObj).doubleValue();
             if (rawDeviceIndex != Math.floor(rawDeviceIndex) || Double.isNaN(rawDeviceIndex) || Double.isInfinite(rawDeviceIndex)) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
+                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, TOOL_NAME,
                     "device_index must be an integer, got: " + deviceIndexObj,
                     Map.of("parameter", "device_index", "value", deviceIndexObj));
             }
@@ -197,29 +169,26 @@ public class GetDeviceDetailsTool {
     private static void validateParameterRules(Integer trackIndex, String trackName,
                                              Integer deviceIndex, String deviceName,
                                              Boolean getForSelectedDevice) {
-        boolean hasIdentifiers = trackIndex != null || trackName != null || deviceIndex != null || deviceName != null;
+        boolean hasTrackIdentifiers = trackIndex != null || trackName != null;
+        boolean hasDeviceIdentifiers = deviceIndex != null || deviceName != null;
+        boolean hasAnyIdentifiers = hasTrackIdentifiers || hasDeviceIdentifiers;
         boolean wantsSelected = Boolean.TRUE.equals(getForSelectedDevice);
 
         // Rule: Providing get_for_selected_device=true together with any identifier is invalid
-        if (wantsSelected && hasIdentifiers) {
+        if (wantsSelected && hasAnyIdentifiers) {
             throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
                 "Cannot provide get_for_selected_device=true together with other identifier parameters");
         }
 
-        // Rule: If get_for_selected_device=false (or omitted) and no identifiers are provided → INVALID_PARAMETER
-        if (Boolean.FALSE.equals(getForSelectedDevice) && !hasIdentifiers) {
+        // Rule: If get_for_selected_device=false and no identifiers are provided → INVALID_PARAMETER
+        if (Boolean.FALSE.equals(getForSelectedDevice) && !hasAnyIdentifiers) {
             throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
                 "Must provide identifier parameters when get_for_selected_device=false");
         }
 
-        // If identifiers are provided, validate mutual exclusivity
-        if (hasIdentifiers) {
-            // Rule: Exactly one of track_index OR track_name must be provided; not both
-            if ((trackIndex != null && trackName != null) || (trackIndex == null && trackName == null)) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
-                    "Exactly one of track_index or track_name must be provided, not both or neither");
-            }
-
+        // Identifier mode requires a concrete device selector. Track selectors follow the
+        // shared contract (index authoritative, optional name confirmation, selected-track fallback).
+        if (hasAnyIdentifiers) {
             // Rule: Exactly one of device_index OR device_name must be provided; not both
             if ((deviceIndex != null && deviceName != null) || (deviceIndex == null && deviceName == null)) {
                 throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, TOOL_NAME,
