@@ -11,20 +11,20 @@ Source Context: `epic-1-retro-2026-02-13.md`
 
 ## Kickoff Gates
 
-| ID | Gate | Owner | Status | Evidence / Notes |
-|---|---|---|---|---|
-| G1 | Contract Semantics DoR and Contract Lockstep gate active | Bob (SM), Dana (QA), Charlie (Dev) | pending | Add DoR contract section to Epic 2 stories and enforce runtime/test/docs lockstep before review |
-| G2 | Duplicate-track-name ambiguity behavior defined and tested | Charlie (Dev), Dana (QA) | pending | Must guarantee ambiguous names never trigger implicit mutating actions |
-| G3 | Epic 1 smoke test executed with evidence | Dana (QA) | pending | Include safe + mutating flow evidence |
-| G4 | Epic 1 deployment completed and post-deploy smoke verified | Charlie (Dev), Dana (QA) | pending | Record deployment confirmation and verification results |
-| G5 | Stakeholder acceptance for Epic 1 recorded | Alice (PO), Josh (Project Lead) | pending | Capture acceptance decision and date |
-| G6 | Dependency/version refresh checkpoint from Story 1.6 and 1.7 completed | Charlie (Dev) | pending | Confirm dependency updates and versions per Story 1.6/1.7 notes |
+| ID | Gate | Owner | Assigned Date | Status | Evidence / Notes |
+|---|---|---|---|---|---|
+| G1 | Contract Semantics DoR and Contract Lockstep gate active | Bob (SM), Dana (QA), Charlie (Dev) | 2026-02-14 | pending | Add DoR contract section to Epic 2 stories and enforce runtime/test/docs lockstep before review |
+| G2 | Duplicate-track-name ambiguity behavior defined and tested | Charlie (Dev), Dana (QA) | 2026-02-14 | pending | Must guarantee ambiguous names never trigger implicit mutating actions |
+| G3 | Epic 1 smoke test executed with evidence | Dana (QA) | 2026-02-14 | done | Completed 2026-02-14 with strengthened validation after transport-stop concern. Harness/run sheet now require state verification (`status.transport.playing` true after start, false after stop). Evidence: Step 1 pass (`tests=175, failures=0, errors=0, skipped=0`) `_bmad-output/implementation-artifacts/tests/epic-1-smoke-2026-02-14/01-epic1-targeted-tests.log`; Step 2 safe smoke PASS `_bmad-output/implementation-artifacts/tests/epic-1-smoke-2026-02-14/02-safe-smoke.log`; Step 3 mutation smoke PASS with state checks (`start` attempt 1 true, `stop` attempt 2 false) `_bmad-output/implementation-artifacts/tests/epic-1-smoke-2026-02-14/03-mutation-smoke.log`; Step 4 optional host timing stress PASS via `./gradlew mcpTimingStressTest` (`Passed: 15 | Failed: 0`) `_bmad-output/implementation-artifacts/tests/epic-1-smoke-2026-02-14/04-timing-stress.log`. |
+| G4 | Epic 1 deployment completed and post-deploy smoke verified | Charlie (Dev), Dana (QA) | 2026-02-14 | pending | Record deployment confirmation and verification results |
+| G5 | Stakeholder acceptance for Epic 1 recorded | Alice (PO), Josh (Project Lead) | 2026-02-14 | pending | Capture acceptance decision and date |
+| G6 | Dependency/version refresh checkpoint from Story 1.6 and 1.7 completed | Charlie (Dev) | 2026-02-14 | pending | Confirm dependency updates and versions per Story 1.6/1.7 notes |
 
 ## Additional Planning Item (From Retro Discussion)
 
-| ID | Item | Owner | Priority | Status | Notes |
-|---|---|---|---|---|---|
-| P1 | Epic 1 full functional run sheet and smoke test procedure | Bob (SM), Dana (QA) | High | pending | Produce step-by-step instructions for all Epic 1 functionality |
+| ID | Item | Owner | Assigned Date | Priority | Status | Notes |
+|---|---|---|---|---|---|---|
+| P1 | Epic 1 full functional run sheet and smoke test procedure | Bob (SM), Dana (QA) | 2026-02-14 | High | done | Run sheet created: `_bmad-output/implementation-artifacts/epic-1-functional-smoke-runsheet-2026-02-14.md` |
 
 ## Exit Criteria for Epic 2 Kickoff
 

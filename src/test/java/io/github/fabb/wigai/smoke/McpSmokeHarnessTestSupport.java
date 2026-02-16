@@ -39,6 +39,7 @@ final class McpSmokeHarnessTestSupport {
 
 class FakeMcpClient implements McpClient {
     private final List<String> tools;
+    private boolean transportPlaying;
 
     FakeMcpClient() {
         this(List.of("status"));
@@ -63,6 +64,23 @@ class FakeMcpClient implements McpClient {
 
     @Override
     public String callTool(String toolName, Map<String, Object> arguments) {
+        if ("transport_start".equals(toolName)) {
+            transportPlaying = true;
+            return """
+                {"status":"success","data":{"action":"transport_started","message":"Bitwig transport started."}}
+                """.trim();
+        }
+        if ("transport_stop".equals(toolName)) {
+            transportPlaying = false;
+            return """
+                {"status":"success","data":{"action":"transport_stopped","message":"Bitwig transport stopped."}}
+                """.trim();
+        }
+        if ("status".equals(toolName)) {
+            return """
+                {"status":"success","data":{"transport":{"playing":%s}}}
+                """.formatted(transportPlaying).trim();
+        }
         return """
             {"status":"success","data":{"tool":"%s"}}
             """.formatted(toolName).trim();

@@ -105,7 +105,7 @@ class McpSmokeHarnessAtddTest {
                 "Should report MISSING_REQUIRED_PARAMETER as expected for non-baseline tool");
     }
 
-    @DisplayName("1.1-ATDD-007 [P1] Given mutation mode, when harness runs, then transport_start then transport_stop")
+    @DisplayName("1.1-ATDD-007 [P1] Given mutation mode, when harness runs, then transport_start/stop and status state transitions validate")
     @Test
     void mutation_mode_calls_transport_start_then_stop() {
         // Mutation mode needs baseline tools plus transport tools
@@ -113,7 +113,9 @@ class McpSmokeHarnessAtddTest {
 
         HarnessRun run = runMutation(client);
 
-        assertEquals(List.of("transport_start", "transport_stop"), client.calledTools);
+        assertEquals(List.of("transport_start", "status", "transport_stop", "status"), client.calledTools);
+        assertTrue(run.stdout.contains("status.transport.playing == true after transport_start"));
+        assertTrue(run.stdout.contains("status.transport.playing == false after transport_stop"));
         assertEquals(0, run.exitCode);
     }
 
@@ -270,9 +272,7 @@ class McpSmokeHarnessAtddTest {
                         {"status":"success","data":{"device_name":"Test Device","parameters":[]}}
                         """.trim();
                 }
-                return """
-                    {"status":"success","data":{"tool":"%s"}}
-                    """.formatted(toolName).trim();
+                return super.callTool(toolName, arguments);
             }
         };
 
@@ -297,9 +297,7 @@ class McpSmokeHarnessAtddTest {
                         {"status":"success","data":{"device_name":"Test Device","parameters":[{"index":0}]}}
                         """.trim();
                 }
-                return """
-                    {"status":"success","data":{"tool":"%s"}}
-                    """.formatted(toolName).trim();
+                return super.callTool(toolName, arguments);
             }
         };
 
@@ -329,9 +327,7 @@ class McpSmokeHarnessAtddTest {
                         {"status":"error","error":{"code":"BITWIG_API_ERROR","message":"Failed to set value","operation":"set_selected_device_parameter"}}
                         """.trim();
                 }
-                return """
-                    {"status":"success","data":{"tool":"%s"}}
-                    """.formatted(toolName).trim();
+                return super.callTool(toolName, arguments);
             }
         };
 
@@ -355,9 +351,7 @@ class McpSmokeHarnessAtddTest {
                         {"status":"success"}
                         """.trim();
                 }
-                return """
-                    {"status":"success","data":{"tool":"%s"}}
-                    """.formatted(toolName).trim();
+                return super.callTool(toolName, arguments);
             }
         };
 
@@ -365,6 +359,40 @@ class McpSmokeHarnessAtddTest {
 
         assertEquals(1, run.exitCode, "Should fail when get_selected_device_parameters envelope is invalid");
         assertTrue(run.stderr.contains("get_selected_device_parameters returned invalid envelope"));
+    }
+
+    @DisplayName("1.1-ATDD-018 [P1] Given transport_stop does not stop playback, when mutation mode runs, then fail")
+    @Test
+    void mutation_mode_fails_when_transport_stop_does_not_change_status_to_stopped() {
+        RecordingMcpClient client = new RecordingMcpClient(baselineToolsWith("transport_start", "transport_stop")) {
+            @Override
+            public String callTool(String toolName, Map<String, Object> arguments) {
+                calledTools.add(toolName);
+                if ("transport_start".equals(toolName)) {
+                    return """
+                        {"status":"success","data":{"action":"transport_started"}}
+                        """.trim();
+                }
+                if ("transport_stop".equals(toolName)) {
+                    return """
+                        {"status":"success","data":{"action":"transport_stopped"}}
+                        """.trim();
+                }
+                if ("status".equals(toolName)) {
+                    // Simulate regression: playback reports true even after stop
+                    return """
+                        {"status":"success","data":{"transport":{"playing":true}}}
+                        """.trim();
+                }
+                return super.callTool(toolName, arguments);
+            }
+        };
+
+        HarnessRun run = runMutation(client);
+
+        assertEquals(1, run.exitCode, "Should fail when transport_stop does not result in playing=false");
+        assertTrue(run.stderr.contains("expected false after transport_stop"),
+                "Failure should explicitly report transport state mismatch after stop");
     }
 
     private static McpSmokeHarnessArgs safeArgs() {
