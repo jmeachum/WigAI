@@ -472,7 +472,7 @@ So that I can reliably act on the intended track without custom per-tool rules.
 
 **Given** a request provides both `track_index` and `track_name`
 **When** the request is validated
-**Then** WigAI refuses with `INVALID_PARAMETER` (exactly one targeting mode must be used).
+**Then** WigAI treats `track_index` as authoritative and uses `track_name` as confirmation; it returns `INVALID_PARAMETER` only when `track_name` does not match the resolved indexed track (after trimming and case-insensitive normalization).
 
 ### Story 2.4: `resolve_track` Tool (Deterministic “Fuzzy” Matching → Candidate List + Ambiguity)
 

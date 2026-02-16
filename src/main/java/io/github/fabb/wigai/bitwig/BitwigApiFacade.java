@@ -8,6 +8,7 @@ import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.error.WigAIErrorHandler;
 import io.github.fabb.wigai.common.validation.ParameterValidator;
+import io.github.fabb.wigai.common.validation.TrackTargetingContract;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -233,26 +234,6 @@ public class BitwigApiFacade {
     // ========================================
 
     /**
-     * Finds a track by name using case-sensitive matching.
-     *
-     * @param trackName The name of the track to find
-     * @return Optional containing the track if found, empty otherwise
-     */
-    private Optional<Track> findTrackByName(String trackName) {
-        if (trackName == null || trackName.trim().isEmpty()) {
-            return Optional.empty();
-        }
-
-        for (int i = 0; i < trackBank.getSizeOfBank(); i++) {
-            Track track = trackBank.getItemAt(i);
-            if (track.exists().get() && trackName.equals(track.name().get())) {
-                return Optional.of(track);
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
      * Finds a track by index.
      *
      * @param index The index of the track to find
@@ -268,23 +249,29 @@ public class BitwigApiFacade {
     }
 
     /**
-     * Gets the index of a track by name.
-     *
-     * @param trackName The name of the track
-     * @return The track index, or -1 if not found
+     * Finds all exact-name track candidates using deterministic index order.
+     * Scans only the currently materialized track bank window.
      */
-    private int getTrackIndexByName(String trackName) {
+    private List<Map<String, Object>> getTrackCandidatesByName(String trackName) {
+        List<Map<String, Object>> candidates = new ArrayList<>();
         if (trackName == null || trackName.trim().isEmpty()) {
-            return -1;
+            return candidates;
         }
 
         for (int i = 0; i < trackBank.getSizeOfBank(); i++) {
             Track track = trackBank.getItemAt(i);
-            if (track.exists().get() && trackName.equals(track.name().get())) {
-                return i;
+            if (!track.exists().get()) {
+                continue;
+            }
+            String currentTrackName = track.name().get();
+            if (TrackTargetingContract.namesMatchNormalized(trackName, currentTrackName)) {
+                Map<String, Object> candidate = new LinkedHashMap<>();
+                candidate.put("track_index", i);
+                candidate.put("track_name", currentTrackName);
+                candidates.add(candidate);
             }
         }
-        return -1;
+        return candidates;
     }
 
     // ========================================
@@ -333,6 +320,101 @@ public class BitwigApiFacade {
 
             return track.name().get();
         });
+    }
+
+    /**
+     * Resolves a target track index using the shared selector precedence:
+     * {@code track_index -> track_name -> selected track fallback}.
+     *
+     * <p>When both selectors are provided, {@code track_index} is authoritative and
+     * {@code track_name} acts as confirmation against the resolved index.</p>
+     *
+     * @param trackIndex optional explicit index selector
+     * @param trackName optional exact normalized name selector (trim + case-insensitive)
+     * @param useSelectedTrackFallback whether to fall back to selected track when selectors are absent
+     * @param operation operation/tool name for error context
+     * @return resolved track index
+     * @throws BitwigApiException when resolution fails or selectors conflict
+     */
+    public int resolveTrackIndex(
+        Integer trackIndex,
+        String trackName,
+        boolean useSelectedTrackFallback,
+        String operation
+    ) throws BitwigApiException {
+        if (trackIndex != null) {
+            Track indexedTrack = requireTrackByIndex(trackIndex, operation);
+            String actualTrackName = indexedTrack.name().get();
+            if (trackName != null && !TrackTargetingContract.namesMatchNormalized(trackName, actualTrackName)) {
+                Map<String, Object> details = new LinkedHashMap<>();
+                details.put("track_index", trackIndex);
+                details.put("track_name", trackName);
+                details.put("resolved_track_name", actualTrackName);
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER,
+                    operation,
+                    "track_index " + trackIndex + " does not match track_name '" + trackName + "'",
+                    details
+                );
+            }
+            return trackIndex;
+        }
+
+        if (trackName != null) {
+            return findTrackIndexByName(trackName);
+        }
+
+        if (!useSelectedTrackFallback) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER,
+                operation,
+                "No valid track selector provided"
+            );
+        }
+
+        Integer selectedTrackIndex = getSelectedTrackProjectIndex();
+        if (selectedTrackIndex == null
+            || selectedTrackIndex < 0
+            || selectedTrackIndex >= trackBank.getSizeOfBank()) {
+            throw new BitwigApiException(
+                ErrorCode.TRACK_NOT_FOUND,
+                operation,
+                "No track is currently selected. Provide track_index or track_name."
+            );
+        }
+
+        Track selectedTrack = trackBank.getItemAt(selectedTrackIndex);
+        if (!selectedTrack.exists().get()) {
+            throw new BitwigApiException(
+                ErrorCode.TRACK_NOT_FOUND,
+                operation,
+                "No track is currently selected. Provide track_index or track_name."
+            );
+        }
+
+        return selectedTrackIndex;
+    }
+
+    private Track requireTrackByIndex(int index, String operation) throws BitwigApiException {
+        if (index < 0 || index >= trackBank.getSizeOfBank()) {
+            throw new BitwigApiException(
+                ErrorCode.INVALID_PARAMETER_INDEX,
+                operation,
+                "Track index must be between 0 and " + (trackBank.getSizeOfBank() - 1) + ", got: " + index,
+                Map.of("index", index, "max_index", trackBank.getSizeOfBank() - 1)
+            );
+        }
+
+        Track track = trackBank.getItemAt(index);
+        if (!track.exists().get()) {
+            throw new BitwigApiException(
+                ErrorCode.TRACK_NOT_FOUND,
+                operation,
+                "Track at index " + index + " does not exist",
+                Map.of("index", index)
+            );
+        }
+        return track;
     }
 
     /**
@@ -465,11 +547,11 @@ public class BitwigApiFacade {
     }
 
     /**
-     * Finds a track by name using case-sensitive matching.
+     * Finds a track by exact normalized name (trim + case-insensitive).
      *
      * @param trackName The name of the track to find
      * @return The track index if found
-     * @throws BitwigApiException if the track is not found
+     * @throws BitwigApiException if the track is not found or if duplicate exact-name matches exist
      */
     public int findTrackIndexByName(String trackName) throws BitwigApiException {
         final String operation = "findTrackIndexByName";
@@ -477,9 +559,8 @@ public class BitwigApiFacade {
 
         return WigAIErrorHandler.executeWithErrorHandling(operation, () -> {
             ParameterValidator.validateNotEmpty(trackName, "trackName", operation);
-
-            int index = getTrackIndexByName(trackName);
-            if (index == -1) {
+            List<Map<String, Object>> candidates = getTrackCandidatesByName(trackName);
+            if (candidates.isEmpty()) {
                 throw new BitwigApiException(
                     ErrorCode.TRACK_NOT_FOUND,
                     operation,
@@ -488,43 +569,68 @@ public class BitwigApiFacade {
                 );
             }
 
+            if (candidates.size() > 1) {
+                throw new BitwigApiException(
+                    ErrorCode.INVALID_PARAMETER,
+                    operation,
+                    "Ambiguous track_name '" + trackName + "'. Provide track_index to confirm target.",
+                    Map.of(
+                        "reason", "ambiguous_track_name",
+                        "track_name", trackName,
+                        "confirmation_parameter", "track_index",
+                        "candidates", candidates
+                    )
+                );
+            }
+
+            int index = (Integer) candidates.getFirst().get("track_index");
             logger.info("BitwigApiFacade: Found track '" + trackName + "' at index " + index);
             return index;
         });
     }
 
     /**
-     * Checks if a track exists by name using case-sensitive matching.
+     * Checks whether a uniquely matching track exists by exact normalized name.
      *
-     * @param trackName The name of the track to check
-     * @return true if the track exists, false otherwise
+     * @param trackName the name of the track to check
+     * @return {@code true} when exactly one matching track exists; {@code false} when no track matches
+     * @throws BitwigApiException when lookup fails due to ambiguity (duplicate exact-name matches) or other
+     * semantic/system errors
      */
     public boolean trackExists(String trackName) {
         try {
             findTrackIndexByName(trackName);
             return true;
         } catch (BitwigApiException e) {
-            return false;
+            if (e.getErrorCode() == ErrorCode.TRACK_NOT_FOUND) {
+                return false;
+            }
+            // Preserve ambiguity and other semantic failures for callers that need explicit handling.
+            throw e;
         }
     }
 
     /**
-     * Gets the number of clip slots available for a track.
+     * Gets the number of clip slots available for a uniquely resolved track name.
+     * Prefer {@link #getTrackClipCountByIndex(int)} for deterministic targeting.
      *
-     * @param trackName The name of the track
-     * @return The number of clip slots, or 0 if track not found
+     * @param trackName the track name to resolve
+     * @return the number of clip slots, or {@code 0} when the track is not found
+     * @throws BitwigApiException when track-name lookup is ambiguous or fails for non-{@code TRACK_NOT_FOUND}
+     * reasons
      */
+    @Deprecated(forRemoval = false)
     public int getTrackClipCount(String trackName) {
-        logger.info("BitwigApiFacade: Getting clip count for track '" + trackName + "'");
-
-        Optional<Track> trackOpt = findTrackByName(trackName);
-        if (trackOpt.isPresent()) {
-            // Return the number of available clip launcher slots
-            return trackOpt.get().clipLauncherSlotBank().getSizeOfBank();
+        try {
+            int resolvedTrackIndex = findTrackIndexByName(trackName);
+            return getTrackClipCountByIndex(resolvedTrackIndex);
+        } catch (BitwigApiException e) {
+            if (e.getErrorCode() == ErrorCode.TRACK_NOT_FOUND) {
+                logger.warn("BitwigApiFacade: Track '" + trackName + "' not found for clip count check");
+                return 0;
+            }
+            throw e;
         }
-
-        logger.warn("BitwigApiFacade: Track '" + trackName + "' not found for clip count check");
-        return 0;
     }
 
     /**
@@ -586,50 +692,16 @@ public class BitwigApiFacade {
 
     /**
      * Launches a clip at the specified track and clip index.
+     * Prefer {@link #launchClipByTrackIndex(int, int)} for deterministic targeting.
      *
      * @param trackName The name of the track containing the clip
      * @param clipIndex The zero-based index of the clip slot to launch
      * @throws BitwigApiException if track is not found, clip index is invalid, or launch fails
      */
+    @Deprecated(forRemoval = false)
     public void launchClip(String trackName, int clipIndex) throws BitwigApiException {
-        final String operation = "launchClip";
-        logger.info("BitwigApiFacade: Launching clip at " + trackName + "[" + clipIndex + "]");
-
-        WigAIErrorHandler.executeWithErrorHandling(operation, () -> {
-            // Validate parameters
-            ParameterValidator.validateNotEmpty(trackName, "trackName", operation);
-            ParameterValidator.validateClipIndex(clipIndex, operation);
-
-            // Find the track using helper method
-            Optional<Track> trackOpt = findTrackByName(trackName);
-            if (trackOpt.isEmpty()) {
-                throw new BitwigApiException(
-                    ErrorCode.TRACK_NOT_FOUND,
-                    operation,
-                    "Track '" + trackName + "' not found",
-                    Map.of("trackName", trackName)
-                );
-            }
-
-            Track targetTrack = trackOpt.get();
-
-            // Validate clip index within track bounds
-            ClipLauncherSlotBank slotBank = targetTrack.clipLauncherSlotBank();
-            if (clipIndex >= slotBank.getSizeOfBank()) {
-                throw new BitwigApiException(
-                    ErrorCode.INVALID_PARAMETER_INDEX,
-                    operation,
-                    "Clip index " + clipIndex + " out of bounds for track '" + trackName + "' (max: " + (slotBank.getSizeOfBank() - 1) + ")",
-                    Map.of("trackName", trackName, "clipIndex", clipIndex, "maxIndex", slotBank.getSizeOfBank() - 1)
-                );
-            }
-
-            // Launch the clip
-            ClipLauncherSlot slot = slotBank.getItemAt(clipIndex);
-            slot.launch();
-
-            logger.info("BitwigApiFacade: Successfully launched clip at " + trackName + "[" + clipIndex + "]");
-        });
+        int resolvedTrackIndex = findTrackIndexByName(trackName);
+        launchClipByTrackIndex(resolvedTrackIndex, clipIndex);
     }
 
     /**
@@ -1323,24 +1395,13 @@ public class BitwigApiFacade {
     public Map<String, Object> getTrackDetailsByIndex(int index) throws BitwigApiException {
         final String operation = "get_track_details";
         return WigAIErrorHandler.executeWithErrorHandling(operation, () -> {
-            if (index < 0 || index >= trackBank.getSizeOfBank()) {
-                throw new BitwigApiException(
-                    ErrorCode.INVALID_PARAMETER_INDEX,
-                    operation,
-                    "Track index must be between 0 and " + (trackBank.getSizeOfBank() - 1) + ", got: " + index,
-                    Map.of("index", index, "max_index", trackBank.getSizeOfBank() - 1)
-                );
-            }
-            Track track = trackBank.getItemAt(index);
-            if (!track.exists().get()) {
-                throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation, "Track at index " + index + " does not exist", Map.of("index", index));
-            }
+            Track track = requireTrackByIndex(index, operation);
             return buildDetailedTrackInfo(track, index);
         });
     }
 
     /**
-     * Gets detailed information about a track by exact name (case-sensitive).
+     * Gets detailed information about a track by exact normalized name (trim + case-insensitive).
      */
     public Map<String, Object> getTrackDetailsByName(String trackName) throws BitwigApiException {
         final String operation = "get_track_details";
@@ -1356,49 +1417,41 @@ public class BitwigApiFacade {
      */
     public Map<String, Object> getSelectedTrackDetails() {
         try {
-            if (!cursorTrack.exists().get()) {
+            Integer selectedTrackIndex = getSelectedTrackProjectIndex();
+            if (selectedTrackIndex == null) {
                 return null;
             }
+            Optional<Track> selectedTrack = findTrackByIndex(selectedTrackIndex);
+            if (selectedTrack.isPresent()) {
+                return buildDetailedTrackInfo(selectedTrack.get(), selectedTrackIndex);
+            }
+
+            // Fallback when selected track cannot be materialized in the current bank window.
             String name = cursorTrack.name().get();
-            // Find index in current bank for consistency
-            int index = -1;
-            for (int i = 0; i < trackBank.getSizeOfBank(); i++) {
-                Track t = trackBank.getItemAt(i);
-                if (t.exists().get() && name.equals(t.name().get())) {
-                    index = i;
-                    break;
-                }
-            }
-            // If not found in bank, attempt to build from cursor directly
-            if (index >= 0) {
-                return buildDetailedTrackInfo(trackBank.getItemAt(index), index);
-            } else {
-                // Build minimal from cursor and enrich where possible
-                Map<String, Object> info = new LinkedHashMap<>();
-                info.put("index", -1);
-                info.put("name", name);
-                info.put("type", cursorTrack.trackType().get().toLowerCase());
-                info.put("is_group", cursorTrack.isGroup().get());
-                info.put("parent_group_index", null);
-                info.put("activated", true);
-                info.put("color", Constants.DEFAULT_COLOR);
-                info.put("is_selected", true);
-                info.put("devices", List.of());
-                info.put("volume", cursorTrack.volume().value().get());
-                info.put("volume_str", safeDisplay(cursorTrack.volume().displayedValue().get()));
-                info.put("pan", cursorTrack.pan().value().get());
-                info.put("pan_str", safeDisplay(cursorTrack.pan().displayedValue().get()));
-                info.put("muted", cursorTrack.mute().get());
-                info.put("soloed", cursorTrack.solo().get());
-                info.put("armed", cursorTrack.arm().get());
-                info.put("monitor_enabled", cursorTrack.isMonitoring().get());
-                String mode = cursorTrack.monitorMode().get();
-                boolean cursorAuto = mode != null && mode.toLowerCase().contains("auto");
-                info.put("auto_monitor_enabled", cursorAuto);
-                info.put("sends", List.of());
-                info.put("clips", List.of());
-                return info;
-            }
+            Map<String, Object> info = new LinkedHashMap<>();
+            info.put("index", selectedTrackIndex);
+            info.put("name", name);
+            info.put("type", cursorTrack.trackType().get().toLowerCase());
+            info.put("is_group", cursorTrack.isGroup().get());
+            info.put("parent_group_index", null);
+            info.put("activated", true);
+            info.put("color", Constants.DEFAULT_COLOR);
+            info.put("is_selected", true);
+            info.put("devices", List.of());
+            info.put("volume", cursorTrack.volume().value().get());
+            info.put("volume_str", safeDisplay(cursorTrack.volume().displayedValue().get()));
+            info.put("pan", cursorTrack.pan().value().get());
+            info.put("pan_str", safeDisplay(cursorTrack.pan().displayedValue().get()));
+            info.put("muted", cursorTrack.mute().get());
+            info.put("soloed", cursorTrack.solo().get());
+            info.put("armed", cursorTrack.arm().get());
+            info.put("monitor_enabled", cursorTrack.isMonitoring().get());
+            String mode = cursorTrack.monitorMode().get();
+            boolean cursorAuto = mode != null && mode.toLowerCase().contains("auto");
+            info.put("auto_monitor_enabled", cursorAuto);
+            info.put("sends", List.of());
+            info.put("clips", List.of());
+            return info;
         } catch (Exception e) {
             logger.warn("BitwigApiFacade: Error getting selected track details: " + e.getMessage());
             return null;
@@ -1543,71 +1596,16 @@ public class BitwigApiFacade {
      */
     public List<Map<String, Object>> getDevicesOnTrack(Integer trackIndex, String trackName, Boolean getSelected)
             throws BitwigApiException {
-        final String operation = "getDevicesOnTrack";
+        final String operation = "list_devices_on_track";
 
         try {
-            Track targetTrack = null;
-            int resolvedTrackIndex = -1;
-
-            // Resolve target track based on parameters
-            if (trackIndex != null) {
-                // Track by index
-                if (trackIndex < 0 || trackIndex >= trackBank.getSizeOfBank()) {
-                    throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, operation,
-                        "Track index " + trackIndex + " is out of range [0, " + (trackBank.getSizeOfBank() - 1) + "]");
-                }
-
-                targetTrack = trackBank.getItemAt(trackIndex);
-                if (!targetTrack.exists().get()) {
-                    throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation,
-                        "Track at index " + trackIndex + " does not exist");
-                }
-                resolvedTrackIndex = trackIndex;
-
-            } else if (trackName != null) {
-                // Track by name - find exact match
-                for (int i = 0; i < trackBank.getSizeOfBank(); i++) {
-                    Track track = trackBank.getItemAt(i);
-                    if (track.exists().get() && trackName.equals(track.name().get())) {
-                        targetTrack = track;
-                        resolvedTrackIndex = i;
-                        break;
-                    }
-                }
-
-                if (targetTrack == null) {
-                    throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation,
-                        "No track found with name '" + trackName + "'");
-                }
-
-            } else if (Boolean.TRUE.equals(getSelected)) {
-                // Use selected track (cursor track)
-                if (!cursorTrack.exists().get()) {
-                    throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation,
-                        "No track is currently selected");
-                }
-
-                // Find the index of the cursor track in the track bank
-                String selectedTrackName = cursorTrack.name().get();
-                for (int i = 0; i < trackBank.getSizeOfBank(); i++) {
-                    Track track = trackBank.getItemAt(i);
-                    if (track.exists().get() && selectedTrackName.equals(track.name().get())) {
-                        targetTrack = track;
-                        resolvedTrackIndex = i;
-                        break;
-                    }
-                }
-
-                if (targetTrack == null) {
-                    throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation,
-                        "Selected track not found in track bank");
-                }
-            }
-
-            if (targetTrack == null) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, operation,
-                    "No valid track identifier provided");
-            }
+            int resolvedTrackIndex = resolveTrackIndex(
+                trackIndex,
+                trackName,
+                Boolean.TRUE.equals(getSelected),
+                operation
+            );
+            Track targetTrack = requireTrackByIndex(resolvedTrackIndex, operation);
 
             // Get devices for the resolved track
             return getDetailedTrackDevices(resolvedTrackIndex, targetTrack);
@@ -1642,7 +1640,8 @@ public class BitwigApiFacade {
 
             // Get cursor device info for selection comparison (only if we have a selected track and device)
             String selectedDeviceName = null;
-            boolean isSelectedTrack = cursorTrack.exists().get() && track.name().get().equals(cursorTrack.name().get());
+            Integer selectedTrackIndex = getSelectedTrackProjectIndex();
+            boolean isSelectedTrack = selectedTrackIndex != null && selectedTrackIndex == trackIndex;
             if (isSelectedTrack && cursorDevice.exists().get()) {
                 selectedDeviceName = cursorDevice.name().get();
             }
@@ -1823,30 +1822,8 @@ public class BitwigApiFacade {
         Track targetTrack;
         int resolvedTrackIndex;
 
-        if (trackIndex != null) {
-            if (trackIndex < 0 || trackIndex >= trackBank.getSizeOfBank()) {
-                throw new BitwigApiException(ErrorCode.INVALID_PARAMETER_INDEX, operation,
-                    "Track index " + trackIndex + " is out of range [0, " + (trackBank.getSizeOfBank() - 1) + "]");
-            }
-            Optional<Track> trackOpt = findTrackByIndex(trackIndex);
-            if (trackOpt.isEmpty()) {
-                throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation,
-                    "Track at index " + trackIndex + " does not exist");
-            }
-            targetTrack = trackOpt.get();
-            resolvedTrackIndex = trackIndex;
-        } else if (trackName != null) {
-            Optional<Track> trackOpt = findTrackByName(trackName);
-            if (trackOpt.isEmpty()) {
-                throw new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, operation,
-                    "No track found with name '" + trackName + "'");
-            }
-            targetTrack = trackOpt.get();
-            resolvedTrackIndex = getTrackIndexByName(trackName);
-        } else {
-            throw new BitwigApiException(ErrorCode.INVALID_PARAMETER, operation,
-                "Either trackIndex or trackName must be provided");
-        }
+        resolvedTrackIndex = resolveTrackIndex(trackIndex, trackName, true, operation);
+        targetTrack = requireTrackByIndex(resolvedTrackIndex, operation);
 
         // Resolve target device
         DeviceBank deviceBank = trackDeviceBanks.get(resolvedTrackIndex);
@@ -1890,8 +1867,7 @@ public class BitwigApiFacade {
         boolean isBypassed = !isEnabled;
 
         // Determine if this device is selected by comparing with cursor device
-        boolean isSelected = isDeviceSelectedComparison(resolvedTrackIndex, targetTrack.name().get(),
-                                                       resolvedDeviceIndex, actualDeviceName);
+        boolean isSelected = isDeviceSelectedComparison(resolvedTrackIndex, resolvedDeviceIndex, actualDeviceName);
 
         // For non-selected devices, remote control access is limited
         List<ParameterInfo> remoteControls = getDeviceRemoteControlsFromDevice(targetDevice);
@@ -1953,15 +1929,15 @@ public class BitwigApiFacade {
     /**
      * Determines if a device is selected by comparing with cursor device.
      */
-    private boolean isDeviceSelectedComparison(int trackIndex, String trackName, int deviceIndex, String deviceName) {
+    private boolean isDeviceSelectedComparison(int trackIndex, int deviceIndex, String deviceName) {
         // Check if cursor device exists
         if (!cursorDevice.exists().get() || !cursorTrack.exists().get()) {
             return false;
         }
 
-        // Compare track
-        String selectedTrackName = cursorTrack.name().get();
-        if (!trackName.equals(selectedTrackName)) {
+        // Compare track by project-absolute index semantics
+        Integer selectedTrackIndex = getSelectedTrackProjectIndex();
+        if (selectedTrackIndex == null || selectedTrackIndex != trackIndex) {
             return false;
         }
 

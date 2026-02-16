@@ -70,8 +70,8 @@ development_status:
   epic-2: in-progress
   2-0-dependency-version-refresh-checkpoint-g6-closure: done
   2-1-contract-semantics-dor-and-runtime-test-docs-lockstep-gate-activation: done
-  2-2-duplicate-track-name-ambiguity-behavior-defined-and-tested: backlog
-  2-3-standard-track-targeting-contract-index-exact-name-selected-default: backlog
+  2-2-duplicate-track-name-ambiguity-behavior-defined-and-tested: done
+  2-3-standard-track-targeting-contract-index-exact-name-selected-default: done
   2-4-resolve-track-tool-deterministic-fuzzy-matching-candidate-list-ambiguity: backlog
   2-5-apply-track-targeting-contract-to-existing-mutating-tools-documentation: backlog
   epic-2-retrospective: optional

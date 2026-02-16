@@ -21,6 +21,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class GetTrackDetailsToolTest {
@@ -62,10 +65,16 @@ class GetTrackDetailsToolTest {
         var vp3 = GetTrackDetailsTool.validateParameters(Map.of("track_name", "Drums"), "get_track_details");
         // Provided get_selected true
         var vp4 = GetTrackDetailsTool.validateParameters(Map.of("get_selected", true), "get_track_details");
+        // Provided index + name (index authoritative)
+        var vp5 = GetTrackDetailsTool.validateParameters(
+            Map.of("track_index", 1, "track_name", "Drums"),
+            "get_track_details"
+        );
         assertNotNull(vp1);
         assertNotNull(vp2);
         assertNotNull(vp3);
         assertNotNull(vp4);
+        assertNotNull(vp5);
     }
 
     @Test
@@ -91,9 +100,54 @@ class GetTrackDetailsToolTest {
     }
 
     @Test
-    void testInvalidParamCombination() {
-        assertThrows(IllegalArgumentException.class, () ->
-            GetTrackDetailsTool.validateParameters(Map.of("track_index", 1, "track_name", "X"), "get_track_details")
+    void testInvalidParamCombinationWithGetSelected() {
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            GetTrackDetailsTool.validateParameters(
+                Map.of("track_index", 1, "get_selected", true),
+                "get_track_details"
+            )
         );
+        assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
+    }
+
+    @Test
+    void testHandlerUsesSelectedTrackFallbackWhenNoSelectorsProvided() throws Exception {
+        Map<String, Object> selectedDetails = new LinkedHashMap<>();
+        selectedDetails.put("index", 75);
+        selectedDetails.put("name", "Lead");
+        selectedDetails.put("is_selected", true);
+        when(bitwigApiFacade.getSelectedTrackDetails()).thenReturn(selectedDetails);
+
+        McpSchema.CallToolResult result = invokeToolHandler(Map.of());
+
+        JsonNode data = McpResponseTestUtils.validateSuccessResponse(result);
+        assertEquals(75, data.get("index").asInt());
+        assertEquals("Lead", data.get("name").asText());
+        verify(bitwigApiFacade).getSelectedTrackDetails();
+        verify(bitwigApiFacade, never()).resolveTrackIndex(any(), any(), anyBoolean(), anyString());
+        verify(bitwigApiFacade, never()).getTrackDetailsByIndex(anyInt());
+    }
+
+    @Test
+    void testHandlerReturnsTrackNotFoundWhenSelectedTrackFallbackMissing() throws Exception {
+        when(bitwigApiFacade.getSelectedTrackDetails()).thenReturn(null);
+
+        McpSchema.CallToolResult result = invokeToolHandler(Map.of());
+
+        JsonNode error = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("TRACK_NOT_FOUND", error.get("code").asText());
+        assertTrue(error.get("message").asText().contains("Provide track_index or track_name"));
+        verify(bitwigApiFacade).getSelectedTrackDetails();
+        verify(bitwigApiFacade, never()).resolveTrackIndex(any(), any(), anyBoolean(), anyString());
+        verify(bitwigApiFacade, never()).getTrackDetailsByIndex(anyInt());
+    }
+
+    private McpSchema.CallToolResult invokeToolHandler(Map<String, Object> arguments) {
+        McpServerFeatures.SyncToolSpecification spec = GetTrackDetailsTool.specification(bitwigApiFacade, structuredLogger);
+        McpSchema.CallToolRequest request = McpSchema.CallToolRequest.builder()
+            .name("get_track_details")
+            .arguments(arguments)
+            .build();
+        return spec.callHandler().apply(exchange, request);
     }
 }

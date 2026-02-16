@@ -1,7 +1,7 @@
 package io.github.fabb.wigai.mcp.tool;
 
 import io.github.fabb.wigai.bitwig.BitwigApiFacade;
-import io.github.fabb.wigai.common.error.ErrorCode;
+import io.github.fabb.wigai.common.validation.TrackTargetingContract;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.mcp.McpErrorHandler;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -9,7 +9,6 @@ import io.modelcontextprotocol.server.McpSyncServerExchange;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
@@ -40,7 +39,7 @@ public class ListDevicesOnTrackTool {
                 },
                 "track_name": {
                   "type": "string",
-                  "description": "Name of the track (case-sensitive, exact match)"
+                  "description": "Name of the track (exact match after trim + case-insensitive normalization)"
                 },
                 "get_selected": {
                   "type": "boolean",
@@ -65,7 +64,7 @@ public class ListDevicesOnTrackTool {
                 (validatedParams) -> bitwigApiFacade.getDevicesOnTrack(
                     validatedParams.trackIndex(),
                     validatedParams.trackName(),
-                    validatedParams.getSelected()
+                    validatedParams.useSelectedTrackFallback()
                 )
             );
 
@@ -77,91 +76,24 @@ public class ListDevicesOnTrackTool {
 
     /**
      * Validates the parameters for the list_devices_on_track tool.
-     * Ensures exactly one of track_index, track_name, or get_selected is provided.
+     * Uses the shared track-targeting selector contract.
      *
      * @param arguments The raw arguments map
      * @param operation The operation name for error context
      * @return Validated parameters
      */
     private static ValidatedParams validateParameters(Map<String, Object> arguments, String operation) {
-        Integer trackIndex = null;
-        String trackName = null;
-        Boolean getSelected = null;
-
-        // Extract parameters
-        if (arguments.containsKey("track_index")) {
-            Object indexObj = arguments.get("track_index");
-            if (indexObj instanceof Number) {
-                double raw = ((Number) indexObj).doubleValue();
-                if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
-                    throw new IllegalArgumentException("Parameter 'track_index' must be an integer, got: " + indexObj);
-                }
-                if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
-                    throw new io.github.fabb.wigai.common.error.BitwigApiException(
-                        io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER_INDEX,
-                        operation,
-                        "track_index value out of integer range: " + indexObj,
-                        java.util.Map.of("track_index", indexObj)
-                    );
-                }
-                int index = ((Number) indexObj).intValue();
-                if (index < 0) {
-                    throw new io.github.fabb.wigai.common.error.BitwigApiException(
-                        io.github.fabb.wigai.common.error.ErrorCode.INVALID_PARAMETER_INDEX,
-                        operation,
-                        "track_index must be >= 0, got: " + index,
-                        java.util.Map.of("track_index", index)
-                    );
-                }
-                trackIndex = index;
-            } else if (indexObj != null) {
-                throw new IllegalArgumentException("Parameter 'track_index' must be an integer");
-            }
-        }
-
-        if (arguments.containsKey("track_name")) {
-            Object nameObj = arguments.get("track_name");
-            if (nameObj instanceof String) {
-                String name = ((String) nameObj).trim();
-                if (name.isEmpty()) {
-                    throw new IllegalArgumentException("Parameter 'track_name' cannot be empty");
-                }
-                trackName = name;
-            } else if (nameObj != null) {
-                throw new IllegalArgumentException("Parameter 'track_name' must be a string");
-            }
-        }
-
-        if (arguments.containsKey("get_selected")) {
-            Object selectedObj = arguments.get("get_selected");
-            if (selectedObj instanceof Boolean) {
-                getSelected = (Boolean) selectedObj;
-            } else if (selectedObj != null) {
-                throw new IllegalArgumentException("Parameter 'get_selected' must be a boolean");
-            }
-        }
-
-        // Validate exactly one parameter is provided
-        int paramCount = 0;
-        if (trackIndex != null) paramCount++;
-        if (trackName != null) paramCount++;
-        if (getSelected != null) paramCount++;
-
-        if (paramCount > 1) {
-            throw new IllegalArgumentException(
-                "Exactly one of 'track_index', 'track_name', or 'get_selected' may be provided");
-        }
-
-        // Default to get_selected=true when no parameters provided
-        if (paramCount == 0) {
-            getSelected = true;
-        }
-
-        return new ValidatedParams(trackIndex, trackName, getSelected);
+        TrackTargetingContract.TrackTargetSelectors selectors =
+            TrackTargetingContract.parse(arguments, operation, true);
+        return new ValidatedParams(
+            selectors.trackIndex(),
+            selectors.trackName(),
+            selectors.useSelectedTrackFallback()
+        );
     }
 
     /**
      * Record to hold validated parameters for the list_devices_on_track tool.
      */
-    private record ValidatedParams(Integer trackIndex, String trackName, Boolean getSelected) {}
+    private record ValidatedParams(Integer trackIndex, String trackName, boolean useSelectedTrackFallback) {}
 }

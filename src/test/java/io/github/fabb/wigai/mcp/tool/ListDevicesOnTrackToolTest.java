@@ -69,7 +69,7 @@ class ListDevicesOnTrackToolTest {
     void testSuccessfulCallWithTrackIndex() throws Exception {
         // Arrange
         List<Map<String, Object>> mockDevices = createMockDevicesList();
-        when(bitwigApiFacade.getDevicesOnTrack(eq(1), isNull(), isNull())).thenReturn(mockDevices);
+        when(bitwigApiFacade.getDevicesOnTrack(eq(1), isNull(), eq(false))).thenReturn(mockDevices);
 
         McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
 
@@ -108,7 +108,7 @@ class ListDevicesOnTrackToolTest {
     void testSuccessfulCallWithTrackName() throws Exception {
         // Arrange
         List<Map<String, Object>> mockDevices = createMockDevicesList();
-        when(bitwigApiFacade.getDevicesOnTrack(isNull(), eq("Drums"), isNull())).thenReturn(mockDevices);
+        when(bitwigApiFacade.getDevicesOnTrack(isNull(), eq("Drums"), eq(false))).thenReturn(mockDevices);
 
         McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
 
@@ -186,7 +186,7 @@ class ListDevicesOnTrackToolTest {
     void testEmptyDevicesList() throws Exception {
         // Arrange
         List<Map<String, Object>> emptyDevices = new ArrayList<>();
-        when(bitwigApiFacade.getDevicesOnTrack(eq(0), isNull(), isNull())).thenReturn(emptyDevices);
+        when(bitwigApiFacade.getDevicesOnTrack(eq(0), isNull(), eq(false))).thenReturn(emptyDevices);
 
         McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
 
@@ -211,8 +211,11 @@ class ListDevicesOnTrackToolTest {
     }
 
     @Test
-    void testInvalidParameterCombination() throws Exception {
-        // Arrange - providing multiple parameters should fail
+    void testDualSelectorCombinationUsesIndexAuthoritativePath() throws Exception {
+        // Arrange - track_index + track_name is valid; index is authoritative with name confirmation
+        List<Map<String, Object>> mockDevices = createMockDevicesList();
+        when(bitwigApiFacade.getDevicesOnTrack(eq(1), eq("Drums"), eq(false))).thenReturn(mockDevices);
+
         McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
 
         Map<String, Object> arguments = Map.of(
@@ -229,6 +232,28 @@ class ListDevicesOnTrackToolTest {
 
         // Assert
         assertNotNull(result);
+        assertFalse(result.isError());
+
+        String responseJson = ((McpSchema.TextContent) result.content().get(0)).text();
+        JsonNode response = objectMapper.readTree(responseJson);
+        assertEquals("success", response.get("status").asText());
+    }
+
+    @Test
+    void testInvalidCombinationWithGetSelected() throws Exception {
+        McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
+
+        Map<String, Object> arguments = Map.of(
+            "track_index", 1,
+            "get_selected", true
+        );
+        McpSchema.CallToolRequest request = McpSchema.CallToolRequest.builder()
+            .name("list_devices_on_track")
+            .arguments(arguments)
+            .build();
+
+        McpSchema.CallToolResult result = spec.callHandler().apply(exchange, request);
+
         assertTrue(result.isError());
 
         String responseJson = ((McpSchema.TextContent) result.content().get(0)).text();
@@ -282,13 +307,13 @@ class ListDevicesOnTrackToolTest {
         String responseJson = ((McpSchema.TextContent) result.content().get(0)).text();
         JsonNode response = objectMapper.readTree(responseJson);
         assertEquals("error", response.get("status").asText());
-        assertEquals("INVALID_PARAMETER", response.get("error").get("code").asText());
+        assertEquals("EMPTY_PARAMETER", response.get("error").get("code").asText());
     }
 
     @Test
     void testTrackNotFoundError() throws Exception {
         // Arrange
-        when(bitwigApiFacade.getDevicesOnTrack(eq(99), isNull(), isNull()))
+        when(bitwigApiFacade.getDevicesOnTrack(eq(99), isNull(), eq(false)))
             .thenThrow(new BitwigApiException(ErrorCode.TRACK_NOT_FOUND, "list_devices_on_track", "Track not found"));
 
         McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
@@ -316,7 +341,7 @@ class ListDevicesOnTrackToolTest {
     @Test
     void testBitwigApiError() throws Exception {
         // Arrange
-        when(bitwigApiFacade.getDevicesOnTrack(eq(1), isNull(), isNull()))
+        when(bitwigApiFacade.getDevicesOnTrack(eq(1), isNull(), eq(false)))
             .thenThrow(new BitwigApiException(ErrorCode.BITWIG_API_ERROR, "list_devices_on_track", "API error"));
 
         McpServerFeatures.SyncToolSpecification spec = ListDevicesOnTrackTool.specification(bitwigApiFacade, structuredLogger);
