@@ -1,0 +1,36 @@
+Project version: 0.3.1
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileTestJava
+> Task :processTestResources NO-SOURCE
+> Task :testClasses
+
+> Task :mcpTimingStressTest
+=== MCP Timing-Stress Harness ===
+Per-tool deadline: 5000ms
+
+Discovered tools: [status, transport_start, transport_stop, launch_clip, session_launchSceneByIndex, session_launchSceneByName, get_selected_device_parameters, set_selected_device_parameter, set_selected_device_parameters, get_device_details, list_tracks, list_devices_on_track, get_track_details, list_scenes, get_clips_in_scene]
+
+OK: status → success (11ms)
+OK: transport_start → success (1ms)
+OK: transport_stop → success (1ms)
+OK: launch_clip → error [MISSING_REQUIRED_PARAMETER] (3ms)
+OK: session_launchSceneByIndex → error [MISSING_REQUIRED_PARAMETER] (2ms)
+OK: session_launchSceneByName → error [MISSING_REQUIRED_PARAMETER] (2ms)
+OK: get_selected_device_parameters → success (1ms)
+OK: set_selected_device_parameter → error [MISSING_REQUIRED_PARAMETER] (1ms)
+OK: set_selected_device_parameters → error [MISSING_REQUIRED_PARAMETER] (2ms)
+OK: get_device_details → success (1ms)
+OK: list_tracks → success (2ms)
+OK: list_devices_on_track → success (1ms)
+OK: get_track_details → success (2ms)
+OK: list_scenes → success (2ms)
+OK: get_clips_in_scene → error [MISSING_REQUIRED_PARAMETER] (1ms)
+
+--- Timing-Stress Summary ---
+Passed: 15 | Failed: 0 | Total: 15
+=== TIMING-STRESS PASS ===
+
+BUILD SUCCESSFUL in 4s
+4 actionable tasks: 2 executed, 2 up-to-date
