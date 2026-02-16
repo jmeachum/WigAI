@@ -18,6 +18,8 @@ import java.util.Set;
  * Exit codes: 0 = pass, 1 = failure.
  */
 public final class McpSmokeHarness {
+    private static final int TRANSPORT_STATE_MAX_ATTEMPTS = 10;
+    private static final long TRANSPORT_STATE_POLL_INTERVAL_MS = 100L;
 
     // AC2: Assert baseline tools exist - full read-only tool set per story requirements
     private static final Set<String> BASELINE_REQUIRED_TOOLS = Set.of(
@@ -131,6 +133,9 @@ public final class McpSmokeHarness {
                     return 1;
                 }
                 out.println("✓ transport_start → OK");
+                if (!verifyTransportPlayingState(client, true, "transport_start", out, err)) {
+                    return 1;
+                }
 
                 String stopResponse = client.callTool("transport_stop", Map.of());
                 EnvelopeResult stopEnvelope = parseEnvelope(stopResponse);
@@ -143,6 +148,9 @@ public final class McpSmokeHarness {
                     return 1;
                 }
                 out.println("✓ transport_stop → OK");
+                if (!verifyTransportPlayingState(client, false, "transport_stop", out, err)) {
+                    return 1;
+                }
             } catch (Exception e) {
                 err.println("FAIL: transport mutation failed: " + e.getMessage());
                 return 1;
@@ -264,6 +272,69 @@ public final class McpSmokeHarness {
             return code;
         }
         return code + " (" + message + ")";
+    }
+
+    /**
+     * Verifies transport playback state via status tool after a transport mutation.
+     */
+    private boolean verifyTransportPlayingState(
+            McpClient client,
+            boolean expectedPlaying,
+            String afterOperation,
+            PrintStream out,
+            PrintStream err) {
+        String lastIssue = null;
+        for (int attempt = 1; attempt <= TRANSPORT_STATE_MAX_ATTEMPTS; attempt++) {
+            try {
+                String statusResponse = client.callTool("status", Map.of());
+                EnvelopeResult statusEnvelope = parseEnvelope(statusResponse);
+                if (!statusEnvelope.isValidEnvelope()) {
+                    lastIssue = "status returned invalid envelope after " + afterOperation + ": "
+                            + statusEnvelope.errorMessage();
+                } else if (statusEnvelope.isError()) {
+                    lastIssue = "status returned error after " + afterOperation + ": "
+                            + formatTypedError(statusEnvelope);
+                } else {
+                    JsonNode root = OBJECT_MAPPER.readTree(statusResponse);
+                    JsonNode transportNode = root.path("data").path("transport");
+                    if (!transportNode.isObject()) {
+                        lastIssue = "status.data.transport missing or invalid after " + afterOperation;
+                    } else if (transportNode.has("error")) {
+                        lastIssue = "status transport unavailable after " + afterOperation + ": "
+                                + transportNode.get("error").asText();
+                    } else {
+                        JsonNode playingNode = transportNode.get("playing");
+                        if (playingNode == null || !playingNode.isBoolean()) {
+                            lastIssue = "status.data.transport.playing missing/invalid after " + afterOperation;
+                        } else {
+                            boolean actualPlaying = playingNode.asBoolean();
+                            if (actualPlaying == expectedPlaying) {
+                                out.println("✓ status.transport.playing == " + expectedPlaying
+                                        + " after " + afterOperation + " (attempt " + attempt + ")");
+                                return true;
+                            }
+                            lastIssue = "status.transport.playing expected " + expectedPlaying + " after "
+                                    + afterOperation + " but was " + actualPlaying;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                lastIssue = "status verification failed after " + afterOperation + ": " + e.getMessage();
+            }
+
+            if (attempt < TRANSPORT_STATE_MAX_ATTEMPTS) {
+                try {
+                    Thread.sleep(TRANSPORT_STATE_POLL_INTERVAL_MS);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    err.println("FAIL: status verification interrupted after " + afterOperation);
+                    return false;
+                }
+            }
+        }
+
+        err.println("FAIL: " + lastIssue + " (after " + TRANSPORT_STATE_MAX_ATTEMPTS + " attempts)");
+        return false;
     }
 
     /**

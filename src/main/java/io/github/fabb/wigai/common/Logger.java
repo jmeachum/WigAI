@@ -2,12 +2,17 @@ package io.github.fabb.wigai.common;
 
 import com.bitwig.extension.controller.api.ControllerHost;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Simple logger implementation for the WigAI extension.
  * Uses Bitwig's ControllerHost.println for logging.
  */
 public class Logger {
     private final ControllerHost host;
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
     /**
      * Creates a new Logger instance.
@@ -27,7 +32,7 @@ public class Logger {
      * @param message The message to log
      */
     public void info(String message) {
-        host.println("[INFO] " + message);
+        log("INFO", message);
     }
 
     /**
@@ -36,7 +41,7 @@ public class Logger {
      * @param message The message to log
      */
     public void warn(String message) {
-        host.println("[WARN] " + message);
+        log("WARN", message);
     }
 
     /**
@@ -45,7 +50,7 @@ public class Logger {
      * @param message The message to log
      */
     public void error(String message) {
-        host.println("[ERROR] " + message);
+        log("ERROR", message);
     }
 
     /**
@@ -54,7 +59,7 @@ public class Logger {
      * @param message The message to log
      */
     public void debug(String message) {
-        host.println("[DEBUG] " + message);
+        log("DEBUG", message);
     }
 
     /**
@@ -64,10 +69,18 @@ public class Logger {
      * @param e       The exception to log
      */
     public void error(String message, Throwable e) {
-        host.println("[ERROR] " + message + ": " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        log("ERROR", message + ": " + e.getClass().getSimpleName() + ": " + e.getMessage());
         // Print stack trace in a Bitwig-console friendly format
         for (StackTraceElement element : e.getStackTrace()) {
-            host.println("    at " + element.toString());
+            log("ERROR", "at " + element.toString());
         }
+    }
+
+    private void log(String level, String message) {
+        host.println("[" + getCurrentTimestamp() + "] [" + level + "] " + message);
+    }
+
+    private String getCurrentTimestamp() {
+        return Instant.now().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER);
     }
 }

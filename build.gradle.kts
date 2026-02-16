@@ -99,6 +99,27 @@ tasks.register<JavaExec>("mcpSmokeTest") {
     environment("WIGAI_SMOKE_TEST_MUTATIONS", System.getenv("WIGAI_SMOKE_TEST_MUTATIONS") ?: "false")
 }
 
+tasks.register<JavaExec>("mcpTimingStressTest") {
+    group = "verification"
+    description = "Runs the MCP timing-stress harness against a running Bitwig instance with WigAI enabled. NOT part of CI (host required)."
+
+    dependsOn("testClasses")
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("io.github.fabb.wigai.smoke.McpTimingStressHarnessMain")
+
+    val mcpHost = project.findProperty("mcpHost")?.toString() ?: "localhost"
+    val mcpPort = project.findProperty("mcpPort")?.toString() ?: "61169"
+    val mcpEndpoint = project.findProperty("mcpEndpointPath")?.toString() ?: "/mcp"
+    val mcpDeadlineMs = project.findProperty("mcpDeadlineMs")?.toString() ?: "5000"
+
+    args = listOf(
+        "--host", mcpHost,
+        "--port", mcpPort,
+        "--endpoint", mcpEndpoint,
+        "--deadline-ms", mcpDeadlineMs
+    )
+}
+
 // Configure the Shadow JAR (fat JAR with all dependencies)
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveFileName.set(provider { "wigai-all-${project.version}.jar" })
