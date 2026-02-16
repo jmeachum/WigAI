@@ -35,7 +35,6 @@ hs_err_pid*
 
 # Logs
 *.log
-!_bmad-output/implementation-artifacts/tests/**/*.log
 
 # Nyx
 .nyx/
