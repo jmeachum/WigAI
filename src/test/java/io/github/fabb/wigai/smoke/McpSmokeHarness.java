@@ -25,6 +25,7 @@ public final class McpSmokeHarness {
     private static final Set<String> BASELINE_REQUIRED_TOOLS = Set.of(
             "status",
             "list_tracks",
+            "resolve_track",
             "get_track_details",
             "list_devices_on_track",
             "get_device_details",
@@ -36,7 +37,8 @@ public final class McpSmokeHarness {
     // Tools that require parameters - MISSING_REQUIRED_PARAMETER is only expected for these
     // Defaultable tools (get_track_details, list_devices_on_track, get_device_details) should not return MISSING_REQUIRED_PARAMETER
     private static final Set<String> TOOLS_REQUIRING_PARAMS = Set.of(
-            "get_clips_in_scene"         // requires scene_index
+            "get_clips_in_scene",        // requires scene_index
+            "resolve_track"              // requires query
     );
 
     // Mutating tools - aligned with actual MCP tool names from src/main/java/.../mcp/tool/

@@ -21,6 +21,7 @@ class McpSmokeHarnessSafeModeTest {
         // Should not throw for read-only tools
         assertDoesNotThrow(() -> harness.assertToolIsSafeForSafeMode("status"));
         assertDoesNotThrow(() -> harness.assertToolIsSafeForSafeMode("list_tracks"));
+        assertDoesNotThrow(() -> harness.assertToolIsSafeForSafeMode("resolve_track"));
         assertDoesNotThrow(() -> harness.assertToolIsSafeForSafeMode("get_track_details"));
     }
 
@@ -52,7 +53,7 @@ class McpSmokeHarnessSafeModeTest {
             @Override
             public List<String> listTools() {
                 return List.of("status", "list_tracks", "get_track_details",
-                        "list_devices_on_track", "get_device_details", "list_scenes",
+                        "resolve_track", "list_devices_on_track", "get_device_details", "list_scenes",
                         "get_clips_in_scene", "get_selected_device_parameters");
             }
 
@@ -100,7 +101,7 @@ class McpSmokeHarnessSafeModeTest {
             public List<String> listTools() {
                 // Return all baseline + mutation tools as available (using actual MCP tool names)
                 return List.of(
-                        "status", "list_tracks", "get_track_details", "list_devices_on_track",
+                        "status", "list_tracks", "resolve_track", "get_track_details", "list_devices_on_track",
                         "get_device_details", "list_scenes", "get_clips_in_scene",
                         "get_selected_device_parameters",
                         "transport_start", "transport_stop",

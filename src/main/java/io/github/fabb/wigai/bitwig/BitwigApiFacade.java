@@ -11,6 +11,7 @@ import io.github.fabb.wigai.common.validation.ParameterValidator;
 import io.github.fabb.wigai.common.validation.TrackTargetingContract;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -274,6 +275,34 @@ public class BitwigApiFacade {
         return candidates;
     }
 
+    private record ResolveTrackCandidate(int trackIndex, String trackName, String matchType) {
+        int matchPrecedence() {
+            if ("exact".equals(matchType)) {
+                return 0;
+            }
+            if ("prefix".equals(matchType)) {
+                return 1;
+            }
+            if ("substring".equals(matchType)) {
+                return 2;
+            }
+            throw new IllegalStateException("Unsupported match type: " + matchType);
+        }
+    }
+
+    private static String determineTrackMatchType(String normalizedQuery, String normalizedTrackName) {
+        if (normalizedTrackName.equals(normalizedQuery)) {
+            return "exact";
+        }
+        if (normalizedTrackName.startsWith(normalizedQuery)) {
+            return "prefix";
+        }
+        if (normalizedTrackName.contains(normalizedQuery)) {
+            return "substring";
+        }
+        return null;
+    }
+
     // ========================================
     // Public API Methods
     // ========================================
@@ -285,6 +314,105 @@ public class BitwigApiFacade {
      */
     public int getTrackBankSize() {
         return trackBank.getSizeOfBank();
+    }
+
+    /**
+     * Resolves deterministic fuzzy track candidates for a user query.
+     *
+     * <p>Matching precedence is case-insensitive and normalization-aware:
+     * exact -> prefix -> substring. Results are deterministic: first by
+     * match precedence, then by ascending track_index.</p>
+     *
+     * @param query user query string
+     * @param operation operation/tool name for error context
+     * @return payload containing ambiguity flag and ordered candidate list
+     * @throws BitwigApiException when query is invalid or no tracks match
+     */
+    public Map<String, Object> resolveTrack(String query, String operation) throws BitwigApiException {
+        return WigAIErrorHandler.executeWithErrorHandling(operation, () -> {
+            String validatedQuery = ParameterValidator.validateNotEmpty(query, "query", operation);
+            String normalizedQuery = TrackTargetingContract.normalizeTrackName(validatedQuery);
+
+            List<ResolveTrackCandidate> resolved = collectResolveTrackCandidates(normalizedQuery);
+
+            resolved.sort(
+                Comparator.comparingInt(ResolveTrackCandidate::matchPrecedence)
+                    .thenComparingInt(ResolveTrackCandidate::trackIndex)
+            );
+
+            if (resolved.isEmpty()) {
+                throw new BitwigApiException(
+                    ErrorCode.TRACK_NOT_FOUND,
+                    operation,
+                    "No tracks matched query '" + validatedQuery + "'. Use list_tracks to inspect available tracks.",
+                    Map.of(
+                        "query", validatedQuery,
+                        "suggestion", "list_tracks"
+                    )
+                );
+            }
+
+            List<Map<String, Object>> candidates = new ArrayList<>();
+            for (ResolveTrackCandidate candidate : resolved) {
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("track_index", candidate.trackIndex());
+                out.put("track_name", candidate.trackName());
+                out.put("match_type", candidate.matchType());
+                candidates.add(out);
+            }
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("ambiguous", candidates.size() > 1);
+            payload.put("candidates", candidates);
+            return payload;
+        });
+    }
+
+    private List<ResolveTrackCandidate> collectResolveTrackCandidates(String normalizedQuery) {
+        Map<Integer, ResolveTrackCandidate> candidatesByIndex = new TreeMap<>();
+        resetTrackBankToStart();
+        host.requestFlush();
+
+        int iterationCount = 0;
+        try {
+            while (true) {
+                captureVisibleResolveTrackCandidates(normalizedQuery, candidatesByIndex);
+                boolean canScrollForward = trackBank.canScrollForwards().get();
+                if (!canScrollForward || iterationCount >= Constants.MAX_TRACK_PAGINATION_STEPS) {
+                    if (iterationCount >= Constants.MAX_TRACK_PAGINATION_STEPS) {
+                        logger.warn("BitwigApiFacade: Reached track pagination limit while resolving track candidates");
+                    }
+                    break;
+                }
+                trackBank.scrollPageForwards();
+                host.requestFlush();
+                iterationCount++;
+            }
+            return new ArrayList<>(candidatesByIndex.values());
+        } finally {
+            resetTrackBankToStart();
+            host.requestFlush();
+        }
+    }
+
+    private void captureVisibleResolveTrackCandidates(
+            String normalizedQuery,
+            Map<Integer, ResolveTrackCandidate> candidatesByIndex) {
+
+        for (int slotIndex = 0; slotIndex < trackBank.getSizeOfBank(); slotIndex++) {
+            Track track = trackBank.getItemAt(slotIndex);
+            if (!track.exists().get()) {
+                continue;
+            }
+            String trackName = track.name().get();
+            String normalizedTrackName = TrackTargetingContract.normalizeTrackName(trackName);
+            String matchType = determineTrackMatchType(normalizedQuery, normalizedTrackName);
+            if (matchType == null) {
+                continue;
+            }
+            int projectIndex = resolveTrackProjectIndex(track, slotIndex);
+            candidatesByIndex.putIfAbsent(projectIndex, new ResolveTrackCandidate(projectIndex, trackName, matchType));
+        }
     }
 
     /**

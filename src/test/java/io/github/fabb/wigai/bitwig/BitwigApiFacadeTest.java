@@ -1407,6 +1407,198 @@ public class BitwigApiFacadeTest {
         assertEquals(ErrorCode.INVALID_PARAMETER, exception.getErrorCode());
     }
 
+    @Test
+    void testResolveTrack_PrioritizesMatchTypeAndSortsByTrackIndex() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(5);
+
+        Track track0 = mock(Track.class);
+        Track track1 = mock(Track.class);
+        Track track2 = mock(Track.class);
+        Track track3 = mock(Track.class);
+        Track track4 = mock(Track.class);
+
+        when(mockTrackBank.getItemAt(0)).thenReturn(track0);
+        when(mockTrackBank.getItemAt(1)).thenReturn(track1);
+        when(mockTrackBank.getItemAt(2)).thenReturn(track2);
+        when(mockTrackBank.getItemAt(3)).thenReturn(track3);
+        when(mockTrackBank.getItemAt(4)).thenReturn(track4);
+
+        com.bitwig.extension.controller.api.BooleanValue existsTrue = boolValue(true);
+        when(track0.exists()).thenReturn(existsTrue);
+        when(track1.exists()).thenReturn(existsTrue);
+        when(track2.exists()).thenReturn(existsTrue);
+        when(track3.exists()).thenReturn(existsTrue);
+        when(track4.exists()).thenReturn(existsTrue);
+
+        SettableStringValue drumBus = stringValue("Drum Bus");
+        SettableStringValue myDrumRoom = stringValue("My Drum Room");
+        SettableStringValue drumExact = stringValue("  DRUM  ");
+        SettableStringValue drumKit = stringValue("Drum Kit");
+        SettableStringValue bass = stringValue("Bass");
+        when(track0.name()).thenReturn(drumBus);
+        when(track1.name()).thenReturn(myDrumRoom);
+        when(track2.name()).thenReturn(drumExact);
+        when(track3.name()).thenReturn(drumKit);
+        when(track4.name()).thenReturn(bass);
+
+        Map<String, Object> result = bitwigApiFacade.resolveTrack("drum", "resolve_track");
+
+        assertEquals(true, result.get("ambiguous"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) result.get("candidates");
+        assertEquals(4, candidates.size());
+
+        assertEquals(List.of("track_index", "track_name", "match_type"), new java.util.ArrayList<>(candidates.get(0).keySet()));
+        assertEquals(2, candidates.get(0).get("track_index"));
+        assertEquals("exact", candidates.get(0).get("match_type"));
+
+        assertEquals(0, candidates.get(1).get("track_index"));
+        assertEquals("prefix", candidates.get(1).get("match_type"));
+
+        assertEquals(3, candidates.get(2).get("track_index"));
+        assertEquals("prefix", candidates.get(2).get("match_type"));
+
+        assertEquals(1, candidates.get(3).get("track_index"));
+        assertEquals("substring", candidates.get(3).get("match_type"));
+    }
+
+    @Test
+    void testResolveTrack_DuplicateExactNamesRemainAmbiguous() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(4);
+
+        Track track0 = mock(Track.class);
+        Track track1 = mock(Track.class);
+        Track track2 = mock(Track.class);
+        Track track3 = mock(Track.class);
+
+        when(mockTrackBank.getItemAt(0)).thenReturn(track0);
+        when(mockTrackBank.getItemAt(1)).thenReturn(track1);
+        when(mockTrackBank.getItemAt(2)).thenReturn(track2);
+        when(mockTrackBank.getItemAt(3)).thenReturn(track3);
+
+        com.bitwig.extension.controller.api.BooleanValue existsTrue = boolValue(true);
+        when(track0.exists()).thenReturn(existsTrue);
+        when(track1.exists()).thenReturn(existsTrue);
+        when(track2.exists()).thenReturn(existsTrue);
+        when(track3.exists()).thenReturn(existsTrue);
+
+        SettableStringValue bass = stringValue("Bass");
+        SettableStringValue drumsLower = stringValue("Drums");
+        SettableStringValue drumsUpper = stringValue("DRUMS");
+        SettableStringValue lead = stringValue("Lead");
+        when(track0.name()).thenReturn(bass);
+        when(track1.name()).thenReturn(drumsLower);
+        when(track2.name()).thenReturn(drumsUpper);
+        when(track3.name()).thenReturn(lead);
+
+        Map<String, Object> result = bitwigApiFacade.resolveTrack("  drums  ", "resolve_track");
+
+        assertEquals(true, result.get("ambiguous"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) result.get("candidates");
+        assertEquals(2, candidates.size());
+        assertEquals(1, candidates.get(0).get("track_index"));
+        assertEquals("exact", candidates.get(0).get("match_type"));
+        assertEquals(2, candidates.get(1).get("track_index"));
+        assertEquals("exact", candidates.get(1).get("match_type"));
+    }
+
+    @Test
+    void testResolveTrack_PaginatesBeyondVisibleWindow() {
+        java.util.concurrent.atomic.AtomicInteger page = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        when(mockTrackBank.getSizeOfBank()).thenReturn(1);
+
+        com.bitwig.extension.controller.api.BooleanValue slotExists = mock(com.bitwig.extension.controller.api.BooleanValue.class);
+        when(slotExists.get()).thenReturn(true);
+        when(mockTrack.exists()).thenReturn(slotExists);
+
+        SettableStringValue slotName = mock(SettableStringValue.class);
+        when(mockTrack.name()).thenReturn(slotName);
+        when(slotName.get()).thenAnswer(inv -> page.get() == 0 ? "Bass" : "Snare");
+
+        com.bitwig.extension.controller.api.IntegerValue slotPosition = mock(com.bitwig.extension.controller.api.IntegerValue.class);
+        when(slotPosition.get()).thenAnswer(inv -> page.get());
+        when(mockTrack.position()).thenReturn(slotPosition);
+
+        when(mockTrackBankCanScrollForwards.get()).thenAnswer(inv -> page.get() == 0);
+        when(mockTrackBankCanScrollBackwards.get()).thenAnswer(inv -> page.get() > 0);
+        doAnswer(inv -> { page.incrementAndGet(); return null; }).when(mockTrackBank).scrollPageForwards();
+        doAnswer(inv -> { page.decrementAndGet(); return null; }).when(mockTrackBank).scrollPageBackwards();
+
+        bitwigApiFacade = new BitwigApiFacade(mockHost, mockLogger);
+
+        Map<String, Object> result = bitwigApiFacade.resolveTrack("snare", "resolve_track");
+
+        assertEquals(false, result.get("ambiguous"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) result.get("candidates");
+        assertEquals(1, candidates.size());
+        assertEquals(1, candidates.get(0).get("track_index"));
+        assertEquals("Snare", candidates.get(0).get("track_name"));
+        assertEquals("exact", candidates.get(0).get("match_type"));
+    }
+
+    @Test
+    void testResolveTrack_SingleCandidateSetsAmbiguousFalse() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(3);
+
+        Track track0 = mock(Track.class);
+        Track track1 = mock(Track.class);
+        Track track2 = mock(Track.class);
+
+        when(mockTrackBank.getItemAt(0)).thenReturn(track0);
+        when(mockTrackBank.getItemAt(1)).thenReturn(track1);
+        when(mockTrackBank.getItemAt(2)).thenReturn(track2);
+
+        com.bitwig.extension.controller.api.BooleanValue existsTrue = boolValue(true);
+        when(track0.exists()).thenReturn(existsTrue);
+        when(track1.exists()).thenReturn(existsTrue);
+        when(track2.exists()).thenReturn(existsTrue);
+
+        SettableStringValue bass = stringValue("Bass");
+        SettableStringValue lead = stringValue("Lead");
+        SettableStringValue snare = stringValue("Snare");
+        when(track0.name()).thenReturn(bass);
+        when(track1.name()).thenReturn(lead);
+        when(track2.name()).thenReturn(snare);
+
+        Map<String, Object> result = bitwigApiFacade.resolveTrack("snare", "resolve_track");
+
+        assertEquals(false, result.get("ambiguous"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) result.get("candidates");
+        assertEquals(1, candidates.size());
+        assertEquals(2, candidates.get(0).get("track_index"));
+        assertEquals("Snare", candidates.get(0).get("track_name"));
+        assertEquals("exact", candidates.get(0).get("match_type"));
+    }
+
+    @Test
+    void testResolveTrack_NoMatchReturnsTrackNotFoundWithGuidance() {
+        when(mockTrackBank.getSizeOfBank()).thenReturn(2);
+
+        Track track0 = mock(Track.class);
+        Track track1 = mock(Track.class);
+        when(mockTrackBank.getItemAt(0)).thenReturn(track0);
+        when(mockTrackBank.getItemAt(1)).thenReturn(track1);
+
+        com.bitwig.extension.controller.api.BooleanValue existsTrue = boolValue(true);
+        when(track0.exists()).thenReturn(existsTrue);
+        when(track1.exists()).thenReturn(existsTrue);
+        SettableStringValue bass = stringValue("Bass");
+        SettableStringValue lead = stringValue("Lead");
+        when(track0.name()).thenReturn(bass);
+        when(track1.name()).thenReturn(lead);
+
+        BitwigApiException exception = assertThrows(BitwigApiException.class, () ->
+            bitwigApiFacade.resolveTrack("drums", "resolve_track")
+        );
+
+        assertEquals(ErrorCode.TRACK_NOT_FOUND, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("list_tracks"));
+    }
+
     private com.bitwig.extension.controller.api.BooleanValue boolValue(boolean value) {
         com.bitwig.extension.controller.api.BooleanValue bool = mock(com.bitwig.extension.controller.api.BooleanValue.class);
         when(bool.get()).thenReturn(value);

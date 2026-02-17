@@ -1,12 +1,20 @@
 package io.github.fabb.wigai.mcp;
 
 import io.github.fabb.wigai.WigAIExtensionDefinition;
+import io.github.fabb.wigai.bitwig.BitwigApiFacade;
 import io.github.fabb.wigai.common.Logger;
+import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.config.ConfigManager;
+import io.github.fabb.wigai.features.ClipSceneController;
+import io.github.fabb.wigai.features.DeviceController;
+import io.github.fabb.wigai.features.TransportController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -53,6 +61,28 @@ public class McpServerManagerTest {
         // This can be expanded to test more specific configuration aspects
         // without starting the actual server
         assertNotNull(serverManager);
+    }
+
+    @Test
+    void testAllToolSpecificationsIncludesResolveTrack() {
+        TransportController transportController = mock(TransportController.class);
+        ClipSceneController clipSceneController = mock(ClipSceneController.class);
+        DeviceController deviceController = mock(DeviceController.class);
+        BitwigApiFacade bitwigApiFacade = mock(BitwigApiFacade.class);
+        StructuredLogger structuredLogger = mock(StructuredLogger.class);
+
+        Set<String> toolNames = McpServerManager.allToolSpecifications(
+                mockExtensionDefinition,
+                bitwigApiFacade,
+                transportController,
+                clipSceneController,
+                deviceController,
+                structuredLogger
+            ).stream()
+            .map(spec -> spec.tool().name())
+            .collect(Collectors.toSet());
+
+        assertTrue(toolNames.contains("resolve_track"));
     }
 
     /**
