@@ -49,6 +49,19 @@
 #   - _bmad-output/implementation-artifacts/epic-2-kickoff-checklist-2026-02-14.md
 # - Epic 1 functional smoke run sheet:
 #   - _bmad-output/implementation-artifacts/epic-1-functional-smoke-runsheet-2026-02-14.md
+#
+# CARRY-FORWARD CONTEXT (Epic 2 Retrospective - 2026-02-17):
+# ==========================================================
+# - Epic 3 kickoff remains gated until these items are complete:
+#   1) Single status authority and change-log discipline enforced in active story artifacts
+#   2) Scoped refactor completed for high-churn large files (context-bloat reduction)
+#   3) grouped-track selectorless `get_track_details` mapping bug fixed with regression coverage
+#   4) Epic 2 runtime-AC functional runsheet created and executed with evidence
+#   5) Formal stakeholder acceptance for Epic 2 recorded
+# - Epic 3 kickoff gate tracker:
+#   - _bmad-output/implementation-artifacts/epic-3-kickoff-checklist-2026-02-17.md
+# - Source retrospective:
+#   - _bmad-output/implementation-artifacts/epic-2-retro-2026-02-17.md
 
 generated: 2026-02-14T00:55:47Z
 project: WigAI
@@ -77,6 +90,11 @@ development_status:
   epic-2-retrospective: done
 
   epic-3: backlog
+  3-01-enforce-single-status-authority-change-log-discipline: backlog
+  3-02-scoped-refactor-for-context-bloat-reduction-in-high-churn-files: backlog
+  3-03-fix-grouped-track-selectorless-get-track-details-mapping-regression-coverage: backlog
+  3-04-epic-2-runtime-ac-functional-runsheet-evidence-execution: backlog
+  3-05-record-formal-stakeholder-acceptance-for-epic-2: backlog
   3-1-resolve-target-track-slot-for-launcher-clip-creation: backlog
   3-2-create-launcher-midi-clip-with-naming-overwrite-guardrails: backlog
   3-3-create-launcher-midi-clip-mcp-tool-composable-primitive: backlog
