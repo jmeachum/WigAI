@@ -103,6 +103,12 @@ class ErrorContractComplianceTest {
                 "parameter not provided in request"
             )),
             Arguments.of(ErrorScenario.of(
+                "launch_clip",
+                "track selector not provided",
+                ErrorCode.MISSING_REQUIRED_PARAMETER,
+                "parameter not provided in request"
+            )),
+            Arguments.of(ErrorScenario.of(
                 "get_clips_in_scene",
                 "scene_index not provided",
                 ErrorCode.MISSING_REQUIRED_PARAMETER,
@@ -201,6 +207,12 @@ class ErrorContractComplianceTest {
                 "scene_index is non-integer (1.5)",
                 ErrorCode.INVALID_PARAMETER,
                 "parameter has wrong type (non-integer scene_index)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "launch_clip",
+                "track_index and track_name mismatch",
+                ErrorCode.INVALID_PARAMETER,
+                "ambiguous/conflicting selector inputs"
             )),
             Arguments.of(ErrorScenario.of(
                 "get_device_details",
@@ -708,14 +720,23 @@ class ErrorContractComplianceTest {
             when(controller.launchClip(anyString(), anyInt()))
                 .thenReturn(ClipSceneController.ClipLaunchResult.error("TRACK_NOT_FOUND", "Track not found"));
         }
+        if (scenario.condition().contains("track_index and track_name mismatch")) {
+            when(controller.launchClip("Drums", 0, 3))
+                .thenReturn(ClipSceneController.ClipLaunchResult.error(
+                    "INVALID_PARAMETER",
+                    "track_index 3 does not match track_name 'Drums'"
+                ));
+        }
 
         Map<String, Object> args = switch (scenario.condition()) {
             case "clip_index not provided" -> Map.of("track_name", "Test");
+            case "track selector not provided" -> Map.of("clip_index", 0);
             case "track_name is empty string" -> Map.of("track_name", "", "clip_index", 0);
             case "track_name is whitespace only" -> Map.of("track_name", "   ", "clip_index", 0);
             case "clip_index is -1" -> Map.of("track_name", "Test", "clip_index", -1);
             case "clip_index overflow (4294967296)" -> Map.of("track_name", "Test", "clip_index", 4294967296.0);
             case "track_name does not exist" -> Map.of("track_name", "NonExistent", "clip_index", 0);
+            case "track_index and track_name mismatch" -> Map.of("track_name", "Drums", "track_index", 3, "clip_index", 0);
             default -> Map.of();
         };
 
