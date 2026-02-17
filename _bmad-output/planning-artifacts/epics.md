@@ -529,6 +529,108 @@ So that automation remains safe and predictable as the tool surface expands.
 
 External AI agents can create launcher MIDI clips with predictable placement defaults and explicit non-destructive overwrite behavior, and can audition results reliably without accidental destructive edits.
 
+> **Epic 3 kickoff sequencing note:** Stories `3.01`, `3.02`, `3.03`, `3.04`, and `3.05` are kickoff-gate stories. Feature implementation starts at Story `3.1` only after gates `E3-G1..E3-G5` are complete.
+
+### Story 3.01: Enforce Single Status Authority + Change-Log Discipline
+
+As a WigAI delivery team,
+I want a single authoritative status source in story artifacts and clear change-log discipline,
+So that code review cycles focus on implementation behavior rather than metadata reconciliation.
+
+**Acceptance Criteria:**
+
+**Given** active implementation story artifacts are reviewed
+**When** status fields are evaluated
+**Then** top-level `Status:` is the only authoritative status source in each story file.
+
+**Given** story change logs are updated
+**When** review events are recorded
+**Then** change logs capture event history only and do not encode status-state transitions.
+
+**Given** review workflow guidance is prepared for Epic 3
+**When** reviewers execute checklist gates
+**Then** a `single-status-authority` check exists and is enforced.
+
+### Story 3.02: Scoped Refactor for Context-Bloat Reduction in High-Churn Files
+
+As a WigAI development team,
+I want high-churn oversized files refactored into clearer module boundaries,
+So that development and code review cycles remain efficient and low-risk.
+
+**Acceptance Criteria:**
+
+**Given** high-churn oversized files are identified
+**When** refactor scope is defined
+**Then** responsibilities are split into bounded modules with explicit ownership boundaries.
+
+**Given** refactor changes are implemented
+**When** regression checks run
+**Then** behavior remains unchanged and tests pass with evidence captured.
+
+**Given** code review evaluates refactor outcomes
+**When** reviewability is assessed
+**Then** per-change review surface is reduced versus baseline.
+
+### Story 3.03: Fix Grouped-Track Selectorless `get_track_details` Mapping + Regression Coverage
+
+As an external AI agent developer,
+I want selectorless `get_track_details` to return the actual selected grouped track identity,
+So that grouped-track targeting remains deterministic and trustworthy.
+
+**Acceptance Criteria:**
+
+**Given** `get_track_details` is called with no `track_name` and no `track_index`
+**When** a grouped track or grouped child track is selected
+**Then** returned track identity (name and index metadata) matches the actual selected track.
+
+**Given** grouped parent and grouped child selection scenarios
+**When** regression tests execute
+**Then** both scenarios pass with deterministic mapping and no fallback mismatch.
+
+**Given** the fix is completed
+**When** evidence is captured
+**Then** targeted test outputs and summary notes are linked in implementation artifacts.
+
+### Story 3.04: Epic 2 Runtime-AC Functional Runsheet + Evidence Execution
+
+As a QA and delivery team,
+I want a step-by-step functional runsheet mapped to Epic 2 runtime-related acceptance criteria,
+So that deployment readiness is proven with explicit evidence.
+
+**Acceptance Criteria:**
+
+**Given** Epic 2 runtime-related acceptance criteria
+**When** the functional runsheet is authored
+**Then** each runtime AC has explicit execution prompts and expected outcomes.
+
+**Given** the runsheet is executed
+**When** test passes/failures are recorded
+**Then** evidence artifacts exist for each runtime AC with traceable results.
+
+**Given** readiness is evaluated for Epic 3 kickoff
+**When** evidence is reviewed
+**Then** unresolved runtime issues are either fixed or explicitly accepted before kickoff.
+
+### Story 3.05: Record Formal Stakeholder Acceptance for Epic 2
+
+As a Product Owner and Project Lead,
+I want formal stakeholder acceptance of Epic 2 outcomes recorded in implementation artifacts,
+So that Epic 3 kickoff is based on explicit alignment, not implicit assumptions.
+
+**Acceptance Criteria:**
+
+**Given** Epic 2 readiness evidence is assembled
+**When** stakeholder review is conducted
+**Then** acceptance decision is explicitly recorded with date and scope.
+
+**Given** any caveats or follow-up constraints are identified
+**When** acceptance is recorded
+**Then** constraints are documented and linked to kickoff planning artifacts.
+
+**Given** Epic 3 kickoff is evaluated
+**When** gate status is checked
+**Then** stakeholder acceptance artifact is present and traceable.
+
 ### Story 3.1: Resolve Target Track + Slot for Launcher Clip Creation
 
 As an external AI agent developer,
