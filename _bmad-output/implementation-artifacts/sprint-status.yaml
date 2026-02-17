@@ -74,7 +74,7 @@ development_status:
   2-3-standard-track-targeting-contract-index-exact-name-selected-default: done
   2-4-resolve-track-tool-deterministic-fuzzy-matching-candidate-list-ambiguity: done
   2-5-apply-track-targeting-contract-to-existing-mutating-tools-documentation: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   epic-3: backlog
   3-1-resolve-target-track-slot-for-launcher-clip-creation: backlog
