@@ -4,6 +4,7 @@ import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.common.validation.ParameterValidator;
+import io.github.fabb.wigai.common.validation.TrackTargetingContract;
 import io.github.fabb.wigai.features.ClipSceneController;
 import io.github.fabb.wigai.features.ClipSceneController.ClipLaunchResult;
 import io.github.fabb.wigai.mcp.McpErrorHandler;
@@ -17,7 +18,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
- * MCP tool for launching clips by track name and clip index using unified error handling architecture.
+ * MCP tool for launching clips by track selector and clip index using unified error handling architecture.
  * Implements the launch_clip MCP command as specified in the API reference.
  */
 public class ClipTool {
@@ -38,7 +39,7 @@ public class ClipTool {
               "properties": {
                 "track_name": {
                   "type": "string",
-                  "description": "Name of the track containing the clip (exact match after trim + case-insensitive normalization)"
+                  "description": "Track name selector (exact match after trim + case-insensitive normalization)"
                 },
                 "clip_index": {
                   "type": "integer",
@@ -48,19 +49,23 @@ public class ClipTool {
                 "track_index": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "Optional explicit track index confirmation for duplicate track_name disambiguation"
+                  "description": "Track index selector (authoritative when both selectors are present)"
                 },
                 "request_id": {
                   "type": "string",
                   "description": "Optional correlation ID for request tracing (idempotency deduplication handled separately)"
                 }
               },
-              "required": ["track_name", "clip_index"]
+              "required": ["clip_index"],
+              "anyOf": [
+                { "required": ["track_index"] },
+                { "required": ["track_name"] }
+              ]
             }""";
 
         var tool = McpSchema.Tool.builder()
             .name(TOOL_NAME)
-            .description("Launch a specific clip in Bitwig by providing track name and clip slot index")
+            .description("Launch a specific clip in Bitwig by providing track_index or track_name with clip_index")
             .inputSchema(schema)
             .build();
 
@@ -74,17 +79,19 @@ public class ClipTool {
                     LaunchClipArguments args = parseArguments(req.arguments());
 
                     // Perform clip launch operation
-                    ClipLaunchResult result = args.trackIndex() == null
+                    ClipLaunchResult result = args.trackIndex() != null && args.trackName() == null
+                        ? clipSceneController.launchClipWithSelectors(args.trackIndex(), null, args.clipIndex())
+                        : args.trackIndex() == null
                         ? clipSceneController.launchClip(args.trackName(), args.clipIndex())
                         : clipSceneController.launchClip(args.trackName(), args.clipIndex(), args.trackIndex());
 
                     if (result.isSuccess()) {
                         Map<String, Object> data = new java.util.LinkedHashMap<>();
                         data.put("action", "clip_launched");
-                        data.put("track_name", args.trackName());
-                        if (result.getTrackIndex() != null) {
-                            data.put("track_index", result.getTrackIndex());
-                        }
+                        String resolvedTrackName = result.getTrackName() != null ? result.getTrackName() : args.trackName();
+                        Integer resolvedTrackIndex = result.getTrackIndex() != null ? result.getTrackIndex() : args.trackIndex();
+                        data.put("track_name", resolvedTrackName);
+                        data.put("track_index", resolvedTrackIndex);
                         data.put("clip_index", args.clipIndex());
                         data.put("message", result.getMessage());
                         return data;
@@ -122,62 +129,23 @@ public class ClipTool {
      * @throws IllegalArgumentException if arguments are invalid
      */
     private static LaunchClipArguments parseArguments(Map<String, Object> arguments) {
-        // Validate required parameters
-        String trackName = ParameterValidator.validateRequiredString(arguments, "track_name", TOOL_NAME);
-        trackName = ParameterValidator.validateNotEmpty(trackName, "track_name", TOOL_NAME);
-
         int clipIndex = ParameterValidator.validateRequiredIndexInteger(arguments, "clip_index", TOOL_NAME);
         clipIndex = ParameterValidator.validateClipIndex(clipIndex, TOOL_NAME);
 
-        Integer trackIndex = validateOptionalTrackIndex(arguments);
+        TrackTargetingContract.TrackTargetSelectors selectors =
+            TrackTargetingContract.parse(arguments, TOOL_NAME, false);
+        Integer trackIndex = selectors.trackIndex();
+        String trackName = selectors.trackName();
+        if (trackIndex == null && trackName == null) {
+            throw new BitwigApiException(
+                ErrorCode.MISSING_REQUIRED_PARAMETER,
+                TOOL_NAME,
+                "At least one of track_index or track_name must be provided",
+                Map.of("required_one_of", java.util.List.of("track_index", "track_name"))
+            );
+        }
 
         return new LaunchClipArguments(trackName, clipIndex, trackIndex);
-    }
-
-    private static Integer validateOptionalTrackIndex(Map<String, Object> arguments) {
-        if (!arguments.containsKey("track_index")) {
-            return null;
-        }
-
-        Object value = arguments.get("track_index");
-        if (!(value instanceof Number number)) {
-            throw new BitwigApiException(
-                ErrorCode.INVALID_PARAMETER_TYPE,
-                TOOL_NAME,
-                "track_index must be an integer",
-                Map.of("parameter", "track_index", "value", value)
-            );
-        }
-
-        double raw = number.doubleValue();
-        if (raw != Math.floor(raw) || Double.isNaN(raw) || Double.isInfinite(raw)) {
-            throw new BitwigApiException(
-                ErrorCode.INVALID_PARAMETER_INDEX,
-                TOOL_NAME,
-                "track_index must be an integer, got: " + value,
-                Map.of("parameter", "track_index", "value", value)
-            );
-        }
-
-        if (raw < Integer.MIN_VALUE || raw > Integer.MAX_VALUE) {
-            throw new BitwigApiException(
-                ErrorCode.INVALID_PARAMETER_INDEX,
-                TOOL_NAME,
-                "track_index value out of integer range: " + value,
-                Map.of("parameter", "track_index", "value", value)
-            );
-        }
-
-        int trackIndex = number.intValue();
-        if (trackIndex < 0) {
-            throw new BitwigApiException(
-                ErrorCode.INVALID_PARAMETER_INDEX,
-                TOOL_NAME,
-                "track_index must be non-negative, got: " + trackIndex,
-                Map.of("parameter", "track_index", "value", trackIndex)
-            );
-        }
-        return trackIndex;
     }
 
     /**

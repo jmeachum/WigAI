@@ -265,18 +265,24 @@ Communication is message-based, typically using JSON-RPC or a similar structured
 ### Session Control Commands
 
 #### `launch_clip`
-*   **Description**: Launch a specific clip in Bitwig by providing its track name and clip slot index. Track targeting uses exact normalized matching (`trim` + case-insensitive). When duplicate tracks share the same normalized exact `track_name`, the tool refuses implicit mutation and returns deterministic candidate guidance that requires explicit `track_index` confirmation.
+*   **Description**: Launch a specific clip in Bitwig by providing `clip_index` plus either `track_index` or `track_name`. Track targeting uses exact normalized matching (`trim` + case-insensitive). When both selectors are present, `track_index` is authoritative and `track_name` is treated as explicit confirmation against the resolved indexed track.
 *   **Track-name lookup scope**:
     - Name resolution scans the currently materialized track-bank window.
 *   **Parameters**:
     ```json
     {
-      "track_name": "Drums", // Exact match after trim + case-insensitive normalization
       "clip_index": 0, // Non-negative integer (0-based)
-      "track_index": 3, // Optional explicit index; when provided, index is authoritative and track_name is confirmation
+      "track_index": 3, // Optional explicit index selector (authoritative when both selectors are present)
+      "track_name": "Drums", // Optional exact-name selector (or confirmation when track_index is also present)
       "request_id": "optional-correlation-id" // Optional: correlation ID for request tracing and idempotency deduplication
     }
     ```
+    Rules:
+    - `clip_index` is required.
+    - At least one selector must be provided: `track_index` or `track_name`.
+    - `track_index` can be used alone.
+    - `track_name` can be used alone.
+    - If both selectors are provided, `track_index` is authoritative and `track_name` must match the resolved indexed track after trim + case-insensitive normalization.
 *   **Returns**:
     ```json
     {
@@ -290,11 +296,13 @@ Communication is message-based, typically using JSON-RPC or a similar structured
       }
     }
     ```
+    - `track_name`: Always present. String when the resolved track name is available; `null` when only `track_index` was provided and the name could not be resolved.
+    - `track_index`: Always present. The resolved 0-based track index used for the launch.
 *   **Errors**:
-    *   `MISSING_REQUIRED_PARAMETER`: track_name or clip_index not provided
+    *   `MISSING_REQUIRED_PARAMETER`: `clip_index` not provided, or neither `track_index` nor `track_name` is provided
     *   `EMPTY_PARAMETER`: track_name cannot be empty
     *   `INVALID_PARAMETER_INDEX`: clip_index is negative/out of range for the track, or `track_index` is not a valid integer index
-    *   `INVALID_PARAMETER`: ambiguous duplicate `track_name` without explicit `track_index` confirmation, or `track_index`/`track_name` mismatch
+    *   `INVALID_PARAMETER`: dual-selector mismatch (`track_index`/`track_name` disagree), or ambiguous duplicate `track_name` without explicit `track_index` confirmation
         - Ambiguity refusals include `error.details` with `confirmation_parameter` and deterministic `candidates` list
         - Ambiguity refusal example:
           ```json
@@ -319,6 +327,27 @@ Communication is message-based, typically using JSON-RPC or a similar structured
           ```
     *   `TRACK_NOT_FOUND`: The specified track name was not found
     *   `BITWIG_API_ERROR`: Internal error occurred while launching clip
+
+*   **Recommended workflow (`resolve -> confirm -> act`)**:
+    1. Resolve candidates with a fuzzy query:
+       ```json
+       {
+         "tool": "resolve_track",
+         "arguments": { "query": "drum" }
+       }
+       ```
+    2. Ask the user to confirm the intended candidate (for example: `track_index=3`, `track_name="Drums"`).
+    3. Execute the mutating call using the confirmed `track_index`:
+       ```json
+       {
+         "tool": "launch_clip",
+         "arguments": {
+           "track_index": 3,
+           "clip_index": 0
+         }
+       }
+       ```
+    This flow avoids ambiguity and keeps mutating operations deterministic.
 
 #### `session_launchSceneByIndex`
 *   **Description**: Launch an entire scene in Bitwig by providing its numerical index.

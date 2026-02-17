@@ -516,7 +516,7 @@ So that automation remains safe and predictable as the tool surface expands.
 
 **Given** a mutating tool supports both `track_index` and `track_name`
 **When** both are provided in the same request
-**Then** the tool refuses with `INVALID_PARAMETER`.
+**Then** the tool uses `track_index` as authoritative targeting and uses `track_name` as explicit confirmation (after trim + case-insensitive normalization), returning `INVALID_PARAMETER` only when they do not match.
 
 **Given** Epic 2 is implemented
 **When** documentation is updated

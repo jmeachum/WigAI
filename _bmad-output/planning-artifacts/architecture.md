@@ -466,6 +466,7 @@ Bitwig Studio Extension (Java) with an embedded local MCP server (brownfield con
 - **Idempotency for retries:** Support optional `request_id` on all mutating tools (create/write/launch) and dedupe by `(tool_name, request_id)` using short-lived, bounded in-memory storage (TTL + max entries). No durability across restarts.
 - **Error contract:** Use a single canonical error envelope and stable error codes across all tools; treat validation errors as fatal, and classify host-state/transport issues as retryable vs fatal for callers.
 - **Response metadata:** Return enough explicit identifiers for follow-up operations (resolved `track_name`/`track_index` where applicable, `scene_index`, `slot_index`, and an indication of what was created/selected/launched).
+- **Track-targeting selector contract:** For track-targeted operations that accept both selectors, `track_index` is authoritative and `track_name` is a confirmation check after trim + case-insensitive normalization; return `INVALID_PARAMETER` only on mismatch. Name-only ambiguity must return deterministic candidates and require explicit `track_index` confirmation before mutation.
 
 ### Infrastructure & Deployment
 

@@ -58,7 +58,7 @@ class ClipToolTest {
         assertNotNull(specification);
         assertNotNull(specification.tool());
         assertEquals("launch_clip", specification.tool().name());
-        assertEquals("Launch a specific clip in Bitwig by providing track name and clip slot index",
+        assertEquals("Launch a specific clip in Bitwig by providing track_index or track_name with clip_index",
                      specification.tool().description());
         assertNotNull(specification.tool().inputSchema());
     }
@@ -210,6 +210,68 @@ class ClipToolTest {
     }
 
     @Test
+    void testHandleLaunchClip_WithTrackIndexOnlyUsesIndexTargetingPath() throws Exception {
+        ClipLaunchResult successResult = ClipLaunchResult.success("Clip at Drums[0] launched.", 3, "Drums");
+        when(clipSceneController.launchClipWithSelectors(3, null, 0)).thenReturn(successResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_index", 3);
+        arguments.put("clip_index", 0);
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        JsonNode dataNode = McpResponseTestUtils.validateActionResponse(result, "clip_launched");
+        assertEquals("Drums", dataNode.get("track_name").asText());
+        assertEquals(3, dataNode.get("track_index").asInt());
+        assertEquals(0, dataNode.get("clip_index").asInt());
+        verify(clipSceneController).launchClipWithSelectors(3, null, 0);
+        verify(clipSceneController, never()).launchClip(anyString(), anyInt());
+        verify(clipSceneController, never()).launchClip(anyString(), anyInt(), anyInt());
+    }
+
+    @Test
+    void testHandleLaunchClip_WithTrackIndexOnlyAlwaysIncludesTrackNameField() throws Exception {
+        ClipLaunchResult successResult = ClipLaunchResult.success("Clip launched.", 3, null);
+        when(clipSceneController.launchClipWithSelectors(3, null, 0)).thenReturn(successResult);
+
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("track_index", 3);
+        arguments.put("clip_index", 0);
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        JsonNode dataNode = McpResponseTestUtils.validateActionResponse(result, "clip_launched");
+        assertTrue(dataNode.has("track_name"));
+        assertTrue(dataNode.get("track_name").isNull());
+        verify(clipSceneController).launchClipWithSelectors(3, null, 0);
+    }
+
+    @Test
+    void testHandleLaunchClip_WithoutTrackSelectorReturnsMissingRequiredParameter() throws Exception {
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("clip_index", 0);
+
+        McpSchema.CallToolRequest mockRequest = mock(McpSchema.CallToolRequest.class);
+        when(mockRequest.arguments()).thenReturn(arguments);
+
+        McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, structuredLogger);
+        McpSchema.CallToolResult result = spec.callHandler().apply(null, mockRequest);
+
+        JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
+        assertEquals("MISSING_REQUIRED_PARAMETER", errorNode.get("code").asText());
+        assertEquals("launch_clip", errorNode.get("operation").asText());
+        verifyNoInteractions(clipSceneController);
+    }
+
+    @Test
     void testHandleLaunchClip_WithTrackIndexTypeMismatchReturnsInvalidParameterType() throws Exception {
         Map<String, Object> arguments = new HashMap<>();
         arguments.put("track_name", "Drums");
@@ -224,6 +286,7 @@ class ClipToolTest {
 
         JsonNode errorNode = McpResponseTestUtils.validateErrorResponse(result);
         assertEquals("INVALID_PARAMETER_TYPE", errorNode.get("code").asText());
+        verify(clipSceneController, never()).launchClipWithSelectors(anyInt(), any(), anyInt());
         verify(clipSceneController, never()).launchClip(anyString(), anyInt(), anyInt());
         verify(clipSceneController, never()).launchClip(anyString(), anyInt());
     }

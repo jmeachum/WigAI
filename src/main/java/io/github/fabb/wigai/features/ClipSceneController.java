@@ -259,7 +259,7 @@ public class ClipSceneController {
      * @return ClipLaunchResult indicating success/failure and any error details
      */
     public ClipLaunchResult launchClip(String trackName, int clipIndex) {
-        return launchClip(trackName, clipIndex, null);
+        return launchClipWithSelectors(null, trackName, clipIndex);
     }
 
     /**
@@ -271,31 +271,56 @@ public class ClipSceneController {
      * @return ClipLaunchResult indicating success/failure and any ambiguity guidance
      */
     public ClipLaunchResult launchClip(String trackName, int clipIndex, Integer trackIndex) {
+        return launchClipWithSelectors(trackIndex, trackName, clipIndex);
+    }
+
+    /**
+     * Launches a clip using the shared track-targeting selector contract.
+     *
+     * @param trackIndex Optional explicit track index (authoritative when present)
+     * @param trackName Optional track name selector or confirmation
+     * @param clipIndex The zero-based clip slot index
+     * @return ClipLaunchResult indicating success/failure and any ambiguity guidance
+     */
+    public ClipLaunchResult launchClipWithSelectors(Integer trackIndex, String trackName, int clipIndex) {
         try {
             int resolvedTrackIndex;
+            String resolvedTrackName;
             if (trackIndex != null) {
                 String actualTrackName = bitwigApiFacade.getTrackNameByIndex(trackIndex);
-                if (!TrackTargetingContract.namesMatchNormalized(trackName, actualTrackName)) {
+                if (trackName != null && !TrackTargetingContract.namesMatchNormalized(trackName, actualTrackName)) {
                     return ClipLaunchResult.error(
                         ErrorCode.INVALID_PARAMETER.getCode(),
                         "track_index " + trackIndex + " does not match track_name '" + trackName + "'"
                     );
                 }
                 resolvedTrackIndex = trackIndex;
+                resolvedTrackName = actualTrackName;
             } else {
                 resolvedTrackIndex = bitwigApiFacade.findTrackIndexByName(trackName);
+                resolvedTrackName = trackName == null ? null : trackName.trim();
             }
 
             int trackClipCount = bitwigApiFacade.getTrackClipCountByIndex(resolvedTrackIndex);
+            String trackNameForMessage = resolvedTrackName == null || resolvedTrackName.isBlank()
+                ? "track_index " + resolvedTrackIndex
+                : "'" + resolvedTrackName + "'";
             if (clipIndex < 0 || clipIndex >= trackClipCount) {
                 return ClipLaunchResult.error(
                     ErrorCode.INVALID_PARAMETER_INDEX.getCode(),
-                    "Clip index " + clipIndex + " is out of bounds for track '" + trackName + "'"
+                    "Clip index " + clipIndex + " is out of bounds for track " + trackNameForMessage
                 );
             }
 
             bitwigApiFacade.launchClipByTrackIndex(resolvedTrackIndex, clipIndex);
-            return ClipLaunchResult.success("Clip at " + trackName + "[" + clipIndex + "] launched.", resolvedTrackIndex);
+            String targetLabel = resolvedTrackName == null || resolvedTrackName.isBlank()
+                ? ("#" + resolvedTrackIndex)
+                : resolvedTrackName;
+            return ClipLaunchResult.success(
+                "Clip at " + targetLabel + "[" + clipIndex + "] launched.",
+                resolvedTrackIndex,
+                resolvedTrackName
+            );
         } catch (BitwigApiException e) {
             if (e.getErrorCode() == ErrorCode.INVALID_PARAMETER) {
                 List<Map<String, Object>> candidates = extractAmbiguityCandidates(e.getContext());
@@ -347,6 +372,7 @@ public class ClipSceneController {
         private final String errorCode;
         private final String message;
         private final Integer trackIndex;
+        private final String trackName;
         private final List<Map<String, Object>> candidates;
         private final String confirmationParameter;
 
@@ -355,6 +381,7 @@ public class ClipSceneController {
             String errorCode,
             String message,
             Integer trackIndex,
+            String trackName,
             List<Map<String, Object>> candidates,
             String confirmationParameter
         ) {
@@ -362,6 +389,7 @@ public class ClipSceneController {
             this.errorCode = errorCode;
             this.message = message;
             this.trackIndex = trackIndex;
+            this.trackName = trackName;
             this.candidates = candidates == null ? List.of() : List.copyOf(candidates);
             this.confirmationParameter = confirmationParameter;
         }
@@ -373,14 +401,21 @@ public class ClipSceneController {
          * @return Successful ClipLaunchResult
          */
         public static ClipLaunchResult success(String message) {
-            return success(message, null);
+            return success(message, null, null);
         }
 
         /**
          * Creates a successful result with the resolved track index.
          */
         public static ClipLaunchResult success(String message, Integer trackIndex) {
-            return new ClipLaunchResult(true, null, message, trackIndex, List.of(), null);
+            return success(message, trackIndex, null);
+        }
+
+        /**
+         * Creates a successful result with resolved track metadata.
+         */
+        public static ClipLaunchResult success(String message, Integer trackIndex, String trackName) {
+            return new ClipLaunchResult(true, null, message, trackIndex, trackName, List.of(), null);
         }
 
         /**
@@ -391,7 +426,7 @@ public class ClipSceneController {
          * @return Error ClipLaunchResult
          */
         public static ClipLaunchResult error(String errorCode, String message) {
-            return new ClipLaunchResult(false, errorCode, message, null, List.of(), null);
+            return new ClipLaunchResult(false, errorCode, message, null, null, List.of(), null);
         }
 
         /**
@@ -402,6 +437,7 @@ public class ClipSceneController {
                 false,
                 ErrorCode.INVALID_PARAMETER.getCode(),
                 message,
+                null,
                 null,
                 candidates,
                 "track_index"
@@ -437,6 +473,10 @@ public class ClipSceneController {
 
         public Integer getTrackIndex() {
             return trackIndex;
+        }
+
+        public String getTrackName() {
+            return trackName;
         }
 
         public boolean isAmbiguous() {

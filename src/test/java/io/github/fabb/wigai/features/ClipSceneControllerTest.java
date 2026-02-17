@@ -218,6 +218,60 @@ class ClipSceneControllerTest {
 
         assertTrue(result.isSuccess());
         assertEquals(trackIndex, result.getTrackIndex());
+        assertEquals("Drums", result.getTrackName());
+        verify(bitwigApiFacade, never()).findTrackIndexByName(anyString());
+        verify(bitwigApiFacade).launchClipByTrackIndex(trackIndex, clipIndex);
+    }
+
+    @Test
+    void testLaunchClip_WithTrackIndexOnly_Success() {
+        int clipIndex = 1;
+        int trackIndex = 4;
+
+        when(bitwigApiFacade.getTrackNameByIndex(trackIndex)).thenReturn("Bass");
+        when(bitwigApiFacade.getTrackClipCountByIndex(trackIndex)).thenReturn(8);
+        doNothing().when(bitwigApiFacade).launchClipByTrackIndex(trackIndex, clipIndex);
+
+        ClipLaunchResult result = controller.launchClipWithSelectors(trackIndex, null, clipIndex);
+
+        assertTrue(result.isSuccess());
+        assertEquals(trackIndex, result.getTrackIndex());
+        assertEquals("Bass", result.getTrackName());
+        verify(bitwigApiFacade, never()).findTrackIndexByName(anyString());
+        verify(bitwigApiFacade).launchClipByTrackIndex(trackIndex, clipIndex);
+    }
+
+    @Test
+    void testLaunchClip_WithTrackIndexOnly_ClipIndexOutOfBoundsReturnsInvalidParameterIndex() {
+        int clipIndex = 12;
+        int trackIndex = 4;
+
+        when(bitwigApiFacade.getTrackNameByIndex(trackIndex)).thenReturn("Bass");
+        when(bitwigApiFacade.getTrackClipCountByIndex(trackIndex)).thenReturn(8);
+
+        ClipLaunchResult result = controller.launchClipWithSelectors(trackIndex, null, clipIndex);
+
+        assertFalse(result.isSuccess());
+        assertEquals("INVALID_PARAMETER_INDEX", result.getErrorCode());
+        assertTrue(result.getMessage().contains("out of bounds"));
+        verify(bitwigApiFacade, never()).launchClipByTrackIndex(anyInt(), anyInt());
+    }
+
+    @Test
+    void testLaunchClip_WithDualSelectorsExactMatch_Success() {
+        String trackName = "Drums";
+        int clipIndex = 0;
+        int trackIndex = 3;
+
+        when(bitwigApiFacade.getTrackNameByIndex(trackIndex)).thenReturn("Drums");
+        when(bitwigApiFacade.getTrackClipCountByIndex(trackIndex)).thenReturn(8);
+        doNothing().when(bitwigApiFacade).launchClipByTrackIndex(trackIndex, clipIndex);
+
+        ClipLaunchResult result = controller.launchClip(trackName, clipIndex, trackIndex);
+
+        assertTrue(result.isSuccess());
+        assertEquals(trackIndex, result.getTrackIndex());
+        assertEquals("Drums", result.getTrackName());
         verify(bitwigApiFacade, never()).findTrackIndexByName(anyString());
         verify(bitwigApiFacade).launchClipByTrackIndex(trackIndex, clipIndex);
     }
