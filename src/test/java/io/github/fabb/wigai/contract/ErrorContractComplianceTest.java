@@ -37,6 +37,7 @@ import static org.mockito.Mockito.*;
  *   <li>{@code MISSING_REQUIRED_PARAMETER} — parameter not provided in request</li>
  *   <li>{@code EMPTY_PARAMETER} — parameter provided but empty (empty string, empty array)</li>
  *   <li>{@code INVALID_PARAMETER} — parameter has wrong type or malformed structure</li>
+ *   <li>{@code INVALID_PARAMETER_TYPE} — parameter type mismatch (e.g., string where number expected)</li>
  *   <li>{@code INVALID_PARAMETER_INDEX} — index outside valid bounds (e.g., parameter_index 0-7)</li>
  *   <li>{@code INVALID_RANGE} — numeric value outside allowed range (e.g., value 0.0-1.0)</li>
  *   <li>{@code BITWIG_API_ERROR} — Bitwig API call failed (external system error)</li>
@@ -124,6 +125,12 @@ class ErrorContractComplianceTest {
                 "scene_name not provided",
                 ErrorCode.MISSING_REQUIRED_PARAMETER,
                 "parameter not provided in request"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "resolve_track",
+                "query not provided",
+                ErrorCode.MISSING_REQUIRED_PARAMETER,
+                "parameter not provided in request"
             ))
         );
     }
@@ -154,6 +161,12 @@ class ErrorContractComplianceTest {
             Arguments.of(ErrorScenario.of(
                 "set_selected_device_parameters",
                 "parameters is empty array",
+                ErrorCode.EMPTY_PARAMETER,
+                "parameter provided but empty (empty string, empty array)"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "resolve_track",
+                "query is empty string",
                 ErrorCode.EMPTY_PARAMETER,
                 "parameter provided but empty (empty string, empty array)"
             ))
@@ -200,6 +213,20 @@ class ErrorContractComplianceTest {
                 "device_index is non-integer (1.5)",
                 ErrorCode.INVALID_PARAMETER_INDEX,
                 "index conversion failure for device_index selector"
+            ))
+        );
+    }
+
+    /**
+     * Contract: INVALID_PARAMETER_TYPE — parameter type mismatch
+     */
+    static Stream<Arguments> invalidParameterTypeScenarios() {
+        return Stream.of(
+            Arguments.of(ErrorScenario.of(
+                "resolve_track",
+                "query is not a string",
+                ErrorCode.INVALID_PARAMETER_TYPE,
+                "parameter type mismatch"
             ))
         );
     }
@@ -410,6 +437,12 @@ class ErrorContractComplianceTest {
                 "no track selected",
                 ErrorCode.TRACK_NOT_FOUND,
                 "state error - specified track was not found"
+            )),
+            Arguments.of(ErrorScenario.of(
+                "resolve_track",
+                "query has no matches",
+                ErrorCode.TRACK_NOT_FOUND,
+                "state error - specified track was not found"
             ))
         );
     }
@@ -498,6 +531,20 @@ class ErrorContractComplianceTest {
         @MethodSource("io.github.fabb.wigai.contract.ErrorContractComplianceTest#invalidParameterScenarios")
         @DisplayName("Invalid parameter type/structure returns INVALID_PARAMETER")
         void invalidParameterReturnsCorrectCode(ErrorScenario scenario) throws Exception {
+            McpSchema.CallToolResult result = invokeToolForScenario(scenario);
+
+            assertErrorCode(result, scenario);
+        }
+    }
+
+    @Nested
+    @DisplayName("INVALID_PARAMETER_TYPE Contract")
+    class InvalidParameterTypeContract {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("io.github.fabb.wigai.contract.ErrorContractComplianceTest#invalidParameterTypeScenarios")
+        @DisplayName("Type mismatch returns INVALID_PARAMETER_TYPE")
+        void invalidParameterTypeReturnsCorrectCode(ErrorScenario scenario) throws Exception {
             McpSchema.CallToolResult result = invokeToolForScenario(scenario);
 
             assertErrorCode(result, scenario);
@@ -648,6 +695,7 @@ class ErrorContractComplianceTest {
             case "get_track_details" -> invokeGetTrackDetails(scenario, logger);
             case "list_scenes" -> invokeListScenes(scenario, logger);
             case "get_device_details" -> invokeGetDeviceDetails(scenario, logger);
+            case "resolve_track" -> invokeResolveTrack(scenario, logger);
             default -> throw new IllegalArgumentException("Unknown tool: " + scenario.tool());
         };
     }
@@ -906,6 +954,31 @@ class ErrorContractComplianceTest {
 
         McpServerFeatures.SyncToolSpecification spec = GetDeviceDetailsTool.getDeviceDetailsSpecification(controller, logger);
         return spec.callHandler().apply(mock(McpSyncServerExchange.class), buildRequest("get_device_details", args));
+    }
+
+    private McpSchema.CallToolResult invokeResolveTrack(ErrorScenario scenario, StructuredLogger logger) throws Exception {
+        io.github.fabb.wigai.bitwig.BitwigApiFacade facade = mock(io.github.fabb.wigai.bitwig.BitwigApiFacade.class);
+
+        if (scenario.condition().contains("no matches")) {
+            when(facade.resolveTrack(eq("missing"), eq("resolve_track"))).thenThrow(
+                new BitwigApiException(
+                    ErrorCode.TRACK_NOT_FOUND,
+                    "resolve_track",
+                    "No tracks matched query 'missing'. Use list_tracks to inspect available tracks."
+                )
+            );
+        }
+
+        Map<String, Object> args = switch (scenario.condition()) {
+            case "query not provided" -> Map.of();
+            case "query is empty string" -> Map.of("query", "");
+            case "query is not a string" -> Map.of("query", 123);
+            case "query has no matches" -> Map.of("query", "missing");
+            default -> Map.of();
+        };
+
+        McpServerFeatures.SyncToolSpecification spec = ResolveTrackTool.specification(facade, logger);
+        return spec.callHandler().apply(mock(McpSyncServerExchange.class), buildRequest("resolve_track", args));
     }
 
     // ========================================================================

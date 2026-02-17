@@ -232,6 +232,7 @@ class McpSmokeHarnessAtddTest {
             {"jsonrpc":"2.0","id":2,"result":{"tools":[
                 {"name":"status","description":"Get status"},
                 {"name":"list_tracks","description":"List tracks"},
+                {"name":"resolve_track","description":"Resolve track candidates"},
                 {"name":"get_track_details","description":"Get track details"},
                 {"name":"list_devices_on_track","description":"List devices"},
                 {"name":"get_device_details","description":"Get device details"},

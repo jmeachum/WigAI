@@ -7,6 +7,7 @@ final class McpSmokeHarnessTestSupport {
     static final List<String> BASELINE_TOOLS = List.of(
             "status",
             "list_tracks",
+            "resolve_track",
             "get_track_details",
             "list_devices_on_track",
             "get_device_details",

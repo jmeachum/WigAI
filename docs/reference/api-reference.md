@@ -446,6 +446,44 @@ Communication is message-based, typically using JSON-RPC or a similar structured
     *   `INVALID_PARAMETER`: Invalid track type filter
     *   `BITWIG_API_ERROR`: Internal error occurred while retrieving tracks
 
+#### `resolve_track`
+*   **Description**: Resolve a fuzzy track query into deterministic candidate tracks for explicit client confirmation. This tool is read-only and never performs mutating actions.
+*   **Parameters**:
+    ```json
+    {
+      "query": "drum"
+    }
+    ```
+    Rules:
+    - `query` is required and must be non-empty after trim.
+    - Matching is case-insensitive and normalization-aware (`trim` + lower-case).
+    - Match precedence is deterministic: `exact` → `prefix` → `substring`.
+    - Ordering is deterministic: first by `match_type` precedence, then by ascending `track_index`.
+*   **Returns**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "ambiguous": true,
+        "candidates": [
+          { "track_index": 2, "track_name": "Drums", "match_type": "exact" },
+          { "track_index": 5, "track_name": "Drum Bus", "match_type": "prefix" },
+          { "track_index": 8, "track_name": "My Drum Room", "match_type": "substring" }
+        ]
+      }
+    }
+    ```
+*   **Notes**:
+    - `ambiguous` is `true` whenever more than one candidate is returned.
+    - Duplicate exact-name tracks remain ambiguous and require follow-up confirmation using `track_index`.
+    - Candidate entries always include `track_index`, `track_name`, and `match_type` (`exact|prefix|substring`).
+*   **Errors**:
+    *   `MISSING_REQUIRED_PARAMETER`: `query` not provided
+    *   `EMPTY_PARAMETER`: `query` is empty or whitespace-only
+    *   `TRACK_NOT_FOUND`: No tracks matched the query (message includes actionable `list_tracks` guidance)
+    *   `INVALID_PARAMETER_TYPE`: `query` is not a string
+    *   `BITWIG_API_ERROR`: Internal Bitwig API error
+
 #### `get_track_details`
 *   **Description**: Retrieve detailed information for a specific track by index, name, or the currently selected track.
 *   **Parameters**:
