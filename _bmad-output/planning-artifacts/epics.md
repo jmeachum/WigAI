@@ -142,6 +142,12 @@ External AI agents can perform batch operations that create and write multiple c
 
 **FRs covered:** FR4
 
+### Epic 7: Developer Environment Standardization (Devcontainer + Repo-Local MCP Context Tooling)
+
+Contributors can open WigAI in a deterministic devcontainer with repo-local MCP configuration that runs context MCP tools in-container, reducing setup friction and token-heavy prompt workflows.
+
+**FRs covered:** N/A (developer enablement / delivery acceleration)
+
 ## Epic 1: Reliable MCP Control Surface (Baseline Verification + Hardening)
 
 External AI agents can reliably connect to WigAI and invoke the existing tool surface with consistent success/error envelopes, logging, and safe runtime behavior (no Bitwig crashes; no UI-thread blocking) so we can build new capabilities on a stable foundation.
@@ -984,3 +990,47 @@ so that docs, runtime behavior, and release workflows stay in lockstep.
 **Given** modernization stories are complete
 **When** documentation and guardrail artifacts are refreshed
 **Then** architecture references, API contracts, test runbooks, and release checklists reflect the new baseline and evidence paths.
+
+## Epic 7: Developer Environment Standardization (Devcontainer + Repo-Local MCP Context Tooling)
+
+WigAI contributors can develop inside a reproducible devcontainer with repo-local MCP configuration for context tools (`serena`, `claude-context`) that run inside the container and support lower-token implementation workflows.
+
+### Story 7.1: Devcontainer + Repo-Local MCP Tooling (`serena` + `claude-context`)
+
+As a WigAI contributor,
+I want a repo-local devcontainer with repo-local MCP server definitions for `serena` and `claude-context` that run inside the container,
+So that onboarding is deterministic and context tooling reduces prompt token usage during implementation.
+
+**Acceptance Criteria:**
+
+**Given** a fresh clone of WigAI
+**When** the contributor opens the project in a Dev Container
+**Then** the container builds successfully and the workspace is ready for Java/Gradle development without manual host-only setup steps.
+
+**Given** the devcontainer is running
+**When** initialization completes
+**Then** runtime dependencies required by `serena` MCP and `claude-context` MCP are installed in-container and version-pinned in repo-managed configuration.
+
+**Given** repo-local MCP configuration is used
+**When** an MCP-capable client reads workspace MCP config
+**Then** `.vscode/mcp.json` contains server entries for existing `bitwigMcp` plus `serena` and `claude-context` (stdio), and both new entries execute inside the devcontainer.
+
+**Given** Bitwig runs on the host and tools run in-container
+**When** the containerized MCP client calls WigAI
+**Then** `bitwigMcp` connectivity is documented and validated for container networking (host alias strategy; not container-local `localhost`).
+
+**Given** MCP server entries are configured
+**When** healthcheck scripts run in the devcontainer
+**Then** each MCP server (`serena`, `claude-context`) starts successfully and returns a non-error handshake/metadata response.
+
+**Given** baseline prompt-only and MCP-assisted workflows run for representative repo tasks
+**When** token usage is measured on the same tasks
+**Then** results are recorded in a repo artifact showing reduced input-token usage with context tooling (or explicit analysis when target reduction is missed).
+
+**Given** this setup is intended for team reuse
+**When** documentation is reviewed
+**Then** setup, troubleshooting, and usage guidance exists in-repo, including in-container MCP health checks and token benchmark execution.
+
+**Given** security and repo hygiene requirements
+**When** implementation is complete
+**Then** no secrets are committed, required environment variables are documented, and local override guidance exists for developer-specific credentials.
