@@ -122,3 +122,7 @@ development_status:
   6-3-major-upgrade-implementation-and-compatibility-fixes: backlog
   6-4-docs-contracts-release-guardrails-refresh: backlog
   epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-devcontainer-repo-local-mcp-tooling-serena-claude-context: backlog
+  epic-7-retrospective: optional
