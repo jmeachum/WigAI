@@ -993,12 +993,12 @@ so that docs, runtime behavior, and release workflows stay in lockstep.
 
 ## Epic 7: Developer Environment Standardization (Devcontainer + Repo-Local MCP Context Tooling)
 
-WigAI contributors can develop inside a reproducible devcontainer with repo-local MCP configuration for context tools (`serena`, `claude-context`) that run inside the container and support lower-token implementation workflows.
+WigAI contributors can develop inside a reproducible devcontainer with repo-local MCP configuration for context tools (`serena`, `claude-context`) that run inside the container and support lower-token implementation workflows, using upstream canonical tool projects.
 
 ### Story 7.1: Devcontainer + Repo-Local MCP Tooling (`serena` + `claude-context`)
 
 As a WigAI contributor,
-I want a repo-local devcontainer with repo-local MCP server definitions for `serena` and `claude-context` that run inside the container,
+I want a repo-local devcontainer with repo-local MCP server definitions for upstream `serena` and `claude-context` that run inside the container,
 So that onboarding is deterministic and context tooling reduces prompt token usage during implementation.
 
 **Acceptance Criteria:**
@@ -1009,19 +1009,22 @@ So that onboarding is deterministic and context tooling reduces prompt token usa
 
 **Given** the devcontainer is running
 **When** initialization completes
-**Then** runtime dependencies required by `serena` MCP and `claude-context` MCP are installed in-container and version-pinned in repo-managed configuration.
+**Then** repo-local install scripts install/configure upstream tools from:
+- `serena`: `https://github.com/oraios/serena`
+- `claude-context`: `https://github.com/zilliztech/claude-context`
+and pinned versions are tracked in repo-managed configuration.
 
 **Given** repo-local MCP configuration is used
 **When** an MCP-capable client reads workspace MCP config
-**Then** `.vscode/mcp.json` contains server entries for existing `bitwigMcp` plus `serena` and `claude-context` (stdio), and both new entries execute inside the devcontainer.
+**Then** `.vscode/mcp.json` contains server entries for existing `WigAI` plus `serena` and `claude-context` (stdio), and both stdio entries execute upstream-installed entrypoints inside the devcontainer (not repo-local replacement wrapper servers).
 
 **Given** Bitwig runs on the host and tools run in-container
 **When** the containerized MCP client calls WigAI
-**Then** `bitwigMcp` connectivity is documented and validated for container networking (host alias strategy; not container-local `localhost`).
+**Then** `WigAI` connectivity is documented and validated for container networking (host alias strategy; not container-local `localhost`).
 
 **Given** MCP server entries are configured
 **When** healthcheck scripts run in the devcontainer
-**Then** each MCP server (`serena`, `claude-context`) starts successfully and returns a non-error handshake/metadata response.
+**Then** each upstream-installed MCP server (`serena`, `claude-context`) starts successfully and returns a non-error handshake/metadata response.
 
 **Given** baseline prompt-only and MCP-assisted workflows run for representative repo tasks
 **When** token usage is measured on the same tasks
@@ -1029,7 +1032,7 @@ So that onboarding is deterministic and context tooling reduces prompt token usa
 
 **Given** this setup is intended for team reuse
 **When** documentation is reviewed
-**Then** setup, troubleshooting, and usage guidance exists in-repo, including in-container MCP health checks and token benchmark execution.
+**Then** setup, troubleshooting, and usage guidance exists in-repo, including upstream source references, install-script execution, in-container MCP health checks, and token benchmark execution.
 
 **Given** security and repo hygiene requirements
 **When** implementation is complete

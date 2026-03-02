@@ -7,7 +7,7 @@ Status: ready-for-dev
 ## Story
 
 As a WigAI contributor,
-I want a repo-local devcontainer with repo-local MCP server definitions for `serena` and `claude-context` that run inside the container,
+I want a repo-local devcontainer with repo-local MCP server definitions for upstream `serena` and `claude-context` tools that run inside the container,
 so that onboarding is deterministic and context tooling reduces prompt token usage during implementation.
 
 ## Acceptance Criteria
@@ -18,23 +18,26 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 
 2. **Given** the devcontainer is running
    **When** initialization completes
-   **Then** all runtime dependencies required by `serena` MCP and `claude-context` MCP are installed in-container and version-pinned in repo-managed configuration.
+   **Then** repo-local install scripts install/configure upstream tools from:
+   - `serena`: `https://github.com/oraios/serena`
+   - `claude-context`: `https://github.com/zilliztech/claude-context`
+   and pinned versions are tracked in repo-managed configuration.
 
 3. **Given** repo-local MCP configuration is used
    **When** an MCP-capable client reads workspace MCP config
    **Then** `.vscode/mcp.json` contains server entries for:
-   - existing `bitwigMcp` HTTP endpoint
+   - existing `WigAI` HTTP endpoint
    - `serena` (stdio)
    - `claude-context` (stdio)
-   and both new entries execute commands that run inside the devcontainer.
+   and both stdio entries execute upstream-installed entrypoints from the install-script workflow (not repo-local replacement wrapper servers).
 
 4. **Given** Bitwig runs on the host and tools run in-container
    **When** the containerized MCP client attempts to call WigAI
-   **Then** `bitwigMcp` connectivity is documented and validated for container networking (for example, host alias strategy instead of container-local `localhost`).
+   **Then** `WigAI` connectivity is documented and validated for container networking (for example, host alias strategy instead of container-local `localhost`).
 
 5. **Given** the MCP server entries are configured
    **When** healthcheck scripts are run inside the devcontainer
-   **Then** each MCP server (`serena`, `claude-context`) starts successfully and returns a non-error handshake/metadata response.
+   **Then** each upstream-installed MCP server (`serena`, `claude-context`) starts successfully and returns a non-error handshake/metadata response.
 
 6. **Given** a baseline prompt-only workflow and an MCP-assisted workflow are run for representative repo tasks
    **When** token usage is measured with the same tasks and acceptance boundaries
@@ -42,7 +45,7 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 
 7. **Given** this setup is intended for team reuse
    **When** documentation is reviewed
-   **Then** setup, troubleshooting, and usage guidance exists in-repo, including how to run in-container MCP health checks and how to execute the token-usage benchmark.
+   **Then** setup, troubleshooting, and usage guidance exists in-repo, including upstream source references, install-script execution, in-container MCP health checks, and token-usage benchmark steps.
 
 8. **Given** security and repo hygiene requirements
    **When** the implementation is complete
@@ -52,15 +55,22 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 
 - [ ] Create baseline devcontainer with deterministic tooling (AC: 1, 2)
   - [ ] Add `.devcontainer/devcontainer.json` with workspace settings and extension/tool recommendations relevant to WigAI.
-  - [ ] Add `.devcontainer/Dockerfile` (or image reference) with Java 21 + Gradle-compatible toolchain and runtime dependencies needed by MCP helper servers.
+  - [ ] Add `.devcontainer/Dockerfile` (or image reference) with Java 21 + Gradle-compatible toolchain and runtime dependencies required for upstream MCP installation tooling.
   - [ ] Add `.devcontainer/postCreate.sh` (or equivalent) to perform idempotent setup steps and validate core commands.
-  - [ ] Add version pinning source for MCP helper tools (for example `.devcontainer/mcp/versions.env`).
+  - [ ] Add version pinning source for upstream MCP tools (for example `.devcontainer/mcp/versions.env`).
 
-- [ ] Add repo-local MCP server definitions for container execution (AC: 3, 4, 5)
-  - [ ] Update `.vscode/mcp.json` to include `serena` and `claude-context` server entries with stdio launch definitions.
+- [ ] Implement upstream install-script path for MCP tools (AC: 2, 3, 5)
+  - [ ] Add `scripts/mcp/install-serena.sh` to install/configure upstream `serena` in-container.
+  - [ ] Add `scripts/mcp/install-claude-context.sh` to install/configure upstream `claude-context` in-container.
+  - [ ] Ensure install scripts are idempotent and consume pinned versions from repo-managed config.
+  - [ ] Record upstream source URLs in implementation docs and verification output.
+
+- [ ] Update repo-local MCP configuration and checks for upstream entrypoints (AC: 3, 4, 5)
+  - [ ] Update `.vscode/mcp.json` so `serena` and `claude-context` stdio commands call upstream-installed entrypoints.
   - [ ] Ensure commands/paths referenced in MCP entries resolve from inside the devcontainer workspace.
-  - [ ] Preserve or improve `bitwigMcp` host connectivity from container (host aliasing and documented URL strategy).
-  - [ ] Add lightweight server startup/handshake checks under `scripts/` for repeatable validation.
+  - [ ] Preserve or improve `WigAI` host connectivity from container (host aliasing and documented URL strategy).
+  - [ ] Update healthcheck scripts to verify upstream tool startup/handshake.
+  - [ ] Remove or deprecate repo-local replacement wrapper servers from canonical implementation path.
 
 - [ ] Add token-usage validation workflow and evidence capture (AC: 6)
   - [ ] Define 2-3 representative developer tasks where context retrieval is frequently needed.
@@ -80,17 +90,23 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 ### Developer Context Section
 
 - This story is a developer-experience and tooling story; it should not change WigAI runtime behavior or MCP tool contracts implemented in Java source.
-- Current repo-local MCP config exists at `.vscode/mcp.json` and currently includes only `bitwigMcp`.
+- Current repo-local MCP config exists at `.vscode/mcp.json` and currently includes `WigAI` plus context tooling entries.
+- Post-revert gap: `.vscode/mcp.json` still references deleted local wrapper script paths for `serena`/`claude-context`; this must be corrected as part of this story's upstream-install implementation.
 - The requested operating model is explicit:
   - MCP config must remain repo-local.
   - `serena` and `claude-context` must run inside the devcontainer.
+  - Canonical tools are upstream projects, not repo-local replacement implementations:
+    - `https://github.com/oraios/serena`
+    - `https://github.com/zilliztech/claude-context`
 
 ### Technical Requirements
 
 - Devcontainer must support current project build/test workflow:
   - `./gradlew test`
   - `./gradlew build`
-- Tool installation for `serena` and `claude-context` must be reproducible and pinned by versioned repo config.
+- Tool installation for `serena` and `claude-context` must be reproducible via repo-local install scripts and pinned by versioned repo config.
+- `.vscode/mcp.json` stdio command entries for `serena` and `claude-context` must target upstream-installed entrypoints.
+- Repo-local replacement wrapper servers are not the canonical path after this course correction.
 - MCP launch commands for both tools must avoid host-specific absolute paths.
 - Networking requirement:
   - Containerized MCP clients must be able to reach host Bitwig MCP endpoint reliably; document the canonical endpoint strategy.
@@ -122,9 +138,11 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
   - `.devcontainer/Dockerfile` or equivalent image declaration (new/updated)
   - `.devcontainer/postCreate.sh` (new)
   - `.vscode/mcp.json` (updated)
+  - `scripts/mcp/install-serena.sh` (new)
+  - `scripts/mcp/install-claude-context.sh` (new)
   - `README.md` (updated)
   - `docs/engineering/devcontainer-mcp-setup.md` (new)
-  - `scripts/mcp/*` healthcheck or bootstrap scripts (new)
+  - `scripts/mcp/*` healthcheck or bootstrap scripts (new/updated)
   - `_bmad-output/implementation-artifacts/tests/<date>-devcontainer-mcp-token-benchmark.md` (new evidence)
 
 ### Testing Requirements
@@ -133,8 +151,8 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
   - Devcontainer opens successfully from clean state.
   - Post-create setup completes without manual intervention.
 - MCP readiness tests:
-  - `serena` handshake/metadata check passes in-container.
-  - `claude-context` handshake/metadata check passes in-container.
+  - `serena` handshake/metadata check passes in-container via upstream-installed entrypoint.
+  - `claude-context` handshake/metadata check passes in-container via upstream-installed entrypoint.
   - Host Bitwig MCP endpoint reachability from container is validated/documented.
 - Benchmark tests:
   - Baseline vs MCP-assisted token measurements are recorded for selected tasks.
@@ -153,6 +171,8 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 - [Source: `CONTRIBUTING.md`]
 - [Source: `docs/reference/project-structure.md`]
 - [Source: `_bmad-output/planning-artifacts/architecture.md`]
+- [Source: `https://github.com/oraios/serena`]
+- [Source: `https://github.com/zilliztech/claude-context`]
 
 ## Dev Agent Record
 
@@ -171,10 +191,13 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 - Story created from user-requested backlog item in SM chat mode.
 - Scope constrained to repo-local MCP config and in-container execution for `serena` + `claude-context`.
 - Story status initialized as `ready-for-dev`.
+- Correct-course decision applied: canonical approach switched to upstream `serena`/`claude-context` via repo-local install scripts.
+- Story reopened to `in-progress` pending upstream-install implementation and validation.
 
 ### Change Log
 
 - 2026-02-22: Initial implementation-ready story created.
+- 2026-02-22: Correct Course approved; story contract updated to upstream install-script approach and status set to `in-progress`.
 
 ### File List
 
