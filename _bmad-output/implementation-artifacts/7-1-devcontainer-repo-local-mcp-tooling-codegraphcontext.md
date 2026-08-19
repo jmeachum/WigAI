@@ -20,17 +20,17 @@ so that onboarding is deterministic and AI assistants can answer structural ques
    **When** the contributor opens the project in a Dev Container
    **Then** the container builds successfully and the workspace is ready for Java/Gradle development without manual host-only setup steps.
 
-2. **Given** the devcontainer image provides Python without a package installer
-   **When** container initialization runs
-   **Then** a Python package installer is provisioned deterministically and the chosen approach (system `pip`, `pipx`, or an isolated virtualenv under the workspace) is documented, without weakening the image's non-root, no-privilege-escalation posture.
+2. **Given** the `node:20-slim` base image is Debian 12 (bookworm), whose apt provides only Python 3.11 and no `python3.12` candidate
+   **When** the devcontainer is built
+   **Then** Python **3.12** is provisioned via the `ghcr.io/devcontainers/features/python:1` devcontainer feature (matching how Java 21 is already provisioned), `pip` is available for that interpreter, and the image keeps its non-root user with no privilege-escalation helper installed.
 
 3. **Given** the devcontainer is running
    **When** the repo-local install script executes
    **Then** upstream `codegraphcontext` is installed from its canonical source at a pinned version recorded in repo-managed configuration, and no repo-local replacement or wrapper server is introduced.
 
-4. **Given** `codegraphcontext` supports several graph database backends and the container currently runs Python 3.11
-   **When** the backend is selected
-   **Then** a backend that works fully in-container is chosen and documented, with an explicit rationale for why it was picked over the alternatives, and any external-service backend is either avoided or its connection settings documented as optional developer configuration.
+4. **Given** Python 3.12 is provisioned per AC 2
+   **When** `codegraphcontext` selects its graph database backend
+   **Then** the **upstream default** (FalkorDB Lite on Unix with Python 3.12+) is used with no backend override, no external database service is required to run alongside the container, and the install script fails loudly rather than silently falling back if the interpreter is older than 3.12.
 
 5. **Given** repo-local MCP configuration is used
    **When** an MCP-capable client reads workspace MCP config
@@ -65,19 +65,22 @@ so that onboarding is deterministic and AI assistants can answer structural ques
 1. Establish the devcontainer baseline (AC 1)
    - Confirm the container builds from a fresh clone and provides Java 21 and Gradle for the existing build.
    - Verify `./gradlew test` runs in-container.
-2. Provision a Python package installer (AC 2)
-   - Decide between system `pip`, `pipx`, and a workspace virtualenv; record the rationale.
-   - Update `.devcontainer/Dockerfile` or the lifecycle commands accordingly.
-   - Confirm the image keeps its non-root user and installs no privilege-escalation helper.
-3. Select and document the graph backend (AC 4)
-   - Evaluate the in-container options against Python 3.11 (upstream's default FalkorDB Lite path documents a 3.12+ requirement on Unix).
-   - Decide whether to raise the container Python version or select an alternative backend; record which and why.
-4. Write `scripts/mcp/install-codegraphcontext.sh` (AC 3)
-   - Install the pinned upstream version; make the script idempotent and safe to re-run.
-   - Record the version pin in repo-managed configuration.
-5. Wire the MCP config (AC 5)
-   - The stale wrapper entries were already removed on 2026-08-19; `.vscode/mcp.json` now holds only the `WigAI` HTTP entry.
-   - Add the `codegraphcontext` stdio entry invoking the upstream entrypoint directly, with no wrapper script.
+2. Provision Python 3.12 (AC 2) — **decided 2026-08-19; implementation lands on `implementation/story-7-1`**
+   - Added the `ghcr.io/devcontainers/features/python:1` feature at version `3.12` to `.devcontainer/devcontainer.json`.
+   - Chosen over apt (bookworm has no `python3.12` candidate), a base-image swap, and `uv`, because it matches the existing Java 21 feature pattern and ships `pip`.
+   - **Requires a devcontainer rebuild to take effect; not yet verified in a built container.**
+   - `.devcontainer/devcontainer-lock.json` regenerated 2026-08-19: the python feature is now pinned by digest (`1.8.0`, sha256 `fbcad695...`).
+3. Confirm the graph backend (AC 4) — **decided 2026-08-19**
+   - Upstream default (FalkorDB Lite) is used, unlocked by the 3.12 provisioning above. No override, no external service.
+   - The install script hard-fails below Python 3.12 so a silent fallback to a different backend cannot happen.
+4. Write `scripts/mcp/install-codegraphcontext.sh` (AC 3) — **decided 2026-08-19; implementation lands on `implementation/story-7-1`**
+   - Installs pinned `codegraphcontext==0.6.3` (overridable via `CGC_VERSION`), idempotent on re-run.
+   - Guards on Python major/minor and on `pip` availability, with actionable errors.
+   - **Not yet executed successfully; blocked until the container is rebuilt on 3.12.**
+5. Wire the MCP config (AC 5) — **decided 2026-08-19; implementation lands on `implementation/story-7-1`**
+   - Stale `serena`/`claude-context` wrapper entries removed.
+   - `codegraphcontext` stdio entry added, invoking the upstream entrypoint `codegraphcontext mcp start` directly with no wrapper script.
+   - **Not yet verified against a running server.**
 6. Validate container-to-host connectivity (AC 6)
    - Confirm the `WigAI` HTTP entry reaches Bitwig on the host via the host alias.
    - Document the strategy and its failure modes.
@@ -86,9 +89,9 @@ so that onboarding is deterministic and AI assistants can answer structural ques
    - Add a check that resolves known symbols and fails loudly if the graph is empty or stale.
 8. Add the healthcheck script (AC 8)
    - Verify a non-error handshake from `codegraphcontext` inside the container.
-9. Handle hygiene and secrets (AC 9)
-   - Git-ignore the index/graph artifacts and any local env file.
-   - Document required environment variables and local override guidance.
+9. Handle hygiene and secrets (AC 9) — **partially decided 2026-08-19; implementation lands on `implementation/story-7-1`**
+   - Git-ignored the index/graph artifacts (`.codegraphcontext/`, `*.kuzu/`, `falkordb-lite.db`).
+   - Still to do: confirm the actual artifact paths the default backend writes once it runs, and document environment variables and local override guidance.
 10. Run the token benchmark (AC 10)
     - Measure representative repo tasks with and without the tool; record results in a repo artifact.
 11. Write the documentation (AC 11)
@@ -105,9 +108,10 @@ Upstream reports support for 23 languages including Java and Kotlin, which cover
 ### Technical Requirements
 
 - Upstream install only; no wrappers. See the canonical-tool rule above.
-- Container currently runs Python 3.11.2 with no `pip`, `pip3`, `uv`, or `pipx` on `PATH`. The Dockerfile installs Python deliberately as a stdlib-only dependency for ECC tooling, so adding an installer is a real change to that image's contract and should be made explicitly rather than incidentally.
-- Upstream documents Python 3.10-3.14 support, `pip install codegraphcontext` as the primary install path, and `codegraphcontext mcp start` as the stdio MCP entrypoint.
-- Upstream's default backend selection (FalkorDB Lite on Unix) is documented as requiring Python 3.12+; alternatives include KuzuDB, Neo4j, LadybugDB, and Nornic DB. This is the main open technical decision in the story.
+- The image's own Python was 3.11.2 with no `pip`, `pip3`, `uv`, or `pipx` on `PATH`. The Dockerfile installs Python deliberately as a stdlib-only dependency for ECC tooling. Rather than adding pip to that interpreter, the devcontainer now provisions a separate managed Python 3.12 via feature, leaving the stdlib-only contract of the base image intact.
+- `node:20-slim` is Debian 12 (bookworm). `apt-cache policy python3.12` returns no candidate there, which is why apt was not a viable route.
+- Upstream documents Python 3.10-3.14 support, `pip install codegraphcontext` as the primary install path, and `codegraphcontext mcp start` as the stdio MCP entrypoint. Pinned at `0.6.3`.
+- Backend: upstream default (FalkorDB Lite), which the 3.12 provisioning makes available. KuzuDB, Neo4j, LadybugDB, and Nornic DB were the alternatives; none is needed, and avoiding an external database service keeps onboarding to a single container.
 - Bitwig runs on the host, not in the container. The MCP endpoint it exposes is reachable at the host alias on port `61169`.
 
 ### Architecture Compliance
@@ -176,9 +180,19 @@ The `.devcontainer/` present in the working tree at the time this story was resc
 - 2026-02-22: Initial implementation-ready story created.
 - 2026-02-22: Correct Course approved; story contract updated to upstream install-script approach and status set to `in-progress`.
 - 2026-08-19: Status header (`ready-for-dev`) and tracker (`backlog`) reconciled to `in-progress`, the value the 2026-02-22 correction approved. Both had been missed when that correction was applied.
+- 2026-08-19: Open technical decisions settled by the product owner: provision Python 3.12+ and use the upstream default graph backend. AC 2 and AC 4 rewritten from open questions into fixed constraints. The corresponding devcontainer feature, install script, MCP entry, and artifact ignores are carried on `implementation/story-7-1` rather than this planning branch, and remain unverified pending a devcontainer rebuild.
 - 2026-08-19: Scope replaced. `serena` and `claude-context` removed; `codegraphcontext` adopted as the single context tool. Story renamed from `7-1-devcontainer-repo-local-mcp-tooling-serena-claude-context` and Story 7.2 withdrawn into this one. Acceptance criteria grew from 8 to 11. Status remains `in-progress`.
 
 ### File List
 
+Planning branch (`planning/cycle-2-epic-7`):
+
 - `_bmad-output/implementation-artifacts/7-1-devcontainer-repo-local-mcp-tooling-codegraphcontext.md` (renamed from `...-serena-claude-context.md`)
 - `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-19.md` (new)
+
+Implementation branch (`implementation/story-7-1`):
+
+- `.devcontainer/devcontainer.json` (updated - python 3.12 feature)
+- `scripts/mcp/install-codegraphcontext.sh` (new)
+- `.vscode/mcp.json` (updated - codegraphcontext stdio entry)
+- `.gitignore` (updated - CodeGraphContext generated artifacts)
