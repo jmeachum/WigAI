@@ -27,8 +27,15 @@ MIN_PYTHON_MINOR=12
 echo "== CodeGraphContext install =="
 echo "Pinned version: ${CGC_VERSION}"
 
+# Verify dependencies
 if ! command -v python3 >/dev/null 2>&1; then
   echo "ERROR: python3 not found. The devcontainer python feature should provide it."
+  exit 1
+fi
+
+if ! command -v redis-server >/dev/null 2>&1; then
+  echo "ERROR: redis-server not found. It is required for FalkorDB Lite backend."
+  echo "Install via: sudo apt-get install redis-server"
   exit 1
 fi
 

@@ -39,7 +39,9 @@ This guide covers setup, verification, troubleshooting, and local customization.
 
 **Upstream:** https://github.com/CodeGraphContext/CodeGraphContext
 
-**Version Pinning:** See `.devcontainer/postCreateCommand` and `scripts/mcp/install-codegraphcontext.sh` for pinned versions.
+**Version Pinning:** See `scripts/mcp/install-codegraphcontext.sh` for pinned versions (currently 0.6.3).
+
+**Backend:** codegraphcontext uses FalkorDB Lite (a lightweight graph database) as its default backend, which requires Redis server. The devcontainer includes `redis-server` as a system dependency to support this.
 
 **MCP Configuration:** `.vscode/mcp.json`
 ```json
@@ -152,6 +154,30 @@ The devcontainer uses standard environment variables for configuration:
    cat .devcontainer/devcontainer.json | jq '.features'
    ```
 
+### Issue: codegraphcontext installation fails with falkordblite error
+
+**Symptoms:** Build error mentioning `falkordblite` or `redis.submodule` during postCreateCommand.
+
+**Root Cause:** FalkorDB Lite (graph database used by codegraphcontext) requires Redis server and build dependencies (gcc, python3-dev). These must be installed in the devcontainer before codegraphcontext can build.
+
+**Solutions:**
+1. Rebuild container with latest Dockerfile (should include `redis-server` and build-essential):
+   ```bash
+   # In VS Code: Dev Containers: Rebuild Container
+   ```
+
+2. If rebuild doesn't help, manually install dependencies and retry:
+   ```bash
+   sudo apt-get update && sudo apt-get install -y redis-server build-essential python3-dev
+   ./scripts/mcp/install-codegraphcontext.sh
+   ```
+
+3. Verify redis-server is available:
+   ```bash
+   command -v redis-server
+   redis-server --version
+   ```
+
 ### Issue: codegraphcontext not found after container opens
 
 **Symptoms:** `command not found: codegraphcontext` or healthcheck fails.
@@ -167,10 +193,12 @@ The devcontainer uses standard environment variables for configuration:
    echo $PATH | grep -o '.npm-global/bin'
    ```
 
-3. Manually install:
+3. Manually install (if dependencies are available):
    ```bash
    ./scripts/mcp/install-codegraphcontext.sh
    ```
+
+4. If install script fails with redis-server error, see above section.
 
 ### Issue: WigAI endpoint not reachable from container
 
