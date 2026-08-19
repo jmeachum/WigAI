@@ -39,8 +39,6 @@ hs_err_pid*
 # Nyx
 .nyx/
 
-<<<<<<< HEAD
-=======
 # ECC Memory Vault (project scope is local-only)
 .ecc/
 
@@ -49,5 +47,9 @@ hs_err_pid*
 *.kuzu/
 falkordb-lite.db
 
->>>>>>> bb67c94 (feat(devcontainer): provision Python 3.12 and install upstream codegraphcontext)
+# Environment variables (local secrets, never commit)
+.env
+.env.local
+.env.*.local
+
 CHANGELOG.md

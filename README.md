@@ -39,6 +39,47 @@ This will generate a `.bwextension` file in the `build/extensions` directory.
 
 Once the extension is activated in Bitwig Studio, the MCP server will be available at `http://localhost:61169/mcp`. External AI agents can connect to this endpoint to send commands and receive responses.
 
+## Development Container Setup
+
+For reproducible development, WigAI includes a devcontainer configuration with:
+
+- **Java 21** and Gradle
+- **Python 3.12** for supporting tools
+- **codegraphcontext** MCP server for repository context and code understanding
+- **Host MCP connectivity** to Bitwig Studio running on the host machine
+
+### Quick Start
+
+1. **Open in devcontainer:**
+   ```bash
+   git clone https://github.com/WigAI/WigAI.git
+   cd WigAI
+   # VS Code will prompt to "Reopen in Container" — click to proceed
+   ```
+
+2. **Verify setup:**
+   ```bash
+   ./scripts/mcp/healthcheck.sh
+   ```
+
+3. **Build and test:**
+   ```bash
+   ./gradlew build
+   ./gradlew test
+   ```
+
+### MCP Context Tooling
+
+The devcontainer includes **codegraphcontext**, an MCP server that provides repository-wide code understanding. When using Claude Code inside the devcontainer:
+
+- Claude automatically retrieves targeted code context without token-heavy file pasting
+- Significantly reduces prompt token usage for code understanding and refactoring tasks
+- Configured in `.vscode/mcp.json`
+
+**Host Connectivity:** If Bitwig is running on the host machine, MCP requests from the container use `host.docker.internal:61169` to reach the WigAI endpoint.
+
+For detailed setup, troubleshooting, and customization, see [Devcontainer and MCP Tooling Setup Guide](docs/engineering/devcontainer-mcp-setup.md).
+
 ## Development
 
 This project is developed using the [BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD) with AI Agents. The files in folders `.bmad`, `.claude` and `docs` are used for this development method.
