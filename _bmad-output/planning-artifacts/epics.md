@@ -144,7 +144,7 @@ External AI agents can perform batch operations that create and write multiple c
 
 ### Epic 7: Developer Environment Standardization (Devcontainer + Repo-Local MCP Context Tooling)
 
-Contributors can open WigAI in a deterministic devcontainer with repo-local MCP configuration that runs context MCP tools (`serena`, `claude-context`, `codegraphcontext`) in-container, reducing setup friction and token-heavy prompt workflows.
+Contributors can open WigAI in a deterministic devcontainer with repo-local MCP configuration that runs the `codegraphcontext` MCP server in-container, reducing setup friction and token-heavy prompt workflows.
 
 **FRs covered:** N/A (developer enablement / delivery acceleration)
 
@@ -993,13 +993,15 @@ so that docs, runtime behavior, and release workflows stay in lockstep.
 
 ## Epic 7: Developer Environment Standardization (Devcontainer + Repo-Local MCP Context Tooling)
 
-WigAI contributors can develop inside a reproducible devcontainer with repo-local MCP configuration for context tools (`serena`, `claude-context`, `codegraphcontext`) that run inside the container and support lower-token implementation workflows, using upstream canonical tool projects.
+WigAI contributors can develop inside a reproducible devcontainer with repo-local MCP configuration for upstream `codegraphcontext`, running inside the container and supporting lower-token implementation workflows.
 
-### Story 7.1: Devcontainer + Repo-Local MCP Tooling (`serena` + `claude-context`)
+### Story 7.1: Devcontainer + Repo-Local MCP Tooling (`codegraphcontext`)
 
 As a WigAI contributor,
-I want a repo-local devcontainer with repo-local MCP server definitions for upstream `serena` and `claude-context` that run inside the container,
-So that onboarding is deterministic and context tooling reduces prompt token usage during implementation.
+I want a repo-local devcontainer with a repo-local MCP server definition for upstream `codegraphcontext` running inside the container,
+So that onboarding is deterministic and AI assistants can answer structural questions about the codebase from a code graph instead of re-reading source into the prompt.
+
+**Upstream source:** `https://github.com/CodeGraphContext/CodeGraphContext`
 
 **Acceptance Criteria:**
 
@@ -1007,52 +1009,9 @@ So that onboarding is deterministic and context tooling reduces prompt token usa
 **When** the contributor opens the project in a Dev Container
 **Then** the container builds successfully and the workspace is ready for Java/Gradle development without manual host-only setup steps.
 
-**Given** the devcontainer is running
-**When** initialization completes
-**Then** repo-local install scripts install/configure upstream tools from:
-- `serena`: `https://github.com/oraios/serena`
-- `claude-context`: `https://github.com/zilliztech/claude-context`
-and pinned versions are tracked in repo-managed configuration.
-
-**Given** repo-local MCP configuration is used
-**When** an MCP-capable client reads workspace MCP config
-**Then** `.vscode/mcp.json` contains server entries for existing `WigAI` plus `serena` and `claude-context` (stdio), and both stdio entries execute upstream-installed entrypoints inside the devcontainer (not repo-local replacement wrapper servers).
-
-**Given** Bitwig runs on the host and tools run in-container
-**When** the containerized MCP client calls WigAI
-**Then** `WigAI` connectivity is documented and validated for container networking (host alias strategy; not container-local `localhost`).
-
-**Given** MCP server entries are configured
-**When** healthcheck scripts run in the devcontainer
-**Then** each upstream-installed MCP server (`serena`, `claude-context`) starts successfully and returns a non-error handshake/metadata response.
-
-**Given** baseline prompt-only and MCP-assisted workflows run for representative repo tasks
-**When** token usage is measured on the same tasks
-**Then** results are recorded in a repo artifact showing reduced input-token usage with context tooling (or explicit analysis when target reduction is missed).
-
-**Given** this setup is intended for team reuse
-**When** documentation is reviewed
-**Then** setup, troubleshooting, and usage guidance exists in-repo, including upstream source references, install-script execution, in-container MCP health checks, and token benchmark execution.
-
-**Given** security and repo hygiene requirements
-**When** implementation is complete
-**Then** no secrets are committed, required environment variables are documented, and local override guidance exists for developer-specific credentials.
-
-### Story 7.2: Devcontainer Install for `codegraphcontext` (Graph-Backed Code Context)
-
-As a WigAI contributor,
-I want upstream `codegraphcontext` installed and indexed inside the devcontainer as a repo-local MCP server,
-So that AI assistants can answer structural questions about a 100+ file Java codebase from a code graph instead of re-reading source into the prompt.
-
-**Depends on:** Story 7.1 (devcontainer, install-script pattern, and `.vscode/mcp.json` wiring).
-
-**Upstream source:** `https://github.com/CodeGraphContext/CodeGraphContext`
-
-**Acceptance Criteria:**
-
 **Given** the devcontainer image provides Python without a package installer
 **When** container initialization runs
-**Then** a Python package installer is provisioned deterministically and the chosen approach (system `pip`, `pipx`, or an isolated virtualenv under the workspace) is documented, without weakening the image's non-root, no-privilege-escalation posture.
+**Then** a Python package installer is provisioned deterministically and the chosen approach (system `pip`, `pipx`, or an isolated virtualenv) is documented, without weakening the image's non-root, no-privilege-escalation posture.
 
 **Given** the devcontainer is running
 **When** the repo-local install script executes
@@ -1060,28 +1019,32 @@ So that AI assistants can answer structural questions about a 100+ file Java cod
 
 **Given** `codegraphcontext` supports several graph database backends and the container currently runs Python 3.11
 **When** the backend is selected
-**Then** a backend that works fully in-container is chosen and documented, with an explicit rationale recorded for why it was picked over the alternatives, and any external-service backend is either avoided or its connection settings documented as optional developer configuration.
+**Then** a backend that works fully in-container is chosen and documented, with an explicit rationale for why it was picked over the alternatives.
 
 **Given** repo-local MCP configuration is used
 **When** an MCP-capable client reads workspace MCP config
-**Then** `.vscode/mcp.json` contains a `codegraphcontext` stdio entry that executes the upstream-installed entrypoint (`codegraphcontext mcp start`), alongside the existing `WigAI`, `serena`, and `claude-context` entries.
+**Then** `.vscode/mcp.json` contains the existing `WigAI` HTTP entry plus a `codegraphcontext` stdio entry executing the upstream-installed entrypoint, and contains no entries pointing at scripts that do not exist.
+
+**Given** Bitwig runs on the host and tools run in-container
+**When** the containerized MCP client calls WigAI
+**Then** `WigAI` connectivity is documented and validated for container networking (host alias strategy; not container-local `localhost`).
 
 **Given** the tool is installed and configured
 **When** the repository is indexed inside the container
 **Then** indexing completes over the Java sources in `src/` and the result is queryable, verified by a check that resolves known symbols (for example `WigAIExtension`, `BitwigApiFacade`, `McpServerManager`) and their relationships.
 
 **Given** the MCP server entry is configured
-**When** the devcontainer healthcheck script runs
-**Then** `codegraphcontext` starts successfully and returns a non-error handshake/metadata response, in the same manner as the other MCP servers.
+**When** healthcheck scripts run in the devcontainer
+**Then** `codegraphcontext` starts successfully and returns a non-error handshake/metadata response.
 
 **Given** indexing state and graph data are generated artifacts
-**When** the implementation is complete
-**Then** those artifacts are git-ignored, `~/.codegraphcontext/.env` is never committed, and any environment variables the chosen backend requires (for example `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`) are documented with local-override guidance and no committed secrets.
+**When** implementation is complete
+**Then** those artifacts are git-ignored, no local env file is committed, and any environment variables the chosen backend requires are documented with local-override guidance.
 
-**Given** Story 7.1 establishes a token-usage benchmark
-**When** the benchmark is re-run with `codegraphcontext` available
-**Then** its contribution to input-token reduction on representative structural-navigation tasks is recorded in the same repo artifact, with explicit analysis if it does not help.
+**Given** baseline prompt-only and MCP-assisted workflows run for representative repo tasks
+**When** token usage is measured on the same tasks
+**Then** results are recorded in a repo artifact showing reduced input-token usage with context tooling (or explicit analysis when the target reduction is missed).
 
 **Given** this setup is intended for team reuse
 **When** documentation is reviewed
-**Then** in-repo guidance covers install-script execution, backend choice, the indexing step and when to re-index, health checks, and troubleshooting.
+**Then** setup, troubleshooting, and usage guidance exists in-repo, including the upstream source reference, install-script execution, backend choice, the indexing step and when to re-index, in-container MCP health checks, and token benchmark execution.
