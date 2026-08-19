@@ -1,90 +1,119 @@
 # WigAI Project Structure
 
-This document defines the standard directory and file layout for the WigAI Bitwig Extension project. The structure is based on common Java and Gradle conventions, tailored for a Bitwig extension and optimized for AI-assisted development. The chosen root package name for the Java source code is `io.github.fabb.wigai`.
+This document describes the actual directory and file layout of the WigAI Bitwig Extension project. The structure follows common Java and Gradle conventions, tailored for a Bitwig extension. The root package for all Java source is `io.github.fabb.wigai`.
 
 ## Root Directory Layout
 
 ```plaintext
 WigAI/
-├── agents/                     # Agent prompts and instructions
-│   ├── architect-agent.md      # Architect agent prompt
-│   ├── dev-agent.md            # Developer agent prompt
-│   └── other agent prompts...  # Various AI agent prompts
-├── ai/                         # AI-related resources
-│   └── stories/                # User stories for implementation
-├── build/                      # Compiled output and build artifacts (git-ignored)
-├── docs/                       # Project documentation
-│   ├── architecture.md         # Architecture document
-│   ├── api-reference.md         # MCP API specification
-│   ├── project-structure.md    # This file
-│   ├── tech-stack.md           # Technology stack document
-│   ├── epic1.md, epic2.md...   # Epic documentation
-│   └── templates/              # Documentation templates
+├── .github/                    # CI workflows, issue templates, Copilot instructions, agent definitions
+│   └── workflows/              # branch-policy, build-and-test, pr-validation, release
+├── _bmad/                      # BMAD v2 method runtime (agents, workflows, manifests) — tooling, not project content
+├── _bmad-output/               # BMAD-generated and hand-edited project artifacts
+│   ├── planning-artifacts/     # prd.md, epics.md, architecture.md, project-brief.md, change proposals, research/, archive/
+│   └── implementation-artifacts/ # one file per story, sprint-status.yaml, kickoff checklists, retros, validation reports
+├── bitwig-api-doc-scraper/     # TypeScript scraper that generated docs/reference/bitwig-api/v19/
+├── build/                      # Compiled output and the .bwextension file (git-ignored)
+├── docs/                       # Project documentation — see docs/reference/key-references.md
+│   ├── engineering/            # git-workflow, MCP smoke runbook, host functional test matrix
+│   └── reference/              # architecture, API, data models, tech stack, this file, operational guidelines
+│       └── bitwig-api/v19/     # Scraped copy of the Bitwig Extension API v19 docs (vendor reference)
 ├── gradle/                     # Gradle wrapper files
+├── scripts/                    # ci-local.sh (full CI mirror), test-changed.sh (selective test run)
 ├── src/                        # Source code
-│   ├── main/                   # Main application source
-│   │   ├── java/               # Java source files
-│   │   │   └── io/github/fabb/wigai/  # Root package (abbreviated)
-│   │   │       ├── WigAIExtension.java         # Main extension class
-│   │   │       ├── WigAIExtensionDefinition.java # Extension definition
-│   │   │       ├── common/                     # Shared utilities, constants
-│   │   │       ├── config/                     # Configuration management
-│   │   │       ├── mcp/                        # MCP Server implementation
-│   │   │       │   ├── McpServerManager.java   # Manages MCP server lifecycle
-│   │   │       │   └── tool/                   # MCP tool implementations
-│   │   │       │       ├── StatusTool.java     # Status tool implementation
-│   │   │       │       ├── TransportTool.java  # Transport control tools (start/stop)
-│   │   │       │       ├── DeviceParamTool.java # Device parameter management tools
-│   │   │       │       ├── ClipTool.java       # Clip launching tools
-│   │   │       │       ├── SceneTool.java      # Scene launching tools
-│   │   │       │       └── BaseTool.java       # Base abstract class for tool implementations
-│   │   │       ├── features/                   # Feature modules for Bitwig control
-│   │   │       └── bitwig/                     # Bitwig API Facade
-│   │   └── resources/          # Resources (e.g., extension metadata)
-│   └── test/                   # Test source code
-│       ├── java/               # Java test files (mirroring main structure)
-│       └── resources/          # Test resources
-├── .gitignore                  # Specifies intentionally untracked files for Git
-├── build.gradle.kts            # Gradle build script
+│   ├── main/
+│   │   ├── java/io/github/fabb/wigai/
+│   │   │   ├── WigAIExtension.java            # Main extension class (extends ControllerExtension)
+│   │   │   ├── WigAIExtensionDefinition.java  # Extension metadata
+│   │   │   ├── bitwig/                        # Bitwig API facade — the only layer touching the Bitwig API
+│   │   │   ├── common/                        # Shared utilities and cross-cutting contracts
+│   │   │   ├── config/                        # Configuration and Bitwig preferences
+│   │   │   ├── features/                      # Feature controllers orchestrating Bitwig control
+│   │   │   ├── mcp/                           # MCP server, tools, and idempotency
+│   │   │   └── server/                        # Embedded HTTP server hosting the MCP endpoint
+│   │   └── resources/META-INF/services/       # ExtensionDefinition service registration
+│   └── test/java/io/github/fabb/wigai/        # Tests, mirroring main plus contract/, integration/, smoke/
+├── .gitignore
+├── build.gradle.kts            # Gradle build script (Kotlin DSL)
 ├── gradlew & gradlew.bat       # Gradle wrapper scripts
-├── settings.gradle.kts         # Gradle settings
-└── README.md                   # Project overview, setup instructions
-````
+├── settings.gradle.kts
+├── CHANGELOG.md                # Generated by Nyx (git-ignored)
+├── CONTRIBUTING.md
+└── README.md
+```
 
-## Key Directory & File Descriptions
+## Source Package Layout
 
-  * **`WigAI/`**: The root directory of the project.
-      * **`.github/copilot_instructions.md`**: Provides context and guidelines for GitHub Copilot to improve code suggestions and adherence to project standards. This file can reference key documents in `docs/` and specify the root package `io.github.fabb.wigai`.
-      * **`.idea/.junie/guidelines.md`**: (If using IntelliJ IDEA) Provides context and guidelines for the JetBrains AI Assistant (Junie), similar to the Copilot instructions, referencing `io.github.fabb.wigai`.
-      * **`.vscode/settings.json`**: Workspace-specific settings for VS Code developers, can include Java formatter preferences, linter settings, etc.
-      * **`.gradle/`**: Gradle's internal cache and files.
-      * **`build/`**: Output directory for compiled classes, the `.bwextension` file, test reports, and other build artifacts. This directory is typically git-ignored.
-      * **`docs/`**: Contains all project documentation.
-      * **`gradle/wrapper/`**: Contains the Gradle Wrapper files.
-      * **`src/`**: Contains all source code and resources.
-          * **`src/main/java/io/github/fabb/wigai/`**: This is where the core Java source code for the extension resides, under the root package `io.github.fabb.wigai`.
-              * `WigAIExtension.java`: The main entry point class, extending `ControllerExtension`.
-              * `WigAIExtensionDefinition.java`: Defines metadata for the extension, extending `ControllerExtensionDefinition`.
-              * `common/`: Utility classes, constants, and shared services like `Logger.java`.
-              * `config/`: Configuration management, like `ConfigManager.java`.
-              * `mcp/`: Components related to the MCP server.
-              * `features/`: Sub-packages for each major feature area.
-              * `bitwig/`: Facade for Bitwig API interactions.
-          * **`src/main/resources/`**: Non-code resources.
-          * **`src/test/java/io/github/fabb/wigai/`**: Source code for unit tests, mirroring the main package structure.
-          * **`src/test/resources/`**: Resources for tests.
-      * **`.gitignore`**: Standard Git ignore file.
-      * **`build.gradle.kts`**: The Gradle build script (Kotlin DSL).
-      * **`gradlew` & `gradlew.bat`**: Gradle wrapper executable scripts.
-      * **`LICENSE`**: Project's open-source license.
-      * **`README.md`**: Project overview and instructions.
+The layering runs outermost (transport) to innermost (shared contracts). Dependencies point inward.
+
+### `server/`
+Embedded HTTP transport hosting the MCP endpoint.
+
+  * `JettyServerManager.java` — Jetty lifecycle for the MCP endpoint.
+
+### `mcp/`
+MCP protocol surface.
+
+  * `McpServerManager.java` — MCP server lifecycle and tool registration.
+  * `McpErrorHandler.java` — maps internal failures onto MCP error responses.
+  * `idempotency/` — `IdempotencyCache`, `IdempotencyEntry`, `IdempotencyKey`. Request-id-keyed dedupe for mutating tools (Story 1.7).
+  * `tool/` — one class per MCP tool. There is no shared base class; each tool is a standalone class:
+      * Status: `StatusTool`
+      * Transport: `TransportTool`
+      * Device parameters: `DeviceParamTool`, `GetDeviceDetailsTool`
+      * Clips and scenes: `ClipTool`, `SceneTool`, `SceneByNameTool`, `GetClipsInSceneTool`, `ListScenesTool`
+      * Project inquiry: `ListTracksTool`, `GetTrackDetailsTool`, `ListDevicesOnTrackTool`
+      * Track targeting: `ResolveTrackTool` (deterministic fuzzy match + ambiguity candidate list, Story 2.4)
+
+    See `docs/mcp-tools-reference.md` for the tool contracts these classes implement.
+
+### `features/`
+Feature controllers that orchestrate Bitwig operations on behalf of tools.
+
+  * `TransportController.java`, `DeviceController.java`, `ClipSceneController.java`
+
+### `bitwig/`
+Facade isolating the rest of the codebase from the Bitwig Extension API.
+
+  * `BitwigApiFacade.java`, `SceneBankFacade.java`
+
+### `config/`
+Configuration management. Values are compiled-in constants plus Bitwig preferences; there is no `.env` loading.
+
+  * `ConfigManager.java`, `PreferencesBackedConfigManager.java`, `ConfigChangeObserver.java`
+
+### `common/`
+Cross-cutting contracts shared by every tool. Changes here affect all tools by design.
+
+  * `AppConstants.java`, `Logger.java`
+  * `data/` — `ParameterInfo`, `ParameterSetting`, `ParameterSettingResult`
+  * `error/` — `ErrorCode` (canonical error semantics, Story 1.6), `BitwigApiException`, `WigAIErrorHandler`
+  * `logging/` — `StructuredLogger` (request-id correlation, Story 1.4)
+  * `retry/` — `RetryExecutor`, `RetryPolicy` (non-blocking bounded retry, Story 1.5)
+  * `validation/` — `ParameterValidator`, `TrackTargetingContract` (standard track targeting, Story 2.3)
+
+## Test Layout
+
+`src/test/java/io/github/fabb/wigai/` mirrors the main package structure and adds three suites:
+
+  * `contract/` — verifies tool response envelopes and error codes against the documented contract.
+  * `integration/` — cross-component tests within the extension.
+  * `smoke/` — the MCP smoke-test harness (Story 1.1), driven by the `mcpSmokeTest` Gradle task rather than by `test`.
+
+## Gradle Tasks
+
+Beyond the standard `test` and `build`:
+
+  * `bwextension` — packages `build/extensions/WigAI.bwextension`.
+  * `mcpSmokeTest` — runs the smoke harness against a live Bitwig instance. See `docs/engineering/mcp-smoke-test-runbook.md`.
+  * `mcpTimingStressTest` — timing and concurrency stress run against a live instance.
+  * `atddRedTest` — runs acceptance tests expected to fail before implementation.
 
 ## Notes
 
   * The root package name for all Java source code is **`io.github.fabb.wigai`**.
-  * This structure promotes modularity and separation of concerns, making the codebase easier to understand, maintain, test, and for AI assistants to work with effectively.
-  * The `build.gradle.kts` file will be crucial for defining how these components are built into the final `.bwextension` file.
-  * The contents of `.github/copilot_instructions.md` and `.idea/.junie/guidelines.md` will be developed to point AI assistants to relevant architectural documents, coding standards (using `io.github.fabb.wigai` as the root package), and API specifications within the `docs/` folder.
+  * `.github/copilot_instructions.md` points AI assistants at the documents in `docs/reference/`.
+  * `_bmad/` and `_bmad-output/` belong to the BMAD method the project was built with, not to the extension itself. Neither is packaged into the `.bwextension` artifact.
 
 ## Change Log
 
@@ -97,3 +126,4 @@ WigAI/
 | Update        | 2025-05-18 | 0.5     | Corrected root directory name from "wigai-bitwig-extension" to "WigAI" for consistency. | GitHub Copilot    |
 | Update        | 2025-05-18 | 0.6     | Added more detailed descriptions of specific tool implementation files in the MCP tool package. | GitHub Copilot    |
 | Update        | 2025-05-18 | 0.7     | Updated tool implementations to replace PingTool with StatusTool to follow the MCP specification which already includes a native ping functionality. | Technical Scrum Master Agent |
+| Update        | 2026-08-19 | 0.8     | Rewritten against the actual tree. Removed `agents/`, `ai/stories/`, `docs/templates/`, and `docs/epic*.md` (never existed or long removed) and the nonexistent `BaseTool`. Added `server/`, `mcp/idempotency/`, the `common/` subpackages, `_bmad-output/`, `scripts/`, the test suites, and the Gradle tasks. | Claude |

@@ -41,11 +41,35 @@ Once the extension is activated in Bitwig Studio, the MCP server will be availab
 
 ## Development
 
-This project is developed using the [BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD) with AI Agents. The files in folders `.bmad`, `.claude` and `docs` are used for this development method.
+### Verifying a change
+
+```bash
+./gradlew test           # unit, contract, and integration tests
+./scripts/ci-local.sh    # full CI mirror: tests, then build the .bwextension
+./scripts/test-changed.sh # selective run, matching the PR-validation filter
+```
+
+With Bitwig Studio running and the extension enabled, `./gradlew mcpSmokeTest` validates the live MCP
+endpoint. See [docs/engineering/mcp-smoke-test-runbook.md](docs/engineering/mcp-smoke-test-runbook.md).
+
+### Method and layout
+
+This project is developed with AI agents using the
+[BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD):
+
+- `_bmad/` — the BMAD runtime (agents, workflows, manifests)
+- `_bmad-output/planning-artifacts/` — PRD, epics, architecture, project brief, change proposals
+- `_bmad-output/implementation-artifacts/` — story files, `sprint-status.yaml`, retrospectives
+- `.claude/commands/` — project-local `bmad-*` slash commands
+
+`_bmad-output/implementation-artifacts/sprint-status.yaml` is the source of truth for epic and story
+status.
 
 **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow, branch naming, and PR guidelines.
 
-**Documentation**: Comprehensive project documentation is available in [docs/reference/](docs/reference/)
+**Documentation**: Start at [docs/reference/key-references.md](docs/reference/key-references.md) for a
+map of all project documentation, or [docs/reference/project-overview.md](docs/reference/project-overview.md)
+for an architecture-first tour.
 
 ## Releases
 
