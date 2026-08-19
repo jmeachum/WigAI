@@ -18,7 +18,11 @@ out/
 bin/
 
 # VS Code
-.vscode/
+# Ignore per-developer workspace files, but keep the shared MCP server
+# config repo-managed (Epic 7). A `!` negation cannot re-include a file
+# whose parent directory is excluded, so exclude the contents, not the dir.
+.vscode/*
+!.vscode/mcp.json
 .code-workspace
 
 # Mac OS
@@ -38,5 +42,8 @@ hs_err_pid*
 
 # Nyx
 .nyx/
+
+# ECC Memory Vault (project scope is local-only)
+.ecc/
 
 CHANGELOG.md

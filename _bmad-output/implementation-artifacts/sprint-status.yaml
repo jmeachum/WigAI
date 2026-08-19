@@ -125,4 +125,5 @@ development_status:
 
   epic-7: in-progress
   7-1-devcontainer-repo-local-mcp-tooling-serena-claude-context: in-progress
+  7-2-devcontainer-install-codegraphcontext-graph-backed-code-context: backlog
   epic-7-retrospective: optional
