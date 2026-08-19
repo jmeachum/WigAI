@@ -1,6 +1,6 @@
 # Story 2.0: dependency-version-refresh-checkpoint-g6-closure
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -163,6 +163,7 @@ so that Epic 2 kickoff gate G6 can be closed with auditable technical readiness.
 ### Change Log
 
 - 2026-02-16: Story executed. All checkpoint evidence captured and gate G6 closed. Sprint status synchronized.
+- 2026-08-19: Status header corrected `review` -> `done` to match the tracker. The story completed on 2026-02-16 (G6 closed, evidence captured) and the tracker was updated then, but the header was never advanced.
 
 ### File List
 

@@ -1,6 +1,6 @@
 # Story 7.1: devcontainer-repo-local-mcp-tooling-serena-claude-context
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -198,6 +198,7 @@ so that onboarding is deterministic and context tooling reduces prompt token usa
 
 - 2026-02-22: Initial implementation-ready story created.
 - 2026-02-22: Correct Course approved; story contract updated to upstream install-script approach and status set to `in-progress`.
+- 2026-08-19: Status header (`ready-for-dev`) and tracker (`backlog`) reconciled to `in-progress`, the value the 2026-02-22 correction approved. Both had been missed when that correction was applied.
 
 ### File List
 

@@ -30,6 +30,14 @@ jobs:
               - '**/*.kt'
               - '**/*.kts'
 
+  # Story status and the sprint tracker must agree on every PR (Epic 3, Story 3-01)
+  story-status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check story status consistency
+        run: ./scripts/check-story-status.sh
+
   build-and-test:
     needs: check-changes
     uses: ./.github/workflows/build-and-test.yml
@@ -41,13 +49,16 @@ jobs:
   # Always-passing job that summarizes the validation status
   validation-summary:
     runs-on: ubuntu-latest
-    needs: [check-changes, build-and-test]
+    needs: [check-changes, build-and-test, story-status]
     # Run even if build-and-test is skipped
     if: always()
     steps:
       - name: Report validation status
         run: |
-          if [[ "${{ needs.check-changes.outputs.should-test }}" == "false" ]]; then
+          if [[ "${{ needs.story-status.result }}" != "success" ]]; then
+            echo "❌ Story status drift between story files and sprint-status.yaml"
+            exit 1
+          elif [[ "${{ needs.check-changes.outputs.should-test }}" == "false" ]]; then
             echo "✅ No code changes detected - skipping tests"
             echo "Changed files are documentation or configuration only"
             exit 0
