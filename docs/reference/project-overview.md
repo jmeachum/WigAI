@@ -8,7 +8,7 @@
 **Repository Structure:** Monolithic Java/Gradle project  
 **Primary Language:** Java 21 (LTS)  
 **Build System:** Gradle (Kotlin DSL)  
-**Target Platform:** Bitwig Studio 12+  
+**Target Platform:** Bitwig Studio 5.2.7+  
 
 ## Architecture Overview
 
@@ -98,7 +98,7 @@ WigAI Extension
 ### Prerequisites
 - Java 21 JDK installed
 - Gradle 8.x (wrapper included)
-- Bitwig Studio 12+ for testing
+- Bitwig Studio 5.2.7+ for testing
 - IDE: IntelliJ IDEA or VS Code (with Java extensions)
 
 ### Building
@@ -122,79 +122,94 @@ The `.bwextension` file (created in `build/extensions/`) is copied to:
 
 ## Project Status
 
-### Completed
-- ✅ Core MCP server implementation
-- ✅ Bitwig API integration layer
-- ✅ Transport control features
-- ✅ Clip/Scene management
-- ✅ Device parameter access
-- ✅ Track information queries
-- ✅ Comprehensive test coverage
-- ✅ Full architecture documentation
+Delivery status is tracked in `../../_bmad-output/implementation-artifacts/sprint-status.yaml`, which is
+the source of truth. The summary below was accurate on 2026-08-19.
 
-### In Progress / Planned
-- 🔄 Advanced device chain manipulation
-- 🔄 Mixer scene automation
-- 🔄 Performance optimization
-- 🔄 Extended error scenarios handling
+### Shipped
+- Epic 1 — baseline MCP hardening: smoke-test harness, localhost binding guardrails, standardized
+  response envelopes, request-id log correlation, non-blocking bounded retry, canonical error codes,
+  request-id-keyed idempotency for mutating tools.
+- Epic 2 — track targeting contract: contract-semantics DoR and lockstep gate, duplicate-track-name
+  ambiguity behavior, standard track targeting (index / exact name / selected default), the
+  `resolve_track` tool with deterministic fuzzy matching, and rollout across existing mutating tools.
+
+### Next
+- Epic 3 — launcher clip creation and scene launch tools. **Gated**: five carry-forward items from the
+  Epic 2 retrospective must close first. See
+  `../../_bmad-output/implementation-artifacts/epic-3-kickoff-checklist-2026-02-17.md`.
+- Epic 4 — deterministic note payload contracts and clip note writing.
+- Epic 5 — batch clip create/write with per-item results.
+- Epic 6 — dependency migration: Jetty 12, Jakarta, MCP SDK 0.17, Bitwig API 24.
+- Epic 7 — devcontainer with repo-local MCP tooling.
 
 ## Documentation Map
 
 ### Architecture & Design
-- [**Architecture** (architecture.md)](../architecture.md) - System design and patterns
-- [**Component Architecture Deep Dive** (component-architecture-deep-dive.md)](./component-architecture-deep-dive.md) - Detailed component breakdown
-- [**Component View** (component-view.md)](./component-view.md) - Component interactions
-- [**Sequence Diagrams** (sequence-diagrams.md)](./sequence-diagrams.md) - Key workflows
+- [Architecture](../../_bmad-output/planning-artifacts/architecture.md) — solutioning-phase system design
+- [Component Architecture Deep Dive](./component-architecture-deep-dive.md) — detailed component breakdown
+- [Component View](./component-view.md) — component interactions
+- [Project Structure](./project-structure.md) — directory and package layout
+- [Sequence Diagrams](./sequence-diagrams.md) — placeholder; flows are currently in the deep dive
 
 ### API & Integration
-- [**API Reference** (api-reference.md)](./api-reference.md) - Full MCP API specification
-- [**MCP Tools Reference** (mcp-tools-reference.md)](../mcp-tools-reference.md) - Tool implementations
-- [**Data Models** (data-models.md)](./data-models.md) - Request/response structures
+- [API Reference](./api-reference.md) — full MCP API specification (authoritative)
+- [MCP Tools Reference](../mcp-tools-reference.md) — per-tool quick reference
+- [Data Models](./data-models.md) — request/response structures
 
 ### Requirements & Planning
-- [**Product Requirements** (prd/)](../sprint-artifacts/archive/cycle-1-2025-12-15/index.md) - Complete PRD by epic (archived from cycle 1)
-- [**Project Brief** (project-brief.md)](../project-brief.md) - High-level project overview
-- [**Epics & Stories** (stories/)](../sprint-artifacts/archive/cycle-1-2025-12-15/) - Implementation stories (archived from cycle 1)
+- [PRD](../../_bmad-output/planning-artifacts/prd.md) — current-cycle product requirements
+- [Epics & Stories](../../_bmad-output/planning-artifacts/epics.md) — Epics 1-7
+- [Project Brief](../../_bmad-output/planning-artifacts/project-brief.md) — vision, users, MVP scope
+- [Cycle 1 archive](../../_bmad-output/planning-artifacts/archive/cycle-1-2025-12-15/) — superseded baseline
 
 ### Development
-- [**Tech Stack** (tech-stack.md)](./tech-stack.md) - Technology decisions and justification
-- [**Project Structure** (project-structure.md)](./project-structure.md) - Directory layout
-- [**Operational Guidelines** (operational-guidelines.md)](./operational-guidelines.md) - Coding standards
-- [**Environment Variables** (environment-vars.md)](./environment-vars.md) - Configuration guide
-- [**Deployment** (infra-deployment.md)](./infra-deployment.md) - Distribution and deployment
-- [**Semantic Versioning** (semantic-versioning-guide.md)](./semantic-versioning-guide.md) - Version management
+- [Operational Guidelines](./operational-guidelines.md) — coding standards **and** testing strategy
+- [Tech Stack](./tech-stack.md) — technology decisions and justification
+- [Git Workflow](../engineering/git-workflow.md) — branch types and PR targeting
+- [Environment Variables](./environment-vars.md) — configuration parameters
+- [Deployment](./infra-deployment.md) — distribution and installation
+- [Semantic Versioning](./semantic-versioning-guide.md) — Nyx and Conventional Commits
+- [CI](../ci.md) — GitHub Actions workflows and local equivalents
+
+### Testing
+- [MCP Smoke Test Runbook](../engineering/mcp-smoke-test-runbook.md) — `./gradlew mcpSmokeTest`
+- [Host Functional Test Matrix](../engineering/mcp-host-functional-test-matrix.md) — manual per-tool coverage
+- [MCP Endpoints Verification](./testing/mcp-endpoints-verification.md)
 
 ### Workflow Tracking
-- [**Workflow Status** (bmm-workflow-status.yaml)](../../_bmad-output/planning-artifacts/bmm-workflow-status.yaml) - BMM methodology progress
+- [Sprint Status](../../_bmad-output/implementation-artifacts/sprint-status.yaml) — epic/story status of record
+- [BMM Workflow Status](../../_bmad-output/planning-artifacts/bmm-workflow-status.yaml) — planning-phase progress
 
 ## Getting Started
 
 ### For New Developers
-1. **Read:** [Project Brief](../project-brief.md) for context
-2. **Review:** [Architecture](../architecture.md) for system understanding
-3. **Setup:** Follow build instructions above
-4. **Explore:** Check [archived stories](../sprint-artifacts/archive/cycle-1-2025-12-15/) for completed work items
+1. **Read:** [Project Brief](../../_bmad-output/planning-artifacts/project-brief.md) for context
+2. **Review:** [Component Architecture Deep Dive](./component-architecture-deep-dive.md) and
+   [Project Structure](./project-structure.md)
+3. **Setup:** follow the build instructions above, then `./scripts/ci-local.sh` to mirror CI locally
+4. **Standards:** read [Operational Guidelines](./operational-guidelines.md) before your first change
 
 ### For Feature Development
-1. **Check:** [API Reference](./api-reference.md) for existing endpoints
-2. **Review:** Related story in [archived stories](../sprint-artifacts/archive/cycle-1-2025-12-15/)
-3. **Reference:** [Component Architecture Deep Dive](./component-architecture-deep-dive.md) for implementation patterns
-4. **Test:** Add tests following patterns in `src/test/java/`
+1. **Check:** [API Reference](./api-reference.md) for existing tool contracts
+2. **Find the story:** `../../_bmad-output/implementation-artifacts/<epic>-<n>-<slug>.md`
+3. **Respect the lockstep gate:** runtime code, tests, and API docs must change together — see
+   `../../_bmad-output/implementation-artifacts/epic-2-contract-semantics-dor-lockstep-standard-2026-02-16.md`
+4. **Test:** follow the patterns in `src/test/java/`, including `contract/` and `integration/`
 
 ### For API Integration
 1. **Start:** [MCP Tools Reference](../mcp-tools-reference.md)
-2. **Understand:** [Data Models](./data-models.md) for request/response formats
-3. **Review:** [Sequence Diagrams](./sequence-diagrams.md) for interaction flows
+2. **Confirm against:** [API Reference](./api-reference.md), which is authoritative where the two differ
+3. **Connect:** `http://localhost:61169/mcp`
 
 ## Key References
 
 - **Bitwig Extension API:** https://resources.bitwig.com/studios/controller-api/
+  (local scraped v19 copy: [bitwig-api/v19/index.md](./bitwig-api/v19/index.md))
 - **Model Context Protocol:** https://modelcontextprotocol.io/
 - **MCP Java SDK:** https://github.com/modelcontextprotocol/java-sdk
 - **Jakarta EE:** https://jakarta.ee/
 
 ---
 
-**Last Updated:** 2025-12-13  
-**Generated by:** BMM Document Project Workflow (Full Rescan)  
+**Last Updated:** 2026-08-19
 **Status:** Active Development

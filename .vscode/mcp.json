@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "WigAI": {
+      "type": "http",
+      "url": "http://host.docker.internal:61169/mcp"
+    }
+  }
+}
