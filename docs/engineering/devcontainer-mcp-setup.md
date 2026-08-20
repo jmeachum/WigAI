@@ -59,6 +59,18 @@ in sync automatically by a background watcher; see
 [MCP Configuration Files](#mcp-configuration-files) below) — trim it there if a
 project ever wants to restrict what the server exposes.
 
+The server's actual tool set (v0.6.3, verified live 2026-08-20) is larger than the
+`alwaysAllow` list above: it also exposes `get_repository_stats`, `list_graphs`,
+`find_java_spring_beans`, `find_java_spring_endpoints`, `analyze_architectural_evolution`,
+`simulate_architectural_change`, `simulate_metrics`, `generate_report`,
+`discover_codegraph_contexts`, `switch_context`, `load_bundle`,
+`search_registry_bundles`, and `find_datasource_nodes`. These aren't in `alwaysAllow`
+purely because the list predates them, not because they're intentionally restricted —
+none are Spring/bundle-registry relevant to this project today, so day-to-day use
+sticks to the tools already listed above. See
+[.claude/skills/codegraphcontext/SKILL.md](../../.claude/skills/codegraphcontext/SKILL.md)
+for the full categorized tool reference and usage workflow.
+
 **Usage in Claude/Codex:**
 - Claude Code (CLI and IDE) and Codex CLI both auto-detect the server once configured (see below)
 - Ask Claude/Codex to use it directly: "use find_code to locate the Track interface",
