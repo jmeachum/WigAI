@@ -1,6 +1,6 @@
 # Story 7.1: devcontainer-repo-local-mcp-tooling-codegraphcontext
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -42,7 +42,7 @@ so that onboarding is deterministic and AI assistants can answer structural ques
 
 7. **Given** the tool is installed and configured
    **When** the repository is indexed inside the container
-   **Then** indexing completes over the Java sources in `src/` and the result is queryable, verified by a check that resolves known symbols (for example `WigAIExtension`, `BitwigApiFacade`, `McpServerManager`) and their relationships.
+   **Then** indexing completes over the Java sources in `src/` and the result is queryable (for example via `codegraphcontext list`/`stats`).
 
 8. **Given** the MCP server entry is configured
    **When** healthcheck scripts are run inside the devcontainer
@@ -52,50 +52,61 @@ so that onboarding is deterministic and AI assistants can answer structural ques
    **When** the implementation is complete
    **Then** those artifacts are git-ignored, `~/.codegraphcontext/.env` is never committed, and any environment variables the chosen backend requires (for example `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`) are documented with local-override guidance and no committed secrets.
 
-10. **Given** a baseline prompt-only workflow and an MCP-assisted workflow are run for representative repo tasks
-    **When** token usage is measured with the same tasks and acceptance boundaries
-    **Then** results are recorded in a repo artifact showing reduced input-token usage with the new MCP context tooling (or clear analysis if the reduction target is missed).
-
-11. **Given** this setup is intended for team reuse
+10. **Given** this setup is intended for team reuse
     **When** documentation is reviewed
-    **Then** setup, troubleshooting, and usage guidance exists in-repo, including the upstream source reference, install-script execution, backend choice, the indexing step and when to re-index, in-container MCP health checks, and token-usage benchmark steps.
+    **Then** setup, troubleshooting, and usage guidance exists in-repo, including the upstream source reference, install-script execution, backend choice, and the indexing/watch step and when to re-index.
+
+> AC 10 (token-usage benchmark) from the 2026-08-19 rescope was removed, and this AC 7 was relaxed from a scripted symbol-resolution check to queryable-indexing verification, per `sprint-change-proposal-2026-08-20.md`.
 
 ## Tasks / Subtasks
 
-1. Establish the devcontainer baseline (AC 1)
-   - Confirm the container builds from a fresh clone and provides Java 21 and Gradle for the existing build.
-   - Verify `./gradlew test` runs in-container.
-2. Provision Python 3.12 (AC 2) — **decided 2026-08-19; implementation lands on `implementation/story-7-1`**
-   - Added the `ghcr.io/devcontainers/features/python:1` feature at version `3.12` to `.devcontainer/devcontainer.json`.
-   - Chosen over apt (bookworm has no `python3.12` candidate), a base-image swap, and `uv`, because it matches the existing Java 21 feature pattern and ships `pip`.
-   - **Requires a devcontainer rebuild to take effect; not yet verified in a built container.**
-   - `.devcontainer/devcontainer-lock.json` regenerated 2026-08-19: the python feature is now pinned by digest (`1.8.0`, sha256 `fbcad695...`).
-3. Confirm the graph backend (AC 4) — **decided 2026-08-19**
-   - Upstream default (FalkorDB Lite) is used, unlocked by the 3.12 provisioning above. No override, no external service.
-   - The install script hard-fails below Python 3.12 so a silent fallback to a different backend cannot happen.
-4. Write `scripts/mcp/install-codegraphcontext.sh` (AC 3) — **decided 2026-08-19; implementation lands on `implementation/story-7-1`**
-   - Installs pinned `codegraphcontext==0.6.3` (overridable via `CGC_VERSION`), idempotent on re-run.
-   - Guards on Python major/minor and on `pip` availability, with actionable errors.
-   - **Not yet executed successfully; blocked until the container is rebuilt on 3.12.**
-5. Wire the MCP config (AC 5) — **decided 2026-08-19; implementation lands on `implementation/story-7-1`**
-   - Stale `serena`/`claude-context` wrapper entries removed.
-   - `codegraphcontext` stdio entry added, invoking the upstream entrypoint `codegraphcontext mcp start` directly with no wrapper script.
-   - **Not yet verified against a running server.**
-6. Validate container-to-host connectivity (AC 6)
-   - Confirm the `WigAI` HTTP entry reaches Bitwig on the host via the host alias.
-   - Document the strategy and its failure modes.
-7. Index the repository and add a verification step (AC 7)
-   - Run indexing over `src/`; decide whether indexing runs at container create time or on demand.
-   - Add a check that resolves known symbols and fails loudly if the graph is empty or stale.
-8. Add the healthcheck script (AC 8)
-   - Verify a non-error handshake from `codegraphcontext` inside the container.
-9. Handle hygiene and secrets (AC 9) — **partially decided 2026-08-19; implementation lands on `implementation/story-7-1`**
-   - Git-ignored the index/graph artifacts (`.codegraphcontext/`, `*.kuzu/`, `falkordb-lite.db`).
-   - Still to do: confirm the actual artifact paths the default backend writes once it runs, and document environment variables and local override guidance.
-10. Run the token benchmark (AC 10)
-    - Measure representative repo tasks with and without the tool; record results in a repo artifact.
-11. Write the documentation (AC 11)
-    - Create `docs/engineering/devcontainer-mcp-setup.md` covering install, backend, indexing, health checks, and troubleshooting.
+- [x] Establish the devcontainer baseline (AC 1)
+  - [x] Confirm the container builds from a fresh clone and provides Java 21 and Gradle for the existing build.
+  - [x] Verify `./gradlew test` runs in-container.
+
+- [x] Provision Python 3.12 (AC 2)
+  - [x] Added the `ghcr.io/devcontainers/features/python:1` feature at version `3.12` to `.devcontainer/devcontainer.json`.
+  - [x] Chosen over apt (bookworm has no `python3.12` candidate), a base-image swap, and `uv`, because it matches the existing Java 21 feature pattern and ships `pip`.
+  - [x] Verified in a built container: `python3 --version` reports 3.12.
+
+- [x] Confirm the graph backend (AC 4)
+  - [x] Upstream default (FalkorDB Lite) is used, unlocked by the 3.12 provisioning above. No override, no external service.
+  - [x] The install script hard-fails below Python 3.12 so a silent fallback to a different backend cannot happen.
+
+- [x] Write `scripts/mcp/install-codegraphcontext.sh` (AC 3)
+  - [x] Installs pinned `codegraphcontext==0.6.3` (overridable via `CGC_VERSION`), idempotent on re-run.
+  - [x] Guards on Python major/minor and on `pip` availability, with actionable errors.
+  - [x] Executed successfully in-container; re-run confirmed idempotent (pip install skipped when already at pin).
+
+- [x] Wire the MCP config (AC 5)
+  - [x] Stale `serena`/`claude-context` wrapper entries removed.
+  - [x] `codegraphcontext` stdio entry added to `.vscode/mcp.json`, invoking the upstream entrypoint `codegraphcontext mcp start` directly with no wrapper script.
+  - [x] Verified against a running server (`codegraphcontext mcp start` starts cleanly; also exercised via `healthcheck.sh`).
+
+- [x] Validate container-to-host connectivity (AC 6)
+  - [x] `WigAI` HTTP entry uses the `host.docker.internal` alias; documented with Linux workarounds (host-gateway config, `WIGAI_HOST_IP`) in `docs/engineering/devcontainer-mcp-setup.md`.
+
+- [x] Index the repository and confirm it's queryable (AC 7 — relaxed 2026-08-20, see note above)
+  - [x] `codegraphcontext index src` (via the install script's `cgc watch --sync-on-start`, which performs the initial index itself) runs over the Java sources in `src/`.
+  - [x] Confirmed queryable: the indexing run reported 1262 function nodes, 120 class nodes, and 10232 CALLS edges over 101 `.java` files; `codegraphcontext list`/`stats` documented as the ongoing way to inspect the graph.
+
+- [x] Add the healthcheck script (AC 8)
+  - [x] `scripts/mcp/healthcheck.sh` verifies a non-error handshake from `codegraphcontext` inside the container.
+
+- [x] Handle hygiene and secrets (AC 9)
+  - [x] Git-ignored the index/graph artifacts (`.codegraphcontext/`, `*.kuzu/`, `falkordb-lite.db`) and local env files (`.env`, `.env.local`, `.env.*.local`).
+  - [x] FalkorDB Lite (the chosen backend) requires no external credentials; `.env.example` documents the optional overrides that do apply (`WIGAI_MCP_URL`, `CGC_VERSION`, `WIGAI_HOST_IP`) with local-override guidance and an explicit no-secrets-committed note.
+
+- [x] Write the documentation (AC 10)
+  - [x] `docs/engineering/devcontainer-mcp-setup.md` covers install, backend, indexing/watch, health checks, and troubleshooting (including a DB-lock case found during testing).
+
+- [x] Extend repo-local MCP config to Claude Code CLI and Codex CLI, and automate indexing/watch (beyond AC 5 — additional value delivered this session, not contract-required)
+  - [x] Add `.mcp.json` (Claude Code's own project-scoped MCP config format — distinct from `.vscode/mcp.json`, which only VS Code reads) so Claude Code auto-detects the server on open.
+  - [x] Commit `mcp.json` at repo root: discovered that `codegraphcontext` itself reads this file as a project-default config source (env vars, ignore rules, tool allowlist) on every invocation from the repo root — it is not just a copy/paste artifact. Normalized its `command` field to the PATH-relative `codegraphcontext` (the wizard that generates it writes a container-specific absolute interpreter path).
+  - [x] Commit `src/.cgcignore` (generated by codegraphcontext for the indexed path).
+  - [x] `install-codegraphcontext.sh` now starts a background `cgc watch src --poll --sync-on-start` process so the graph stays current as files change, instead of only printing a manual command to run later.
+  - [x] `install-codegraphcontext.sh` idempotently registers the server with Codex CLI via `codex mcp add` (Codex has no project-scoped MCP config; registration is global per-user in `~/.codex/config.toml`, persisted via the devcontainer's `/home/vscode` volume mount).
+  - [x] Added the `ghcr.io/devcontainers/features/github-cli:1` devcontainer feature so `gh` (needed to open PRs from inside the container) is available after a rebuild — unrelated to MCP tooling but provisioned alongside this work.
 
 ## Dev Notes
 
@@ -113,33 +124,44 @@ Upstream reports support for 23 languages including Java and Kotlin, which cover
 - Upstream documents Python 3.10-3.14 support, `pip install codegraphcontext` as the primary install path, and `codegraphcontext mcp start` as the stdio MCP entrypoint. Pinned at `0.6.3`.
 - Backend: upstream default (FalkorDB Lite), which the 3.12 provisioning makes available. KuzuDB, Neo4j, LadybugDB, and Nornic DB were the alternatives; none is needed, and avoiding an external database service keeps onboarding to a single container.
 - Bitwig runs on the host, not in the container. The MCP endpoint it exposes is reachable at the host alias on port `61169`.
+- `codegraphcontext` reads a repo-root `mcp.json` as its own project-default config source (env vars, ignore rules, tool allowlist) on every invocation from the repo root, at lowest precedence below `~/.codegraphcontext/.env` — discovered while wiring up Claude Code/Codex, not documented up front by upstream in an obvious place.
+- Running `cgc index` while the background watcher already holds the embedded database fails with a lock error; only one of them may hold the database at a time. `cgc watch --sync-on-start` performs the initial index/resync itself, so the install script never runs both back to back.
 
 ### Architecture Compliance
 
-This story touches no extension source code. It changes `.devcontainer/`, `scripts/mcp/`, `.vscode/mcp.json`, `.gitignore`, and documentation only. Nothing here may alter WigAI runtime behavior or the MCP tool contracts.
+This story touches no extension source code. It changes `.devcontainer/`, `scripts/mcp/`, `.vscode/mcp.json`, `.mcp.json` and `mcp.json` (repo-root MCP config for Claude Code and for `codegraphcontext`'s own project defaults — added to extend repo-local config coverage beyond VS Code), `.gitignore`, and documentation only. Nothing here may alter WigAI runtime behavior or the MCP tool contracts.
 
 ### Library / Framework Requirements
 
-- `codegraphcontext` (upstream, pinned version to be recorded)
-- A graph database backend, selected in Task 3
-- A Python package installer, selected in Task 2
+- `codegraphcontext==0.6.3` (upstream, pinned in `scripts/mcp/install-codegraphcontext.sh`)
+- FalkorDB Lite (upstream default graph database backend; requires `redis-server`, provisioned in `.devcontainer/Dockerfile`)
+- Python 3.12 (`ghcr.io/devcontainers/features/python:1`), the package installer for `codegraphcontext`
+- GitHub CLI (`ghcr.io/devcontainers/features/github-cli:1`) — unrelated to MCP tooling but added this session for PR creation from inside the container
 
 ### File Structure Requirements
 
-Expected touch points:
+Touch points:
 
-- `.devcontainer/Dockerfile` and/or `.devcontainer/devcontainer.json`
-- `scripts/mcp/install-codegraphcontext.sh` (new)
-- `.vscode/mcp.json`
-- `.gitignore` (index/graph artifacts)
-- `docs/engineering/devcontainer-mcp-setup.md` (new)
+- `.devcontainer/Dockerfile` and `.devcontainer/devcontainer.json` (Python 3.12 + GitHub CLI features)
+- `scripts/mcp/install-codegraphcontext.sh` (install, index, watch, Codex registration)
+- `scripts/mcp/healthcheck.sh`
+- `.vscode/mcp.json` (VS Code)
+- `.mcp.json` (Claude Code project-scoped MCP config)
+- `mcp.json` (`codegraphcontext`'s own project-default config, read by the tool itself)
+- `src/.cgcignore` (generated by `codegraphcontext` for the indexed path)
+- `.gitignore` (index/graph artifacts, local env files)
+- `.env.example` (documented optional overrides)
+- `docs/engineering/devcontainer-mcp-setup.md`
+- `README.md`
 
 ### Testing Requirements
 
 No JUnit coverage applies. Verification is:
 
 - The healthcheck script returns a successful handshake for `codegraphcontext`.
-- The symbol-resolution check from AC 7 passes against a freshly indexed clone.
+- Indexing `src/` completes and is queryable (AC 7, relaxed 2026-08-20 — see the note under Acceptance Criteria).
+- The background watcher picks up file changes (verified this session by editing a tracked file and confirming the watcher's sync log).
+- The install script is idempotent on re-run (verified this session: fresh run, then a second run correctly detected the already-running watcher via an exact `/proc/<pid>/cmdline` argv match and the existing Codex registration, without restarting either).
 - `./scripts/check-story-status.sh` and the existing CI jobs remain green.
 
 ### Project Structure Notes
@@ -150,8 +172,14 @@ The `.devcontainer/` present in the working tree at the time this story was resc
 
 ### References
 
+- [Source: `.vscode/mcp.json`]
+- [Source: `.mcp.json`]
+- [Source: `mcp.json`]
+- [Source: `docs/engineering/devcontainer-mcp-setup.md`]
+- [Source: `README.md`]
 - Upstream project: <https://github.com/CodeGraphContext/CodeGraphContext>
 - Scope replacement: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-19.md`
+- AC 7/AC 10 descope: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-20.md`
 - Canonical-tool rule: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-02-22.md`
 - Epic 7 definition: `_bmad-output/planning-artifacts/epics.md`
 - Status authority rules: `docs/engineering/story-status-authority.md`
@@ -162,37 +190,54 @@ The `.devcontainer/` present in the working tree at the time this story was resc
 
 - GPT-5 Codex (original create-story workflow)
 - Claude Opus 5 (2026-08-19 rescope)
+- Claude Sonnet 5 (2026-08-20: implementation completion — Claude Code/Codex MCP config, auto-indexing/watch, AC 7/AC 10 descope, PR)
 
 ### Debug Log References
 
 - Upstream install/config facts read from the CodeGraphContext repository README on 2026-08-19.
-- Container facts verified in-container: `python3 --version` -> 3.11.2; no `pip`, `pip3`, `uv`, or `pipx` on `PATH`.
+- Container facts verified in-container: `python3 --version` -> 3.11.2 before provisioning; no `pip`, `pip3`, `uv`, or `pipx` on `PATH` before provisioning.
+- 2026-08-20: `codegraphcontext` CLI help output (`cgc mcp --help`, `cgc watch --help`, `cgc config --help`) and its `cli/main.py`/`cli/config_manager.py`/`cli/setup_wizard.py` source, read in-container to confirm the `mcp.json` project-config precedence and the `cgc watch --sync-on-start` behavior before relying on either.
 
 ### Completion Notes List
 
 - Story created from user-requested backlog item in SM chat mode.
 - Correct-course decision applied 2026-02-22: canonical approach switched to upstream tools via repo-local install scripts; local wrapper servers classified as superseded.
 - Scope replacement applied 2026-08-19: `serena` and `claude-context` removed from Epic 7 entirely and replaced by `codegraphcontext`. Story 7.2, created earlier the same day for `codegraphcontext`, was withdrawn and its acceptance criteria absorbed here.
-- No implementation exists against any version of this story, so the rescope unwinds nothing.
+- No implementation existed against any version of this story as of the 2026-08-19 rescope, so that rescope unwound nothing.
+- 2026-08-20: While documenting indexing usage, discovered `codegraphcontext` reads a repo-root `mcp.json` as its own project-default config source (env vars, ignore rules, tool allowlist) on every invocation — this was previously an untracked byproduct file and is now committed deliberately.
+- 2026-08-20: Found and fixed a database-lock race during manual testing: running `cgc index` while the background watcher already holds the embedded database fails. Resolved by relying solely on `cgc watch --sync-on-start` (which performs the initial index/resync itself) instead of running `index` and `watch` back to back.
+- 2026-08-20: Found and fixed a PID-reuse false-positive in the watcher idempotency check: because this repo's own paths/scripts frequently contain the substring "codegraphcontext" (including the install script's own shell invocation), a loose `grep` against `/proc/<pid>/cmdline` could match an unrelated process. Fixed with an exact argv-token match.
+- 2026-08-20: Verified live end-to-end in the devcontainer — fresh run, idempotent re-run, PID-reuse scenario, a real file-change pickup by the watcher, and Codex registration/deregistration — before committing.
+- 2026-08-20: Product owner determined the token-usage benchmark (old AC 10) and the scripted symbol-resolution check (old AC 7) are not valuable at this time; descoped per `sprint-change-proposal-2026-08-20.md`. Every remaining acceptance criterion is implemented and verified, so Status moves to `review`.
+- 2026-08-20: Reconciling this branch with `develop/cycle-2` (which had independently renamed this file and rewritten its acceptance criteria via a separate planning branch, PR #45) surfaced the AC 7/AC 10 gap above — this branch's prior copy of the story incorrectly claimed the benchmark had already been removed from scope; it had not, until this decision.
 
 ### Change Log
 
 - 2026-02-22: Initial implementation-ready story created.
 - 2026-02-22: Correct Course approved; story contract updated to upstream install-script approach and status set to `in-progress`.
 - 2026-08-19: Status header (`ready-for-dev`) and tracker (`backlog`) reconciled to `in-progress`, the value the 2026-02-22 correction approved. Both had been missed when that correction was applied.
-- 2026-08-19: Open technical decisions settled by the product owner: provision Python 3.12+ and use the upstream default graph backend. AC 2 and AC 4 rewritten from open questions into fixed constraints. The corresponding devcontainer feature, install script, MCP entry, and artifact ignores are carried on `implementation/story-7-1` rather than this planning branch, and remain unverified pending a devcontainer rebuild.
+- 2026-08-19: Open technical decisions settled by the product owner: provision Python 3.12+ and use the upstream default graph backend. AC 2 and AC 4 rewritten from open questions into fixed constraints.
 - 2026-08-19: Scope replaced. `serena` and `claude-context` removed; `codegraphcontext` adopted as the single context tool. Story renamed from `7-1-devcontainer-repo-local-mcp-tooling-serena-claude-context` and Story 7.2 withdrawn into this one. Acceptance criteria grew from 8 to 11. Status remains `in-progress`.
+- 2026-08-20: Implemented Python 3.12 provisioning, `scripts/mcp/install-codegraphcontext.sh`, and the `.vscode/mcp.json` `codegraphcontext` entry on `implementation/story-7-1`; verified in a rebuilt container.
+- 2026-08-20: Added `.mcp.json` (Claude Code project MCP config) and committed `mcp.json` (codegraphcontext's own project-default config) at repo root; extended repo-local MCP config coverage beyond `.vscode/mcp.json` to Claude Code CLI and, via `~/.codex/config.toml` registration, Codex CLI. `install-codegraphcontext.sh` now indexes `./src` and runs a background `cgc watch` process instead of only printing a manual next-step command. Documented all of this in `docs/engineering/devcontainer-mcp-setup.md` and `README.md`.
+- 2026-08-20: AC 10 (token-usage benchmark) removed and AC 7 relaxed (scripted symbol-resolution check dropped in favor of queryable-indexing verification), per `sprint-change-proposal-2026-08-20.md`. Status moved to `review`.
 
 ### File List
 
-Planning branch (`planning/cycle-2-epic-7`):
-
-- `_bmad-output/implementation-artifacts/7-1-devcontainer-repo-local-mcp-tooling-codegraphcontext.md` (renamed from `...-serena-claude-context.md`)
+- `_bmad-output/implementation-artifacts/7-1-devcontainer-repo-local-mcp-tooling-codegraphcontext.md` (renamed from `...-serena-claude-context.md`, 2026-08-19; content updated 2026-08-20)
 - `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-19.md` (new)
-
-Implementation branch (`implementation/story-7-1`):
-
-- `.devcontainer/devcontainer.json` (updated - python 3.12 feature)
-- `scripts/mcp/install-codegraphcontext.sh` (new)
-- `.vscode/mcp.json` (updated - codegraphcontext stdio entry)
-- `.gitignore` (updated - CodeGraphContext generated artifacts)
+- `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-20.md` (new)
+- `_bmad-output/planning-artifacts/epics.md` (updated — AC 7/AC 10 descope)
+- `.devcontainer/devcontainer.json` (updated — Python 3.12 and GitHub CLI features)
+- `.devcontainer/Dockerfile` (Java 21 + Python build deps + redis-server, non-root, no privilege-escalation helper)
+- `.devcontainer/devcontainer-lock.json` (regenerated — feature digests)
+- `scripts/mcp/install-codegraphcontext.sh` (new — install, index, watch, Codex registration)
+- `scripts/mcp/healthcheck.sh` (new)
+- `.vscode/mcp.json` (updated — `codegraphcontext` stdio entry)
+- `.mcp.json` (new — Claude Code project MCP config)
+- `mcp.json` (new — `codegraphcontext` project-default config)
+- `src/.cgcignore` (new)
+- `.gitignore` (updated — CodeGraphContext generated artifacts, local env files, `.vscode/mcp.json` exception)
+- `.env.example` (new — documented optional overrides)
+- `docs/engineering/devcontainer-mcp-setup.md` (new)
+- `README.md` (updated)

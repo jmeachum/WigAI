@@ -46,4 +46,14 @@ hs_err_pid*
 # ECC Memory Vault (project scope is local-only)
 .ecc/
 
+# CodeGraphContext index/graph data and local env (Epic 7)
+.codegraphcontext/
+*.kuzu/
+falkordb-lite.db
+
+# Environment variables (local secrets, never commit)
+.env
+.env.local
+.env.*.local
+
 CHANGELOG.md

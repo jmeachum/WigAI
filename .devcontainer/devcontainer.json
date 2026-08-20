@@ -1,0 +1,32 @@
+{
+  "name": "wigai",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "jdkDistro": "tem",
+      "installGradle": false
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": false
+    }
+  },
+  "containerUser": "root",
+  "remoteUser": "vscode",
+  "mounts": [
+    "type=volume,source=wigai-home-41d1b89c,target=/home/vscode"
+  ],
+  "onCreateCommand": "mkdir -p /home/vscode/.npm-global && chown -R vscode:vscode /home/vscode",
+  "postCreateCommand": "npm config set prefix \"$HOME/.npm-global\" && export PATH=\"$HOME/.npm-global/bin:$PATH\" && (grep -qxF 'export PATH=\"$HOME/.npm-global/bin:$PATH\"' \"$HOME/.bashrc\" 2>/dev/null || echo 'export PATH=\"$HOME/.npm-global/bin:$PATH\"' >> \"$HOME/.bashrc\") && npm install -g @openai/codex@0.147.0 ecc-universal@2.1.0 && node \"$HOME/.npm-global/lib/node_modules/ecc-universal/scripts/install-apply.js\" --profile minimal --with capability:security --with capability:orchestration --with baseline:hooks --skills api-design,contract-first,mcp-server-patterns,hexagonal-architecture,java-coding-standards --target claude && ./scripts/mcp/install-codegraphcontext.sh",
+  "containerEnv": {
+    "JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
+  },
+  "remoteEnv": {
+    "PATH": "/usr/local/sdkman/candidates/java/current/bin:${containerEnv:PATH}"
+  }
+}

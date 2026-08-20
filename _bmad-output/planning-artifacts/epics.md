@@ -1031,7 +1031,7 @@ So that onboarding is deterministic and AI assistants can answer structural ques
 
 **Given** the tool is installed and configured
 **When** the repository is indexed inside the container
-**Then** indexing completes over the Java sources in `src/` and the result is queryable, verified by a check that resolves known symbols (for example `WigAIExtension`, `BitwigApiFacade`, `McpServerManager`) and their relationships.
+**Then** indexing completes over the Java sources in `src/` and the result is queryable (for example via `codegraphcontext list`/`stats`).
 
 **Given** the MCP server entry is configured
 **When** healthcheck scripts run in the devcontainer
@@ -1041,10 +1041,6 @@ So that onboarding is deterministic and AI assistants can answer structural ques
 **When** implementation is complete
 **Then** those artifacts are git-ignored, no local env file is committed, and any environment variables the chosen backend requires are documented with local-override guidance.
 
-**Given** baseline prompt-only and MCP-assisted workflows run for representative repo tasks
-**When** token usage is measured on the same tasks
-**Then** results are recorded in a repo artifact showing reduced input-token usage with context tooling (or explicit analysis when the target reduction is missed).
-
 **Given** this setup is intended for team reuse
 **When** documentation is reviewed
-**Then** setup, troubleshooting, and usage guidance exists in-repo, including the upstream source reference, install-script execution, backend choice, the indexing step and when to re-index, in-container MCP health checks, and token benchmark execution.
+**Then** setup, troubleshooting, and usage guidance exists in-repo, including the upstream source reference, install-script execution, backend choice, and the indexing/watch step and when to re-index.
