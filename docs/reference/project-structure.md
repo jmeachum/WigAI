@@ -6,10 +6,9 @@ This document describes the actual directory and file layout of the WigAI Bitwig
 
 ```plaintext
 WigAI/
-├── .github/                    # CI workflows, issue templates, Copilot instructions, agent definitions
+├── .github/                    # CI workflows, issue templates, Copilot instructions and chat modes
 │   └── workflows/              # branch-policy, build-and-test, pr-validation, release
-├── _bmad/                      # BMAD v2 method runtime (agents, workflows, manifests) — tooling, not project content
-├── _bmad-output/               # BMAD-generated and hand-edited project artifacts
+├── _bmad-output/               # BMAD-generated and hand-edited project artifacts (BMAD runtime tooling itself was removed in Story 7.2)
 │   ├── planning-artifacts/     # prd.md, epics.md, architecture.md, project-brief.md, change proposals, research/, archive/
 │   └── implementation-artifacts/ # one file per story, sprint-status.yaml, kickoff checklists, retros, validation reports
 ├── bitwig-api-doc-scraper/     # TypeScript scraper that generated docs/reference/bitwig-api/v19/
@@ -113,7 +112,7 @@ Beyond the standard `test` and `build`:
 
   * The root package name for all Java source code is **`io.github.fabb.wigai`**.
   * `.github/copilot_instructions.md` points AI assistants at the documents in `docs/reference/`.
-  * `_bmad/` and `_bmad-output/` belong to the BMAD method the project was built with, not to the extension itself. Neither is packaged into the `.bwextension` artifact.
+  * `_bmad-output/` belongs to the BMAD method the project was planned with, not to the extension itself. It is not packaged into the `.bwextension` artifact. The BMAD runtime tooling that generated it (`_bmad/`, `bmad-*` slash commands) was removed in Story 7.2.
 
 ## Change Log
 

@@ -1044,3 +1044,35 @@ So that onboarding is deterministic and AI assistants can answer structural ques
 **Given** this setup is intended for team reuse
 **When** documentation is reviewed
 **Then** setup, troubleshooting, and usage guidance exists in-repo, including the upstream source reference, install-script execution, backend choice, and the indexing/watch step and when to re-index.
+
+### Story 7.2: Remove BMAD Framework Tooling
+
+As a WigAI contributor,
+I want the BMAD-METHOD runtime tooling removed from the repository,
+So that the repo is no longer cluttered with framework scaffolding for a planning method whose outputs (stories, epics, sprint tracking) already live independently in `_bmad-output/`.
+
+**Acceptance Criteria:**
+
+**Given** the `_bmad/` directory (the `bmm`, `core`, `tea`, and `_config`/`_memory` modules)
+**When** the cleanup is complete
+**Then** `_bmad/` no longer exists in the repository.
+
+**Given** `.claude/commands/bmad-*.md`, `.codex/prompts/bmad-*.md`, and `.github/agents/bmd-custom-*.agent.md` all load their instructions from paths under `_bmad/`
+**When** `_bmad/` is removed
+**Then** all three sets of files are removed as well, so no slash command or agent definition points at a nonexistent path.
+
+**Given** `README.md`, `CONTRIBUTING.md`, and `docs/reference/project-structure.md` describe `_bmad/` as live
+**When** documentation is reviewed after the removal
+**Then** those documents are updated to reflect that the BMAD runtime tooling was removed while `_bmad-output/` remains as project history and the tracker of record.
+
+**Given** `docs/engineering/devcontainer-mcp-setup.md` cites `_bmad/` as an indexing-exclusion example
+**When** `_bmad/` no longer exists
+**Then** the stale example reference is removed.
+
+**Given** the Java build and CI do not reference `_bmad/`
+**When** the removal is complete
+**Then** `./gradlew compileJava compileTestJava` and existing CI jobs continue to pass unaffected.
+
+**Given** `.github/chatmodes/*.chatmode.md` embeds its agent definitions inline rather than loading from `_bmad/`
+**When** `_bmad/` is removed
+**Then** these files are left in place, out of scope for this story.

@@ -125,4 +125,5 @@ development_status:
 
   epic-7: in-progress
   7-1-devcontainer-repo-local-mcp-tooling-codegraphcontext: review
+  7-2-remove-bmad-framework-tooling: review
   epic-7-retrospective: optional
