@@ -47,6 +47,7 @@ For reproducible development, WigAI includes a devcontainer configuration with:
 - **Python 3.12** for supporting tools
 - **codegraphcontext** MCP server for repository context and code understanding
 - **Host MCP connectivity** to Bitwig Studio running on the host machine
+- **GitHub CLI (`gh`)** for opening pull requests from inside the container
 
 ### Quick Start
 
