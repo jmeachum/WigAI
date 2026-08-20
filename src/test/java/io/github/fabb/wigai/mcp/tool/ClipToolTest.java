@@ -7,7 +7,7 @@ import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.mcp.McpErrorHandler;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.features.ClipSceneController;
-import io.github.fabb.wigai.features.ClipSceneController.ClipLaunchResult;
+import io.github.fabb.wigai.features.ClipLaunchResult;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;
 
