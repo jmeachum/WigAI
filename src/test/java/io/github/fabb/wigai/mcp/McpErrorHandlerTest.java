@@ -80,46 +80,46 @@ class McpErrorHandlerTest {
 
     @Test
     void testSanitizeRequestId_ValidString_ReturnsUnchanged() {
-        String result = McpErrorHandler.sanitizeRequestId("test-correlation-123");
+        String result = RequestContextExtractor.sanitizeRequestId("test-correlation-123");
         assertEquals("test-correlation-123", result);
     }
 
     @Test
     void testSanitizeRequestId_Null_ReturnsNull() {
-        String result = McpErrorHandler.sanitizeRequestId(null);
+        String result = RequestContextExtractor.sanitizeRequestId(null);
         assertNull(result);
     }
 
     @Test
     void testSanitizeRequestId_EmptyString_ReturnsNull() {
-        String result = McpErrorHandler.sanitizeRequestId("");
+        String result = RequestContextExtractor.sanitizeRequestId("");
         assertNull(result);
     }
 
     @Test
     void testSanitizeRequestId_WhitespaceOnly_ReturnsNull() {
-        assertNull(McpErrorHandler.sanitizeRequestId("   "), "Spaces-only should return null");
-        assertNull(McpErrorHandler.sanitizeRequestId("\t\t"), "Tabs-only should return null");
-        assertNull(McpErrorHandler.sanitizeRequestId("  \t  "), "Mixed whitespace should return null");
+        assertNull(RequestContextExtractor.sanitizeRequestId("   "), "Spaces-only should return null");
+        assertNull(RequestContextExtractor.sanitizeRequestId("\t\t"), "Tabs-only should return null");
+        assertNull(RequestContextExtractor.sanitizeRequestId("  \t  "), "Mixed whitespace should return null");
     }
 
     @Test
     void testSanitizeRequestId_NonStringType_ReturnsNull() {
         // Integer
-        assertNull(McpErrorHandler.sanitizeRequestId(12345));
+        assertNull(RequestContextExtractor.sanitizeRequestId(12345));
         // Boolean
-        assertNull(McpErrorHandler.sanitizeRequestId(true));
+        assertNull(RequestContextExtractor.sanitizeRequestId(true));
         // Object
-        assertNull(McpErrorHandler.sanitizeRequestId(new Object()));
+        assertNull(RequestContextExtractor.sanitizeRequestId(new Object()));
         // Array/List
-        assertNull(McpErrorHandler.sanitizeRequestId(java.util.List.of("a", "b")));
+        assertNull(RequestContextExtractor.sanitizeRequestId(java.util.List.of("a", "b")));
     }
 
     @Test
     void testSanitizeRequestId_OversizedString_Truncated() {
         // Create a string longer than 256 chars
         String longId = "x".repeat(300);
-        String result = McpErrorHandler.sanitizeRequestId(longId);
+        String result = RequestContextExtractor.sanitizeRequestId(longId);
 
         assertNotNull(result);
         assertEquals(256, result.length(), "Should truncate to 256 chars");
@@ -130,7 +130,7 @@ class McpErrorHandlerTest {
     void testSanitizeRequestId_ControlCharacters_Stripped() {
         // Newline, tab, carriage return, null byte
         String withControlChars = "test\n\t\r\0id";
-        String result = McpErrorHandler.sanitizeRequestId(withControlChars);
+        String result = RequestContextExtractor.sanitizeRequestId(withControlChars);
 
         assertEquals("testid", result, "Control characters should be stripped");
     }
@@ -138,7 +138,7 @@ class McpErrorHandlerTest {
     @Test
     void testSanitizeRequestId_OnlyControlCharacters_ReturnsNull() {
         String onlyControl = "\n\t\r\0";
-        String result = McpErrorHandler.sanitizeRequestId(onlyControl);
+        String result = RequestContextExtractor.sanitizeRequestId(onlyControl);
 
         assertNull(result, "String with only control chars should return null");
     }
@@ -147,7 +147,7 @@ class McpErrorHandlerTest {
     void testSanitizeRequestId_DeleteCharacter_Stripped() {
         // ASCII 127 (DEL) should be stripped
         String withDel = "test" + (char) 127 + "id";
-        String result = McpErrorHandler.sanitizeRequestId(withDel);
+        String result = RequestContextExtractor.sanitizeRequestId(withDel);
 
         assertEquals("testid", result, "DEL character (127) should be stripped");
     }
@@ -156,7 +156,7 @@ class McpErrorHandlerTest {
     void testSanitizeRequestId_UuidFormat_Unchanged() {
         // Standard UUID format should pass through unchanged
         String uuid = "550e8400-e29b-41d4-a716-446655440000";
-        String result = McpErrorHandler.sanitizeRequestId(uuid);
+        String result = RequestContextExtractor.sanitizeRequestId(uuid);
 
         assertEquals(uuid, result);
     }
@@ -165,7 +165,7 @@ class McpErrorHandlerTest {
     void testSanitizeRequestId_SpecialCharacters_Preserved() {
         // Printable special characters should be preserved
         String withSpecial = "req-123_test.abc@example";
-        String result = McpErrorHandler.sanitizeRequestId(withSpecial);
+        String result = RequestContextExtractor.sanitizeRequestId(withSpecial);
 
         assertEquals(withSpecial, result);
     }
@@ -173,7 +173,7 @@ class McpErrorHandlerTest {
     @Test
     void testSanitizeRequestId_ExactlyMaxLength_NotTruncated() {
         String exactMax = "x".repeat(256);
-        String result = McpErrorHandler.sanitizeRequestId(exactMax);
+        String result = RequestContextExtractor.sanitizeRequestId(exactMax);
 
         assertEquals(256, result.length());
         assertEquals(exactMax, result);
@@ -188,7 +188,7 @@ class McpErrorHandlerTest {
         arguments.put("value", 0.5);
         arguments.put("request_id", "test-123");
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertEquals("test-123", result.get("request_id"));
@@ -204,7 +204,7 @@ class McpErrorHandlerTest {
         ));
         arguments.put("request_id", "test-456");
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertEquals("test-456", result.get("request_id"));
@@ -217,7 +217,7 @@ class McpErrorHandlerTest {
         Map<String, Object> arguments = new HashMap<>();
         arguments.put("request_id", "test-789");
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertEquals("test-789", result.get("request_id"));
@@ -230,7 +230,7 @@ class McpErrorHandlerTest {
         arguments.put("parameter_index", 5);
         arguments.put("value", 0.3);
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertNull(result.get("request_id"));
@@ -244,7 +244,7 @@ class McpErrorHandlerTest {
         arguments.put("value", 0.5);
         arguments.put("secret_data", "should-not-appear");
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertNull(result.get("parameter_index"), "Actual argument values must not be in logging params");
@@ -260,7 +260,7 @@ class McpErrorHandlerTest {
             Map.of("parameter_index", 1, "value", 0.7)
         ));
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertEquals(2, result.get("parameters_count"));
@@ -276,7 +276,7 @@ class McpErrorHandlerTest {
         Map<String, Object> arguments = new HashMap<>();
         arguments.put("config", Map.of("host", "localhost", "port", 8080));
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         @SuppressWarnings("unchecked")
@@ -291,7 +291,7 @@ class McpErrorHandlerTest {
         Map<String, Object> arguments = new HashMap<>();
         arguments.put("parameters", List.of());
 
-        Map<String, Object> result = McpErrorHandler.extractLoggingParameters(arguments);
+        Map<String, Object> result = RequestContextExtractor.extractLoggingParameters(arguments);
 
         assertNotNull(result);
         assertEquals(0, result.get("parameters_count"));
@@ -1013,45 +1013,45 @@ class McpErrorHandlerTest {
 
     @Test
     void testExtractRawRequestId_ValidString_ReturnsUnchanged() {
-        assertEquals("test-123", McpErrorHandler.extractRawRequestId("test-123"));
+        assertEquals("test-123", RequestContextExtractor.extractRawRequestId("test-123"));
     }
 
     @Test
     void testExtractRawRequestId_Null_ReturnsNull() {
-        assertNull(McpErrorHandler.extractRawRequestId(null));
+        assertNull(RequestContextExtractor.extractRawRequestId(null));
     }
 
     @Test
     void testExtractRawRequestId_NonString_ReturnsNull() {
-        assertNull(McpErrorHandler.extractRawRequestId(12345));
+        assertNull(RequestContextExtractor.extractRawRequestId(12345));
     }
 
     @Test
     void testExtractRawRequestId_Blank_ReturnsNull() {
-        assertNull(McpErrorHandler.extractRawRequestId("   "));
+        assertNull(RequestContextExtractor.extractRawRequestId("   "));
     }
 
     @Test
     void testExtractRawRequestId_LongString_NoTruncation() {
         // extractRawRequestId must preserve full string for cache keying (no truncation)
         String longId = "x".repeat(500);
-        String result = McpErrorHandler.extractRawRequestId(longId);
+        String result = RequestContextExtractor.extractRawRequestId(longId);
         assertEquals(500, result.length(), "Raw request_id must not be truncated for cache keying");
         assertEquals(longId, result);
     }
 
     @Test
     void testExtractRawRequestId_ExactlyMaxLength_Accepted() {
-        String exactMax = "x".repeat(McpErrorHandler.MAX_RAW_REQUEST_ID_LENGTH);
-        String result = McpErrorHandler.extractRawRequestId(exactMax);
+        String exactMax = "x".repeat(RequestContextExtractor.MAX_RAW_REQUEST_ID_LENGTH);
+        String result = RequestContextExtractor.extractRawRequestId(exactMax);
         assertNotNull(result, "request_id at exactly max length must be accepted");
-        assertEquals(McpErrorHandler.MAX_RAW_REQUEST_ID_LENGTH, result.length());
+        assertEquals(RequestContextExtractor.MAX_RAW_REQUEST_ID_LENGTH, result.length());
     }
 
     @Test
     void testExtractRawRequestId_ExceedsMaxLength_ReturnsNull() {
-        String oversized = "x".repeat(McpErrorHandler.MAX_RAW_REQUEST_ID_LENGTH + 1);
-        String result = McpErrorHandler.extractRawRequestId(oversized);
+        String oversized = "x".repeat(RequestContextExtractor.MAX_RAW_REQUEST_ID_LENGTH + 1);
+        String result = RequestContextExtractor.extractRawRequestId(oversized);
         assertNull(result, "Oversized request_id must be rejected (skip dedupe) to avoid memory pressure");
     }
 
@@ -1060,25 +1060,25 @@ class McpErrorHandlerTest {
     @Test
     void testExtractRawRequestId_ControlCharacters_ReturnsNull() {
         // request_id with embedded control chars must be rejected for dedupe keying
-        assertNull(McpErrorHandler.extractRawRequestId("test\nid"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test\nid"),
             "Newline in request_id must cause rejection");
-        assertNull(McpErrorHandler.extractRawRequestId("test\tid"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test\tid"),
             "Tab in request_id must cause rejection");
-        assertNull(McpErrorHandler.extractRawRequestId("test\0id"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test\0id"),
             "Null byte in request_id must cause rejection");
-        assertNull(McpErrorHandler.extractRawRequestId("test\rid"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test\rid"),
             "Carriage return in request_id must cause rejection");
     }
 
     @Test
     void testExtractRawRequestId_DeleteCharacter_ReturnsNull() {
-        assertNull(McpErrorHandler.extractRawRequestId("test" + (char) 127 + "id"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test" + (char) 127 + "id"),
             "DEL character (127) in request_id must cause rejection");
     }
 
     @Test
     void testExtractRawRequestId_OnlyControlCharacters_ReturnsNull() {
-        assertNull(McpErrorHandler.extractRawRequestId("\n\t\r\0"),
+        assertNull(RequestContextExtractor.extractRawRequestId("\n\t\r\0"),
             "All-control request_id must be rejected");
     }
 
@@ -1086,32 +1086,32 @@ class McpErrorHandlerTest {
     void testExtractRawRequestId_PrintableCharactersOnly_Accepted() {
         // Standard UUIDs, alphanumeric, hyphens, dots, underscores
         assertEquals("550e8400-e29b-41d4-a716-446655440000",
-            McpErrorHandler.extractRawRequestId("550e8400-e29b-41d4-a716-446655440000"));
+            RequestContextExtractor.extractRawRequestId("550e8400-e29b-41d4-a716-446655440000"));
         assertEquals("req-123_test.abc@example",
-            McpErrorHandler.extractRawRequestId("req-123_test.abc@example"));
+            RequestContextExtractor.extractRawRequestId("req-123_test.abc@example"));
     }
 
     @Test
     void testExtractRawRequestId_NonAsciiCharacters_ReturnsNull() {
         // Characters above ASCII 126 must be rejected for strict printable-ASCII keying
-        assertNull(McpErrorHandler.extractRawRequestId("test\u0080id"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test\u0080id"),
             "Extended ASCII (128) in request_id must cause rejection");
-        assertNull(McpErrorHandler.extractRawRequestId("café"),
+        assertNull(RequestContextExtractor.extractRawRequestId("café"),
             "Non-ASCII accented characters in request_id must cause rejection");
-        assertNull(McpErrorHandler.extractRawRequestId("test\u00FFid"),
+        assertNull(RequestContextExtractor.extractRawRequestId("test\u00FFid"),
             "Latin-1 Supplement (255) in request_id must cause rejection");
-        assertNull(McpErrorHandler.extractRawRequestId("\u4E2D\u6587"),
+        assertNull(RequestContextExtractor.extractRawRequestId("\u4E2D\u6587"),
             "CJK characters in request_id must cause rejection");
     }
 
     @Test
     void testExtractRawRequestId_BoundaryPrintableAscii_Accepted() {
         // Space (32) and tilde (126) are the boundaries of printable ASCII
-        assertEquals(" test ", McpErrorHandler.extractRawRequestId(" test "),
+        assertEquals(" test ", RequestContextExtractor.extractRawRequestId(" test "),
             "Space (ASCII 32) must be accepted");
-        assertEquals("~test~", McpErrorHandler.extractRawRequestId("~test~"),
+        assertEquals("~test~", RequestContextExtractor.extractRawRequestId("~test~"),
             "Tilde (ASCII 126) must be accepted");
-        assertEquals("test!@#$%^&*(){}|", McpErrorHandler.extractRawRequestId("test!@#$%^&*(){}|"),
+        assertEquals("test!@#$%^&*(){}|", RequestContextExtractor.extractRawRequestId("test!@#$%^&*(){}|"),
             "All printable ASCII symbols must be accepted");
     }
 
@@ -1148,7 +1148,7 @@ class McpErrorHandlerTest {
         StructuredLogger mockLogger = createMockLogger();
         AtomicInteger executions = new AtomicInteger(0);
 
-        String oversized = "x".repeat(McpErrorHandler.MAX_RAW_REQUEST_ID_LENGTH + 1);
+        String oversized = "x".repeat(RequestContextExtractor.MAX_RAW_REQUEST_ID_LENGTH + 1);
         Map<String, Object> args = new HashMap<>();
         args.put("request_id", oversized);
 
@@ -1477,8 +1477,8 @@ class McpErrorHandlerTest {
         argsDifferentReqId.put("value", 0.5);
 
         assertEquals(
-            McpErrorHandler.computePayloadFingerprint(args),
-            McpErrorHandler.computePayloadFingerprint(argsDifferentReqId),
+            PayloadFingerprint.computePayloadFingerprint(args),
+            PayloadFingerprint.computePayloadFingerprint(argsDifferentReqId),
             "Fingerprint must exclude request_id — same business args must produce same fingerprint");
     }
 
@@ -1493,26 +1493,26 @@ class McpErrorHandlerTest {
         args2.put("parameter_index", 7);
 
         assertNotEquals(
-            McpErrorHandler.computePayloadFingerprint(args1),
-            McpErrorHandler.computePayloadFingerprint(args2),
+            PayloadFingerprint.computePayloadFingerprint(args1),
+            PayloadFingerprint.computePayloadFingerprint(args2),
             "Different business args must produce different fingerprints");
     }
 
     @Test
     void testComputePayloadFingerprint_NullArgs_ReturnsEmptyString() {
-        assertEquals("", McpErrorHandler.computePayloadFingerprint(null));
+        assertEquals("", PayloadFingerprint.computePayloadFingerprint(null));
     }
 
     @Test
     void testComputePayloadFingerprint_EmptyArgs_ReturnsEmptyString() {
-        assertEquals("", McpErrorHandler.computePayloadFingerprint(new HashMap<>()));
+        assertEquals("", PayloadFingerprint.computePayloadFingerprint(new HashMap<>()));
     }
 
     @Test
     void testComputePayloadFingerprint_OnlyRequestId_ReturnsEmptyString() {
         Map<String, Object> args = new HashMap<>();
         args.put("request_id", "test-123");
-        assertEquals("", McpErrorHandler.computePayloadFingerprint(args),
+        assertEquals("", PayloadFingerprint.computePayloadFingerprint(args),
             "Args with only request_id should fingerprint as empty (no business payload)");
     }
 
@@ -1522,7 +1522,7 @@ class McpErrorHandlerTest {
         args.put("parameter_index", 3);
         args.put("value", 0.5);
 
-        String fingerprint = McpErrorHandler.computePayloadFingerprint(args);
+        String fingerprint = PayloadFingerprint.computePayloadFingerprint(args);
 
         assertNotNull(fingerprint);
         assertFalse(fingerprint.isEmpty(), "Non-empty payload must produce a non-empty fingerprint");
@@ -1541,8 +1541,8 @@ class McpErrorHandlerTest {
         args2.put("value", 0.5);
 
         assertEquals(
-            McpErrorHandler.computePayloadFingerprint(args1),
-            McpErrorHandler.computePayloadFingerprint(args2),
+            PayloadFingerprint.computePayloadFingerprint(args1),
+            PayloadFingerprint.computePayloadFingerprint(args2),
             "Same args in different insertion order must produce identical fingerprint");
     }
 
@@ -1554,8 +1554,8 @@ class McpErrorHandlerTest {
         Map<String, Object> args2 = Map.of("[:\"", ":");
 
         assertNotEquals(
-            McpErrorHandler.computePayloadFingerprint(args1),
-            McpErrorHandler.computePayloadFingerprint(args2),
+            PayloadFingerprint.computePayloadFingerprint(args1),
+            PayloadFingerprint.computePayloadFingerprint(args2),
             "Distinct delimiter-heavy payloads must never collide under canonicalization");
     }
 
@@ -1576,8 +1576,8 @@ class McpErrorHandlerTest {
         ));
 
         assertEquals(
-            McpErrorHandler.computePayloadFingerprint(args1),
-            McpErrorHandler.computePayloadFingerprint(args2),
+            PayloadFingerprint.computePayloadFingerprint(args1),
+            PayloadFingerprint.computePayloadFingerprint(args2),
             "Semantically equivalent numeric payloads must produce identical fingerprints");
     }
 
@@ -1591,8 +1591,8 @@ class McpErrorHandlerTest {
         argsDouble.put("value", 0.1d);
 
         assertEquals(
-            McpErrorHandler.computePayloadFingerprint(argsFloat),
-            McpErrorHandler.computePayloadFingerprint(argsDouble),
+            PayloadFingerprint.computePayloadFingerprint(argsFloat),
+            PayloadFingerprint.computePayloadFingerprint(argsDouble),
             "Float 0.1f and Double 0.1d must produce identical fingerprints via canonical textual form");
     }
 
@@ -1606,8 +1606,8 @@ class McpErrorHandlerTest {
         argsDouble.put("grid", List.of(0.1d, 0.25d, 1.0d));
 
         assertEquals(
-            McpErrorHandler.computePayloadFingerprint(argsFloat),
-            McpErrorHandler.computePayloadFingerprint(argsDouble),
+            PayloadFingerprint.computePayloadFingerprint(argsFloat),
+            PayloadFingerprint.computePayloadFingerprint(argsDouble),
             "Float and Double lists with same values must produce identical fingerprints");
     }
 

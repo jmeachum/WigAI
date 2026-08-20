@@ -5,6 +5,8 @@ import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.features.ClipSceneController;
+import io.github.fabb.wigai.features.ClipLaunchResult;
+import io.github.fabb.wigai.features.SceneLaunchResult;
 import io.github.fabb.wigai.features.DeviceController;
 import io.github.fabb.wigai.mcp.tool.*;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -718,11 +720,11 @@ class ErrorContractComplianceTest {
         // Configure mock based on scenario
         if (scenario.condition().contains("track_name does not exist")) {
             when(controller.launchClip(anyString(), anyInt()))
-                .thenReturn(ClipSceneController.ClipLaunchResult.error("TRACK_NOT_FOUND", "Track not found"));
+                .thenReturn(ClipLaunchResult.error("TRACK_NOT_FOUND", "Track not found"));
         }
         if (scenario.condition().contains("track_index and track_name mismatch")) {
             when(controller.launchClip("Drums", 0, 3))
-                .thenReturn(ClipSceneController.ClipLaunchResult.error(
+                .thenReturn(ClipLaunchResult.error(
                     "INVALID_PARAMETER",
                     "track_index 3 does not match track_name 'Drums'"
                 ));
@@ -816,7 +818,7 @@ class ErrorContractComplianceTest {
 
         if (scenario.condition().contains("does not exist")) {
             when(controller.launchSceneByName(anyString()))
-                .thenReturn(ClipSceneController.SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene not found"));
+                .thenReturn(SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene not found"));
         }
 
         Map<String, Object> args = switch (scenario.condition()) {
@@ -835,11 +837,11 @@ class ErrorContractComplianceTest {
 
         if (scenario.condition().contains("exceeds track clip counts")) {
             when(controller.launchSceneByIndex(eq(999)))
-                .thenReturn(ClipSceneController.SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index 999 is out of bounds for all tracks"));
+                .thenReturn(SceneLaunchResult.error("INVALID_PARAMETER_INDEX", "Scene index 999 is out of bounds for all tracks"));
         }
         if (scenario.condition().equals("no tracks in session")) {
             when(controller.launchSceneByIndex(eq(0)))
-                .thenReturn(ClipSceneController.SceneLaunchResult.error("SCENE_NOT_FOUND", "No tracks found in Bitwig session"));
+                .thenReturn(SceneLaunchResult.error("SCENE_NOT_FOUND", "No tracks found in Bitwig session"));
         }
 
         Map<String, Object> args = switch (scenario.condition()) {
