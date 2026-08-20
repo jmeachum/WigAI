@@ -96,13 +96,13 @@ endpoint. See [docs/engineering/mcp-smoke-test-runbook.md](docs/engineering/mcp-
 
 ### Method and layout
 
-This project is developed with AI agents using the
-[BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD):
+This project was planned with AI agents using the
+[BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD). The BMAD runtime tooling (`_bmad/`) and its
+`bmad-*` slash commands have been removed (Story 7.2); the artifacts it produced remain as project
+history and the tracker of record:
 
-- `_bmad/` — the BMAD runtime (agents, workflows, manifests)
 - `_bmad-output/planning-artifacts/` — PRD, epics, architecture, project brief, change proposals
 - `_bmad-output/implementation-artifacts/` — story files, `sprint-status.yaml`, retrospectives
-- `.claude/commands/` — project-local `bmad-*` slash commands
 
 `_bmad-output/implementation-artifacts/sprint-status.yaml` is the source of truth for epic and story
 status.

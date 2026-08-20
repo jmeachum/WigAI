@@ -143,7 +143,7 @@ No manual intervention needed!
 
 ## Development Method
 
-This project is developed using the [BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD) with AI-assisted development. Files in `.bmad/`, `.claude/`, and related directories support this methodology.
+This project was planned using the [BMAD v2 method](https://github.com/bmadcode/BMAD-METHOD) with AI-assisted development. Its planning and story artifacts live in `_bmad-output/`; the BMAD runtime tooling itself was removed in Story 7.2 to reduce repo clutter.
 
 ## License
 

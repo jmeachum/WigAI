@@ -102,7 +102,7 @@ the install script only does incremental work (sync, not a full re-index).
 
 **Why `./src` and not the whole repo:** `./src` is the Java source tree; indexing it
 directly (rather than the repo root) keeps the graph focused on application code and
-avoids depending on `IGNORE_DIRS` to exclude `_bmad/`, `docs/`, build output, etc.
+avoids depending on `IGNORE_DIRS` to exclude `docs/`, build output, etc.
 
 **Watcher status and logs:**
 ```bash
