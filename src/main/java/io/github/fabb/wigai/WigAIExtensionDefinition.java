@@ -64,11 +64,6 @@ public class WigAIExtensionDefinition extends ControllerExtensionDefinition {
         return "https://github.com/fabb/WigAI/blob/main/README.md";
     }
 
-    // This method may not be part of the current API version
-    public boolean isUsingBitwigMidiAPI() {
-        return false;
-    }
-
     @Override
     public void listAutoDetectionMidiPortNames(
             final com.bitwig.extension.controller.AutoDetectionMidiPortNamesList list,
