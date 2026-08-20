@@ -31,6 +31,10 @@ This guide covers setup, verification, troubleshooting, and local customization.
    ./scripts/mcp/healthcheck.sh
    ```
 
+`postCreateCommand` also indexes `./src`, starts a background file watcher that
+keeps the graph in sync, and registers the MCP server with Codex CLI — see
+[Repository Indexing & Live Updates](#repository-indexing--live-updates) below.
+
 ## MCP Context Tooling
 
 ### codegraphcontext
@@ -43,21 +47,92 @@ This guide covers setup, verification, troubleshooting, and local customization.
 
 **Backend:** codegraphcontext uses FalkorDB Lite (a lightweight graph database) as its default backend, which requires Redis server. The devcontainer includes `redis-server` as a system dependency to support this.
 
-**MCP Configuration:** `.vscode/mcp.json`
-```json
-{
-  "codegraphcontext": {
-    "type": "stdio",
-    "command": "codegraphcontext",
-    "args": ["mcp", "start"]
-  }
-}
+**Indexed path:** `./src` (the Java source tree — `src/main` and `src/test`). Kept
+in sync automatically by a background watcher; see
+[Repository Indexing & Live Updates](#repository-indexing--live-updates).
+
+**MCP tools available:** `add_code_to_graph`, `add_package_to_graph`, `check_job_status`,
+`list_jobs`, `find_code`, `analyze_code_relationships`, `watch_directory`, `unwatch_directory`,
+`list_watched_paths`, `find_dead_code`, `execute_cypher_query`, `calculate_cyclomatic_complexity`,
+`find_most_complex_functions`, `list_indexed_repositories`, `delete_repository`,
+`visualize_graph_query`. This is the `tools.alwaysAllow` list in `mcp.json` (see
+[MCP Configuration Files](#mcp-configuration-files) below) — trim it there if a
+project ever wants to restrict what the server exposes.
+
+**Usage in Claude/Codex:**
+- Claude Code (CLI and IDE) and Codex CLI both auto-detect the server once configured (see below)
+- Ask Claude/Codex to use it directly: "use find_code to locate the Track interface",
+  "use analyze_code_relationships on BitwigApiFacade"
+- Because the graph is pre-indexed and kept current by the watcher, these calls return
+  targeted results without Claude/Codex needing to grep or read whole files first
+
+### MCP Configuration Files
+
+There are four MCP-related config files/locations in play, each serving a different client:
+
+| File | Committed? | Consumed by | Notes |
+|------|------------|-------------|-------|
+| `mcp.json` (repo root) | Yes | `codegraphcontext` itself | codegraphcontext's own project-default config. Every `cgc`/`codegraphcontext` command run from the repo root reads the `env` block under `mcpServers.CodeGraphContext` (exact key, case-sensitive) as its **lowest-priority** config source — below runtime env vars and `~/.codegraphcontext/.env`. This is where `IGNORE_DIRS`, `MAX_FILE_SIZE_MB`, `ENABLE_AUTO_WATCH`, etc. live for this repo. Also controls the MCP server's `tools.alwaysAllow`/`disabledTools`. |
+| `.mcp.json` (repo root) | Yes | Claude Code (CLI + IDE) | Claude Code's own project-scoped MCP config format. Auto-detected on open; Claude prompts to approve the server the first time. Distinct file from `mcp.json` above — the leading dot matters. |
+| `.vscode/mcp.json` | Yes | VS Code's built-in MCP integration | Also declares the `WigAI` (Bitwig) host endpoint. |
+| `~/.codex/config.toml` | No (per-user, outside the repo) | Codex CLI | Global to the user, not per-project — Codex has no project-scoped MCP config. `scripts/mcp/install-codegraphcontext.sh` registers it idempotently via `codex mcp add`. Persists across container rebuilds because `/home/vscode` is a named volume mount. |
+
+If you ever regenerate `mcp.json` by running `cgc mcp setup` interactively, keep the
+`mcpServers.CodeGraphContext` key name and re-point `command` at plain `codegraphcontext`
+(not the absolute interpreter path the wizard writes) so it keeps working if the Python
+feature's install path ever changes.
+
+## Repository Indexing & Live Updates
+
+`scripts/mcp/install-codegraphcontext.sh` runs on every `postCreateCommand` (container
+create *and* rebuild) and, after installing the pinned `codegraphcontext` version:
+
+1. Starts `codegraphcontext watch src --poll --sync-on-start` as a detached background
+   process. This single command does the initial index if `./src` isn't indexed yet,
+   reconciles any drift if it already is, and then keeps watching for file changes —
+   there's no separate blocking "index" step, since running `cgc index` and `cgc watch`
+   at the same time against the same embedded database causes a lock error (see
+   Troubleshooting below).
+2. Registers `codegraphcontext` with Codex CLI via `codex mcp add` (skipped if already
+   registered, and skipped entirely if `codex` isn't on `PATH`).
+
+The graph database lives under `~/.codegraphcontext`, which is on the devcontainer's
+persistent `/home/vscode` volume mount — it survives container rebuilds, so re-running
+the install script only does incremental work (sync, not a full re-index).
+
+**Why `./src` and not the whole repo:** `./src` is the Java source tree; indexing it
+directly (rather than the repo root) keeps the graph focused on application code and
+avoids depending on `IGNORE_DIRS` to exclude `_bmad/`, `docs/`, build output, etc.
+
+**Watcher status and logs:**
+```bash
+cat ~/.codegraphcontext/logs/wigai-src-watch.pid   # PID of the background watcher
+tail -f ~/.codegraphcontext/logs/wigai-src-watch.log
+kill -0 "$(cat ~/.codegraphcontext/logs/wigai-src-watch.pid)" && echo running
 ```
 
-**Usage in Claude:**
-- Claude Code (IDE) and claude.ai automatically detect and use configured MCP servers
-- codegraphcontext provides `search_codebase`, `get_file_context`, and related operations
-- Reduces token usage by allowing targeted code retrieval instead of pasting entire files
+**Stop the watcher:**
+```bash
+kill "$(cat ~/.codegraphcontext/logs/wigai-src-watch.pid)"
+```
+
+**Force a full re-index** (e.g., after bumping `CGC_VERSION` or suspecting graph drift
+the watcher's sync didn't catch): stop the watcher first, then re-index, then restart
+the watcher — running `index --force` while the watcher still holds the database causes
+a lock error.
+```bash
+kill "$(cat ~/.codegraphcontext/logs/wigai-src-watch.pid)"
+codegraphcontext index src --force
+./scripts/mcp/install-codegraphcontext.sh   # restarts the watcher, idempotent otherwise
+```
+
+**Other useful commands:**
+```bash
+codegraphcontext doctor          # diagnostics: DB connectivity, config validity, deps
+codegraphcontext stats           # indexing statistics
+codegraphcontext list            # indexed repositories
+codegraphcontext report          # CGC_REPORT.md: complexity hotspots, cross-module coupling
+```
 
 ## Container-to-Host Networking
 
@@ -178,6 +253,22 @@ The devcontainer uses standard environment variables for configuration:
    redis-server --version
    ```
 
+### Issue: "Could not set lock on file" / "Database Connection Error" from codegraphcontext
+
+**Symptoms:** Running `codegraphcontext index` (or any `cgc` command) fails with something like
+`Database Connection Error: IO exception: Could not set lock on file : .../db/kuzudb`.
+
+**Root Cause:** The embedded graph database only allows one writer at a time. The background
+watcher (`wigai-src-watch.pid`) already holds it, so a concurrent `index` call collides.
+
+**Solution:** Stop the watcher before running `index` directly, then restart it — see
+[Force a full re-index](#repository-indexing--live-updates) above.
+```bash
+kill "$(cat ~/.codegraphcontext/logs/wigai-src-watch.pid)"
+codegraphcontext index src   # or any other cgc command that needs the DB
+./scripts/mcp/install-codegraphcontext.sh
+```
+
 ### Issue: codegraphcontext not found after container opens
 
 **Symptoms:** `command not found: codegraphcontext` or healthcheck fails.
@@ -263,8 +354,10 @@ Run this after opening devcontainer or after any setup changes:
 - [ ] `npm --version` works
 - [ ] `ecc --version` works
 - [ ] `./scripts/mcp/healthcheck.sh` passes
-- [ ] `.vscode/mcp.json` exists and is valid JSON
+- [ ] `.vscode/mcp.json` and `.mcp.json` exist and are valid JSON
 - [ ] Claude Code shows "MCP" indicator in status bar (when MCP servers are active)
+- [ ] `cat ~/.codegraphcontext/logs/wigai-src-watch.pid` names a running process (watcher is up)
+- [ ] `codex mcp get codegraphcontext` succeeds (Codex CLI registration is in place)
 
 ## Development Workflow
 
@@ -305,7 +398,7 @@ When working in Claude Code inside the devcontainer:
 ## References
 
 - **Devcontainer spec:** `.devcontainer/devcontainer.json`
-- **MCP configuration:** `.vscode/mcp.json`
+- **MCP configuration:** `mcp.json` (codegraphcontext project defaults), `.mcp.json` (Claude Code), `.vscode/mcp.json` (VS Code) — see [MCP Configuration Files](#mcp-configuration-files)
 - **Install scripts:** `scripts/mcp/`
 - **Codegraphcontext docs:** https://github.com/CodeGraphContext/CodeGraphContext
 - **Dev Container spec:** https://containers.dev

@@ -79,6 +79,74 @@ fi
 echo ""
 echo "Installed: $(python3 -m pip show codegraphcontext | awk '/^Version:/ { print $2 }')"
 echo "Entrypoint: $(command -v codegraphcontext)"
+
+# Repository to index. The graph database (~/.codegraphcontext) lives on the
+# devcontainer's persistent home volume (see .devcontainer/devcontainer.json
+# "mounts"), so re-running this on every rebuild is cheap: codegraphcontext
+# detects an already-complete index and skips the full rebuild instead of
+# starting over. Project-level indexing defaults (ignore rules, file size
+# limits, etc.) come from ./mcp.json — see
+# docs/engineering/devcontainer-mcp-setup.md.
+#
+# `cgc watch --sync-on-start` performs the initial index itself (or a resync
+# if already indexed) before it starts watching, so it is the only indexing
+# command run here — a separate `cgc index` call would race it for the same
+# database lock once the watcher is running.
+INDEX_PATH="src"
+
 echo ""
-echo "Next: index this repository with"
-echo "  codegraphcontext index ."
+echo "== Indexing ${INDEX_PATH} and watching for live updates =="
+CGC_LOG_DIR="${HOME}/.codegraphcontext/logs"
+WATCH_PID_FILE="${CGC_LOG_DIR}/wigai-src-watch.pid"
+WATCH_LOG_FILE="${CGC_LOG_DIR}/wigai-src-watch.log"
+mkdir -p "${CGC_LOG_DIR}"
+
+# The PID file itself survives container rebuilds (it's on the persistent
+# home volume) but the process it names does not, and PIDs get reused by
+# unrelated processes in the new container. A loose substring check on
+# /proc/<pid>/cmdline is not enough — this repo's own paths and scripts
+# mention "codegraphcontext" constantly, so an unrelated process (even this
+# script's own shell) can false-positive. Require an exact "codegraphcontext"
+# argv token plus an exact "watch" argv token.
+watch_already_running() {
+  local pid="$1"
+  [[ -n "${pid}" ]] || return 1
+  kill -0 "${pid}" 2>/dev/null || return 1
+  local args
+  args="$(tr '\0' '\n' < "/proc/${pid}/cmdline" 2>/dev/null)" || return 1
+  grep -qE '(^|/)codegraphcontext$' <<<"${args}" && grep -qx 'watch' <<<"${args}"
+}
+
+if watch_already_running "$(cat "${WATCH_PID_FILE}" 2>/dev/null)"; then
+  echo "Watcher already running (pid $(cat "${WATCH_PID_FILE}")); leaving it in place."
+else
+  # --poll: inotify is unreliable on Docker Desktop bind mounts (Mac/Windows).
+  # --sync-on-start: reconcile any drift since the last index/watch run.
+  nohup codegraphcontext watch "${INDEX_PATH}" --poll --sync-on-start \
+    >>"${WATCH_LOG_FILE}" 2>&1 &
+  disown
+  echo $! > "${WATCH_PID_FILE}"
+  echo "Started watcher (pid $(cat "${WATCH_PID_FILE}")). Logs: ${WATCH_LOG_FILE}"
+fi
+
+echo ""
+echo "== Registering MCP server with Codex CLI =="
+if command -v codex >/dev/null 2>&1; then
+  if codex mcp get codegraphcontext >/dev/null 2>&1; then
+    echo "Already registered with Codex (~/.codex/config.toml)."
+  else
+    codex mcp add codegraphcontext -- codegraphcontext mcp start
+  fi
+else
+  echo "codex not found on PATH; skipping Codex MCP registration."
+fi
+
+echo ""
+echo "MCP server config:"
+echo "  Claude Code : .mcp.json          (auto-detected on open; approve when prompted)"
+echo "  VS Code     : .vscode/mcp.json"
+echo "  Codex CLI   : ~/.codex/config.toml (registered above, per-user)"
+echo "  cgc defaults: mcp.json           (project env/ignore rules, read by every cgc command)"
+echo ""
+echo "See docs/engineering/devcontainer-mcp-setup.md for indexing/watch details,"
+echo "including how to force a full re-index or restart the watcher."
