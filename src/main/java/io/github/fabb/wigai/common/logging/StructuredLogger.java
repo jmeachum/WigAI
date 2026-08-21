@@ -4,7 +4,6 @@ import io.github.fabb.wigai.common.Logger;
 import io.github.fabb.wigai.common.error.ErrorCode;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -14,7 +13,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class StructuredLogger {
     private final Logger baseLogger;
     private final String component;
-    private final Map<String, String> contextMetadata;
     private final AtomicLong operationIdCounter = new AtomicLong(0);
 
     /**
@@ -26,7 +24,6 @@ public class StructuredLogger {
     public StructuredLogger(Logger baseLogger, String component) {
         this.baseLogger = baseLogger;
         this.component = component;
-        this.contextMetadata = new ConcurrentHashMap<>();
     }
 
     /**
@@ -36,32 +33,6 @@ public class StructuredLogger {
      */
     public Logger getBaseLogger() {
         return baseLogger;
-    }
-
-    /**
-     * Adds persistent context metadata that will be included in all log entries.
-     *
-     * @param key The metadata key
-     * @param value The metadata value
-     */
-    public void addContext(String key, String value) {
-        contextMetadata.put(key, value);
-    }
-
-    /**
-     * Removes context metadata.
-     *
-     * @param key The metadata key to remove
-     */
-    public void removeContext(String key) {
-        contextMetadata.remove(key);
-    }
-
-    /**
-     * Clears all context metadata.
-     */
-    public void clearContext() {
-        contextMetadata.clear();
     }
 
     /**
@@ -329,11 +300,6 @@ public class StructuredLogger {
         // Main message
         formatted.append(" ").append(message);
 
-        // Context metadata
-        if (!contextMetadata.isEmpty()) {
-            formatted.append(" | Context: ").append(contextMetadata.toString());
-        }
-
         return formatted.toString();
     }
 
@@ -381,24 +347,6 @@ public class StructuredLogger {
         public void failure(ErrorCode errorCode, String errorMessage) {
             long duration = System.currentTimeMillis() - startTime;
             logger.logOperationFailure(operationId, operation, duration, errorCode, errorMessage, parameters);
-        }
-
-        /**
-         * Gets the operation duration so far.
-         *
-         * @return Duration in milliseconds
-         */
-        public long getDuration() {
-            return System.currentTimeMillis() - startTime;
-        }
-
-        /**
-         * Gets the operation ID.
-         *
-         * @return The operation correlation ID
-         */
-        public String getOperationId() {
-            return operationId;
         }
 
         /**

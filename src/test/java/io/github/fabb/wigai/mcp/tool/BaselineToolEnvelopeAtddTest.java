@@ -10,6 +10,8 @@ import io.github.fabb.wigai.common.error.BitwigApiException;
 import io.github.fabb.wigai.common.error.ErrorCode;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.features.ClipSceneController;
+import io.github.fabb.wigai.features.ClipLaunchResult;
+import io.github.fabb.wigai.features.SceneLaunchResult;
 import io.github.fabb.wigai.features.DeviceController;
 import io.github.fabb.wigai.features.TransportController;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -191,7 +193,7 @@ class BaselineToolEnvelopeAtddTest {
         ClipSceneController clipSceneController = mock(ClipSceneController.class);
 
         when(clipSceneController.launchClip("Track 1", 0))
-            .thenReturn(ClipSceneController.ClipLaunchResult.success("Clip launched."));
+            .thenReturn(ClipLaunchResult.success("Clip launched."));
 
         McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, logger);
         McpSchema.CallToolResult result = spec.callHandler().apply(
@@ -209,7 +211,7 @@ class BaselineToolEnvelopeAtddTest {
         ClipSceneController clipSceneController = mock(ClipSceneController.class);
 
         when(clipSceneController.launchClip("Track 1", 0))
-            .thenReturn(ClipSceneController.ClipLaunchResult.error("TRACK_NOT_FOUND", "Track missing"));
+            .thenReturn(ClipLaunchResult.error("TRACK_NOT_FOUND", "Track missing"));
 
         McpServerFeatures.SyncToolSpecification spec = ClipTool.launchClipSpecification(clipSceneController, logger);
         McpSchema.CallToolResult result = spec.callHandler().apply(
@@ -226,7 +228,7 @@ class BaselineToolEnvelopeAtddTest {
         ClipSceneController clipSceneController = mock(ClipSceneController.class);
 
         when(clipSceneController.launchSceneByIndex(1))
-            .thenReturn(ClipSceneController.SceneLaunchResult.success("Scene launched."));
+            .thenReturn(SceneLaunchResult.success("Scene launched."));
 
         McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, logger);
         McpSchema.CallToolResult result = spec.callHandler().apply(
@@ -244,7 +246,7 @@ class BaselineToolEnvelopeAtddTest {
         ClipSceneController clipSceneController = mock(ClipSceneController.class);
 
         when(clipSceneController.launchSceneByIndex(1))
-            .thenReturn(ClipSceneController.SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene missing"));
+            .thenReturn(SceneLaunchResult.error("SCENE_NOT_FOUND", "Scene missing"));
 
         McpServerFeatures.SyncToolSpecification spec = SceneTool.launchSceneByIndexSpecification(clipSceneController, logger);
         McpSchema.CallToolResult result = spec.callHandler().apply(
@@ -262,7 +264,7 @@ class BaselineToolEnvelopeAtddTest {
         BitwigApiFacade bitwigApiFacade = mock(BitwigApiFacade.class);
 
         when(clipSceneController.launchSceneByName("Intro"))
-            .thenReturn(ClipSceneController.SceneLaunchResult.success("Scene launched."));
+            .thenReturn(SceneLaunchResult.success("Scene launched."));
         when(clipSceneController.getBitwigApiFacade()).thenReturn(bitwigApiFacade);
         when(bitwigApiFacade.findSceneByName("Intro")).thenReturn(3);
 
@@ -282,7 +284,7 @@ class BaselineToolEnvelopeAtddTest {
         ClipSceneController clipSceneController = mock(ClipSceneController.class);
 
         when(clipSceneController.launchSceneByName("Intro"))
-            .thenReturn(ClipSceneController.SceneLaunchResult.error("SCENE_NOT_FOUND", "Missing"));
+            .thenReturn(SceneLaunchResult.error("SCENE_NOT_FOUND", "Missing"));
 
         McpServerFeatures.SyncToolSpecification spec = SceneByNameTool.launchSceneByNameSpecification(clipSceneController, logger);
         McpSchema.CallToolResult result = spec.callHandler().apply(

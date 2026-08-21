@@ -5,7 +5,7 @@ import io.github.fabb.wigai.bitwig.BitwigApiFacade;
 import io.github.fabb.wigai.common.Logger;
 import io.github.fabb.wigai.common.logging.StructuredLogger;
 import io.github.fabb.wigai.features.ClipSceneController;
-import io.github.fabb.wigai.features.ClipSceneController.SceneLaunchResult;
+import io.github.fabb.wigai.features.SceneLaunchResult;
 import io.github.fabb.wigai.mcp.McpErrorHandlerTestHooks;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;

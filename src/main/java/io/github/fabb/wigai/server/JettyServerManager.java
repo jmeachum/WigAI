@@ -336,15 +336,6 @@ public class JettyServerManager {
     }
 
     /**
-     * Gets the current ServletContextHandler.
-     *
-     * @return The current ServletContextHandler, or null if server is not running
-     */
-    public ServletContextHandler getContextHandler() {
-        return contextHandler;
-    }
-
-    /**
      * Formats a host for use in a URL. IPv6 addresses must be wrapped in brackets.
      *
      * <p>Only brackets actual IPv6 literals (addresses containing colons and consisting of
