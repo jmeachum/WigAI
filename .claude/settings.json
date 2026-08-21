@@ -1,0 +1,67 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew build)",
+      "Bash(./gradlew build --*)",
+      "Bash(./gradlew test)",
+      "Bash(./gradlew test --*)",
+      "Bash(./gradlew check)",
+      "Bash(./gradlew clean)",
+      "Bash(./gradlew compileJava)",
+      "Bash(./gradlew compileTestJava)",
+      "Bash(git *)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh issue view*)",
+      "Bash(gh issue list*)",
+      "Bash(gh run view*)",
+      "Bash(gh run list*)",
+      "Bash(npm *)",
+      "Bash(node *)",
+      "Read(*)",
+      "Edit(src/*)",
+      "Edit(bitwig-api-doc-scraper/*)",
+      "Write(src/*)",
+      "Write(bitwig-api-doc-scraper/*)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | bash)",
+      "Bash(ssh *)",
+      "Bash(> /dev/*)",
+      "Bash(dd *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "c=\"$(jq -r '.tool_input.command // empty')\"; if printf '%s' \"$c\" | grep -qE 'rm -rf|sudo |chmod 777|mkfs|dd if='; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"Potentially destructive command detected.\"}}'; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "c=\"$(jq -r '.tool_input.content // empty')\"; if printf '%s' \"$c\" | grep -qE 'sk-ant-|sk-proj-|ghp_|AKIA'; then printf '{\"decision\":\"block\",\"reason\":\"Possible secret detected in written content (sk-ant-/sk-proj-/ghp_/AKIA pattern) -- remove it before continuing.\"}'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
