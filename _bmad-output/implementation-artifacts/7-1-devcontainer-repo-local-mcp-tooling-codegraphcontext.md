@@ -1,6 +1,6 @@
 # Story 7.1: devcontainer-repo-local-mcp-tooling-codegraphcontext
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -221,6 +221,7 @@ The `.devcontainer/` present in the working tree at the time this story was resc
 - 2026-08-20: Implemented Python 3.12 provisioning, `scripts/mcp/install-codegraphcontext.sh`, and the `.vscode/mcp.json` `codegraphcontext` entry on `implementation/story-7-1`; verified in a rebuilt container.
 - 2026-08-20: Added `.mcp.json` (Claude Code project MCP config) and committed `mcp.json` (codegraphcontext's own project-default config) at repo root; extended repo-local MCP config coverage beyond `.vscode/mcp.json` to Claude Code CLI and, via `~/.codex/config.toml` registration, Codex CLI. `install-codegraphcontext.sh` now indexes `./src` and runs a background `cgc watch` process instead of only printing a manual next-step command. Documented all of this in `docs/engineering/devcontainer-mcp-setup.md` and `README.md`.
 - 2026-08-20: AC 10 (token-usage benchmark) removed and AC 7 relaxed (scripted symbol-resolution check dropped in favor of queryable-indexing verification), per `sprint-change-proposal-2026-08-20.md`. Status moved to `review`.
+- 2026-08-20: Status moved `review` -> `done`. Project lead confirmed the story is complete and accepted it as delivered; no outstanding acceptance criteria remain open.
 
 ### File List
 

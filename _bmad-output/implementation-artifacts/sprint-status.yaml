@@ -123,7 +123,7 @@ development_status:
   6-4-docs-contracts-release-guardrails-refresh: backlog
   epic-6-retrospective: optional
 
-  epic-7: in-progress
-  7-1-devcontainer-repo-local-mcp-tooling-codegraphcontext: review
-  7-2-remove-bmad-framework-tooling: review
+  epic-7: done
+  7-1-devcontainer-repo-local-mcp-tooling-codegraphcontext: done
+  7-2-remove-bmad-framework-tooling: done
   epic-7-retrospective: optional

@@ -1,6 +1,6 @@
 # Story 7.2: Remove BMAD Framework Tooling
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -115,3 +115,4 @@ No JUnit coverage applies — this is a file-removal and documentation change. V
 ### Change Log
 
 - 2026-08-20: Story created and implemented — full `_bmad/` framework removal, dependent command/prompt/agent files removed, documentation updated, build verified green.
+- 2026-08-20: Status moved `review` -> `done`, and Epic 7 closed to `done` in the same change (all its stories are now complete, as the epic rollup rule requires). Project lead confirmed the story is complete and accepted it as delivered.
